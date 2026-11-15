@@ -1,764 +1,532 @@
 # UOL Student Affairs
 ## Master Project Brief
 
-**Product name:** UOL Student Affairs  
-**Product subtitle:** Student Affairs & Engagement Portal  
-**Institution:** The University of Lahore (UOL)  
-**Initial target:** Software Engineering Department  
-**Project type:** Individual BS Software Engineering, fourth-semester academic project  
-**Repository:** https://github.com/azeemworks925-eng/uol-student-affairs  
-**Current phase:** Product discovery and requirements engineering  
-**Document status:** Initial master brief — living document
+**Product name:** UOL Student Affairs
+**Product subtitle:** Student Affairs & Engagement Portal
+**Institution:** The University of Lahore (UOL)
+**Initial target:** Software Engineering Department
+**Project type:** Individual BS Software Engineering fourth-semester academic project
+**Repository:** https://github.com/azeemworks925-eng/uol-student-affairs
+**Current phase:** V1 product workflows confirmed. Django foundation created and tested locally. Product feature implementation not yet started.
+**Document status:** Reconciled on 2026-11-16. Living document.
+
+This is the complete product and engineering brief. The authoritative list of decisions is `DECISIONS.md`; if the two disagree, `DECISIONS.md` wins. IDs in brackets (DEC, O) refer to that file.
 
 ---
 
 # 1. Executive Summary
 
-UOL Student Affairs is a proposed Student Affairs & Engagement Portal intended to improve communication, student engagement, feedback management, advisor coordination, and student affairs workflows at The University of Lahore.
+UOL Student Affairs is a proposed Student Affairs & Engagement Portal intended to improve communication, student engagement, feedback handling, advisor coordination and student affairs workflows at The University of Lahore.
 
-The initial target is the Software Engineering Department, with the possibility of a departmental pilot if the product reaches an appropriate standard and relevant stakeholders support it.
+The initial target is the Software Engineering Department, with the possibility of a departmental pilot if the product reaches an appropriate standard and the relevant stakeholders support it.
 
-The platform is not intended to be merely a complaint submission website. Its broader vision is to provide a structured digital environment through which students can communicate concerns, share suggestions, express appreciation, coordinate with academic advisors, and participate in departmental engagement activities.
+The platform is broader than a complaint submission website. Version 1 gives students four connected workflows:
 
-The project is being developed as an individual fourth-semester BS Software Engineering academic project. However, the ambition extends beyond simply meeting course requirements.
+- **Complaints:** identified, tracked and answered by a responsible Batch Advisor.
+- **Collective issues:** raised by a section's class representatives and supported by its students.
+- **Student Voice:** Ideas, Questions and Feedback.
+- **Meetings:** requested, confirmed and managed through an internal calendar.
 
-We want to build something genuinely useful, secure, maintainable, professional, and sufficiently polished to demonstrate to university stakeholders.
+The project is an individual fourth-semester BS Software Engineering academic project. The ambition goes beyond meeting course requirements: we want something useful, secure, maintainable and polished enough to demonstrate to university stakeholders.
 
-**Important distinction:** This is an independently developed academic project. It is not an officially commissioned, approved, or deployed university system.
+**Important distinction:** This is an independently developed academic project. It is not an officially commissioned, approved or deployed university system. (DEC-001)
 
-# 2. Project Origin and Story
+# 2. Project Origin
 
-The project originated as an individual academic project for the Data Structures and Algorithms (DSA) course during the fourth semester of the BS Software Engineering program at UOL.
+The project originated as an individual academic project for the Data Structures and Algorithms (DSA) course during the fourth semester of the BS Software Engineering programme at UOL.
 
-The initial concept focused on providing students with a better way to communicate feedback and concerns to their academic advisors.
-
-As the idea developed, it became clear that the opportunity could be broader than complaint management alone.
-
-Students and advisors need structured ways to communicate, coordinate, share feedback, and understand recurring departmental concerns.
-
-This led to the broader product direction:
+The initial concept focused on giving students a better way to communicate feedback and concerns to their advisors. As the idea developed, the opportunity proved broader than complaint management alone, which led to the current direction:
 
 **UOL Student Affairs — Student Affairs & Engagement Portal.**
 
-The project gradually evolved from a basic student feedback concept into a proposed platform covering multiple student-affairs workflows.
+We approach it as a real software engineering project: requirements engineering, product design, architecture, implementation, testing, documentation and potential deployment.
 
-We want to approach its development as a real software engineering project, including stakeholder research, requirements engineering, product design, architecture, implementation, testing, documentation, and potential deployment.
+# 3. Stakeholder Input
 
-# 3. Stakeholder Engagement and Initial Validation
+## 3.1 What has been recorded
 
-## 3.1 Batch Advisor Interaction
+The project concept and an initial prototype were presented to a batch advisor from the Software Engineering Department. The advisor:
 
-The project concept and initial prototype were presented to a batch advisor from the Software Engineering Department.
-
-The advisor responded positively to the direction of the project.
-
-The advisor:
 - Liked the concept and its potential usefulness.
 - Encouraged further research with advisors.
 - Expressed willingness to help with departmental deployment if the platform is developed well.
+- Expressed interest in useful, actionable aggregate statistics, not decorative dashboards.
 
-This feedback is encouraging, but it does not constitute formal university approval or a deployment commitment.
+The discussion also highlighted that students currently raise concerns through informal communication channels.
 
-## 3.2 Identified Communication Problem
+This feedback is encouraging. It is not formal university approval and not a deployment commitment.
 
-An initial stakeholder discussion highlighted that students currently raise concerns through informal communication channels.
+## 3.2 Current position on research
 
-This creates an opportunity for a more structured process for submitting, tracking, managing, and understanding student feedback.
+No further stakeholder interviews or surveys are planned at this stage. (DEC-005)
 
-We should investigate this further rather than assume that one workflow will solve every communication problem.
-
-## 3.3 Importance of Meaningful Analytics
-
-The advisor expressed interest in useful, actionable aggregate statistics rather than decorative dashboards.
-
-Potentially useful breakdowns include:
-- Complaint distribution by category.
-- Complaint distribution by section.
-- Percentages and trends that help identify recurring concerns.
-
-Aggregate reporting should not expose individual students or compromise anonymity.
-
-The exact metrics, filters, time periods, and chart types remain undecided.
-
-## 3.4 Further Stakeholder Research
-
-Further advisor research is needed.
-
-We should investigate:
-- How advisors currently receive student concerns.
-- How they prioritize and follow up on concerns.
-- What makes an issue urgent.
-- What information they need to manage their sections.
-- How students currently request meetings.
-- What communication problems occur repeatedly.
-- What information advisors would find useful in reports.
-- What privacy and confidentiality expectations exist.
-
-Do not invent interview findings. Record actual stakeholder responses separately and distinguish observations from assumptions.
+The points in 3.1 come from a single conversation. They are observations, not validated research findings. Never invent stakeholder feedback.
 
 # 4. Product Vision
 
-Our vision is to develop a centralized, student-focused engagement platform that makes communication between students and their academic department more structured, accessible, and manageable.
+Our vision is a centralised, student-focused engagement platform that makes communication between students and their department more structured, accessible and manageable.
 
-The product should support more than submitting complaints.
+The product should feel like one cohesive platform, not several unrelated forms inside a dashboard.
 
-Its broader purpose includes:
+## 4.1 Product principles
 
-1. Student feedback and concerns.
-2. Anonymous complaint submission and follow-up.
-3. Suggestions and appreciation.
-4. Student-advisor interaction.
-5. Meeting coordination.
-6. Advisor workload and priority management.
-7. Useful departmental insights through aggregate analytics.
-8. Appropriate administrative oversight.
-
-The product should feel like a cohesive platform rather than several unrelated forms placed inside one dashboard.
-
-## 4.1 Product Principles
-
-The product should be:
-
-- Student-centered.
+- Student-centred.
 - Easy to understand.
 - Privacy-conscious.
 - Responsive across devices.
 - Professionally designed.
 - Secure by default.
 - Maintainable and extensible.
-- Grounded in real stakeholder needs.
 
-We should prioritize genuine usability over unnecessary feature count.
+We prioritise usability over feature count.
 
-# 5. Target Users and Roles
-
-The initial product direction identifies the following roles.
+# 5. Users and Roles
 
 ## 5.1 Students
 
-Students are the primary users of the platform.
+- Sign in with Google and self-register. (DEC-010, DEC-012)
+- Become active immediately, with no individual Super Admin approval. (DEC-012)
+- See only their own complaints, Student Voice submissions and meetings. (DEC-229, DEC-253, DEC-261)
+- Cannot submit profile correction requests. (DEC-202)
 
-They should be able to access student-facing workflows after verifying their UOL university email.
+## 5.2 Class Representatives: CR and GR
 
-Students declare their own:
-- Name.
-- Department.
-- Batch.
-- Section.
+- Every section has exactly one CR and one GR. GR means Girls Representative. (DEC-016)
+- They are existing student accounts with additional permissions, not separate account types or login systems. (DEC-016)
+- CR and GR have identical permissions and responsibilities and keep their normal student permissions. (DEC-240)
+- A student can hold only one representative assignment, for one section. (DEC-240)
+- They cannot see individual complaints, private Student Voice submissions or other students' meeting details. (DEC-246)
 
-Student section assignment will not be automatically determined using SAP IDs.
+## 5.3 Batch Advisors (BA)
 
-There is no manual student account approval requirement in the current design.
-
-## 5.2 Academic Advisors
-
-Advisors are responsible for handling student concerns and participating in relevant student-affairs workflows.
-
-Advisor accounts require manual approval by the Super Admin.
-
-The Super Admin assigns sections to advisors.
-
-Multiple advisors may serve the same section.
-
-Advisors need appropriate visibility into the students and workflows assigned to them, subject to approved permission rules.
-
-## 5.3 Class Representatives
-
-There is one active CR per section in Version 1.
-
-The precise CR responsibilities, permissions, account lifecycle, and relationship with advisors require further definition.
+- Accounts are created by the Super Admin. There is no self-registration or application process. (DEC-013)
+- Access is determined by explicit assignments. A BA sees only assigned sections. (DEC-015)
+- A BA can have multiple sections and semesters. Sections can be split among BAs, and several BAs can be assigned to one section. Assignments can change, and the existing BA structure is not hardcoded. (DEC-204)
+- BAs can assign and replace the CR and GR of their assigned sections. (DEC-245)
 
 ## 5.4 Super Admin
 
-The Super Admin handles:
-- Advisor account approval.
-- Advisor section assignments.
-- Relevant administrative oversight.
+- The Super Admin is the Head of Batch Advisors and has department-wide oversight. (DEC-014)
+- Creates BA accounts and assigns their semesters and sections. (DEC-013)
+- Manages the academic structure and complaint categories. (DEC-020, DEC-220)
+- Corrects student information and updates students' semester and section. (DEC-202, DEC-021)
+- Can manage CR/GR assignments. (DEC-245)
+- The initial Super Admin account is configured securely through a bootstrap process. (DEC-203)
 
-A separate department-admin portal is not included in Version 1.
+There is no separate department-admin, Administrator or HOD portal in V1. (DEC-082)
 
-The complete Super Admin permission model remains to be designed.
+# 6. Version 1 Workflows
 
-# 6. Confirmed Functional Decisions
+## 6.1 Authentication and registration
 
-The following decisions have already been established and should not be silently changed.
+- Authentication is Google OAuth. All roles use one shared Google login page. (DEC-010)
+- There is no role selector. Django checks the authenticated Google identity against the user records in MySQL and directs the user to the correct dashboard. (DEC-200)
+- Student emails follow the exact format of an eight-digit SAP ID followed by `@student.uol.edu.pk`. The SAP ID is extracted from the verified email. (DEC-011)
+- Student registration collects full name, batch, semester and section. Department defaults to Software Engineering. There is no Morning/Evening field. (DEC-201)
+- The Super Admin creates each BA account by entering the teacher's name and official UOL email. BAs then use the same Google login page. (DEC-013)
 
-## 6.1 Student Authentication
+Open technical items: domain enforcement and verification (O2), OAuth library and credentials (O3), bootstrap mechanism (O26).
 
-- Students verify their UOL university email using OTP.
-- Students declare their name, department, batch, and section.
-- SAP ID will not be used for automatic section assignment.
-- Students do not require manual account approval.
+## 6.2 Academic structure and student records
 
-The OTP delivery provider and detailed verification rules remain undecided.
+- Batches, semesters and sections are database-managed. The Super Admin can add, edit and deactivate entries. (DEC-020)
+- Deactivating an entry preserves its associated students and historical records. (DEC-210)
+- There is no automatic semester promotion. The Super Admin manually updates students' semester and section. (DEC-021)
+- Student profile changes are audited. (DEC-211)
+- Deactivating a student is a soft delete. It preserves historical records and revokes representative permissions. (DEC-212)
 
-## 6.2 Advisor Authentication and Approval
+## 6.3 Complaints
 
-- Advisor accounts require manual Super Admin approval.
-- Super Admin assigns sections to advisors.
-- Multiple advisors may serve the same section.
+**Submission**
 
-Detailed advisor onboarding and permission rules remain open.
+- Complaints are identified and linked to student accounts. There are no anonymous complaints or secret access codes. (DEC-030)
+- The main categories initially include Academic, Non-academic, Personal/Wellbeing and Other. Categories and subcategories are managed by the Super Admin. (DEC-220)
+- A duplicate warning may be shown, but duplicate submissions are not blocked. (DEC-225)
+- Each complaint receives a unique reference ID. (DEC-031)
 
-## 6.3 Anonymous Complaints
+**Tracking**
 
-Anonymous complaints are an important part of the product.
+- Students follow their complaints in an authenticated My Submissions view, with status history and advisor responses. (DEC-031)
+- Statuses are Received, Under Review, Resolved and Rejected. (DEC-221)
+- A rejection reason is mandatory and visible to the student. A resolution note is mandatory. (DEC-221)
+- After resolution, the student can indicate "Still not resolved", which returns the complaint to Under Review. (DEC-222)
+- Students can add further information without losing the original description or history. (DEC-223)
+- Students can request cancellation but cannot delete a complaint. (DEC-224)
 
-Confirmed decisions:
+**Handling**
 
-- Students can submit complaints anonymously.
-- Anonymous complaints are accessed using a reference number and secret access code.
-- Anonymous complaints are not linked to student accounts.
-- Complaints concerning the Administrator or HOD should be directed to the appropriate official university channel.
+- Complaints are routed to BAs based on section assignments. (DEC-227)
+- All BAs assigned to a section can see its complaints. One designated BA is the responsible owner of each complaint. (DEC-227)
+- The Super Admin can open, review, reassign, take over and respond to any complaint. (DEC-228)
+- There are no priority levels, priority queues or overdue indicators. (DEC-226)
 
-The complete anonymous complaint lifecycle still needs to be designed.
+**Boundaries**
 
-Important questions include:
-- How are reference numbers generated?
-- How are secret access codes generated and stored securely?
-- How can a student safely retrieve an existing complaint?
-- How are advisor responses delivered?
-- How are attachments handled, if supported?
-- What happens when a complaint is resolved?
-- How do we prevent unauthorized access?
-- What information can advisors see?
+- There is no special routing hierarchy for complaints against administrators or the Super Admin in V1. (DEC-230)
+- Handling of a complaint about a student's own BA is deliberately outside current requirements. (DEC-231)
 
-Do not assume answers to these questions without discussion.
+Open workflow details: how the responsible BA is designated (O27); how a cancellation request is handled and recorded (O28).
 
-## 6.4 Suggestions and Appreciation
+## 6.4 CR/GR collective issues
 
-Suggestions and appreciation are separate submission types.
+**Raising and supporting**
 
-Each has its own simple status workflow.
+- Either representative can independently raise a collective issue for their own section. (DEC-040)
+- The issue appears on the home page of students in that section. (DEC-241)
+- A student can support an issue once. Support cannot be withdrawn or changed. CR/GR can support their own issue. (DEC-241)
+- There are no student comments. (DEC-241)
+- Published issues cannot be edited or deleted by CR/GR in V1. (DEC-242)
 
-Their exact statuses, handling rules, and visibility permissions remain to be specified.
+**Advisor response**
 
-## 6.5 Meetings
+- The BA receives the issue, can update its status, and provides a short official response. (DEC-243, DEC-244)
+- The response is private to CR/GR. Other students cannot see it. (DEC-243)
+- Statuses are Received, Under Review and Resolved. A resolution note is mandatory and private to CR/GR. (DEC-244)
+- After the advisor responds, the issue disappears from student home pages. CR/GR keep the issue and the private response in their dashboard. The underlying record and support count are preserved. (DEC-243)
+- The Super Admin has department-wide oversight. (DEC-247)
 
-Students and advisors should be able to coordinate meetings.
+**Representative assignments**
 
-The established workflow includes:
-- Meeting proposal.
-- Confirmation.
-- Rescheduling.
+- BAs can assign and replace CR/GR for their assigned sections. The Super Admin can also manage assignments. (DEC-245)
 
-Cancellation, rejection, availability management, reminders, and other details remain open.
+## 6.5 Student Voice
 
-## 6.6 Advisor Dashboard
+- Exactly three types: Ideas, Questions and Feedback. (DEC-050)
+- Student Voice replaces the previous Suggestions and Appreciation submission types. (DEC-250)
+- Submissions are typed text, with no tracking ID. (DEC-251)
+- Ideas and Feedback are reviewed by the relevant BA. An individual response is not mandatory. (DEC-252)
+- A Question receives one official BA answer, visible beside the question. (DEC-051)
+- There is no chat or follow-up messaging. (DEC-052)
+- Submissions are private to the submitting student, the relevant BA and the Super Admin. Other students and CR/GR cannot see them. (DEC-253)
+- The Super Admin has oversight of all submissions, handled through the relevant BA workflow. There is no dedicated Student Voice section on the Super Admin dashboard. (DEC-254)
 
-The advisor dashboard should include three priority queues under a section named:
+## 6.6 Meetings
 
-**Needs Attention**
+- A student can request a meeting with their assigned BA, giving a reason and preferred availability. (DEC-060)
+- The BA can accept/confirm, suggest another time, or decline with a reason. (DEC-060)
+- A BA can also invite students. (DEC-260)
+- A BA can view and manage meetings involving assigned students, and can schedule, reschedule and cancel them. (DEC-260)
+- The BA calendar has month, week and day views. (DEC-061)
+- It is an internal portal calendar, not a Google Calendar integration. (DEC-061)
+- Students see only their own meetings: date, time, location and status. (DEC-261)
+- CR/GR cannot see other students' meeting details. (DEC-246)
+- The Super Admin has department-wide meeting oversight. (DEC-262)
+- There is no chat. (DEC-263)
 
-The exact queue names, priority rules, sorting logic, and transitions have not yet been decided.
-
-Do not invent the three queues.
+Open workflow detail: meeting status names, and whether a student can cancel or ask to reschedule a confirmed meeting (O29).
 
 ## 6.7 Notifications
 
-In-platform notifications are planned for Version 1.
+- In-app notifications only. No email notifications in V1. (DEC-070)
+- Events include:
+  - Complaint status changes and advisor responses.
+  - Official answers to Student Voice questions.
+  - Meeting confirmation, rescheduling and cancellation.
+  - New CR/GR issues in the student's section.
+- Each notification links to the relevant record. (DEC-270)
 
-Email and external notification channels have not been approved as requirements.
+## 6.8 Dashboards
 
-## 6.8 Administration
+**Student dashboard** (DEC-282)
 
-- Super Admin manages advisor approval and section assignments.
-- A separate department-admin portal is excluded from Version 1.
+1. Your Actions: pending complaint updates, unanswered questions, meeting requests.
+2. Section Updates: active CR/GR issues awaiting student support.
+3. Quick Access: Submit Complaint, Student Voice and My Meetings.
+
+There are no general university or department announcements in V1. (DEC-083)
+
+**BA dashboard** (DEC-283)
+
+- Compact overview.
+- Actionable complaint inbox with search and filters.
+- Complaint details.
+- CR/GR issues.
+- Meeting calendar.
+- Useful section statistics.
+- The section filter defaults to All Assigned Sections.
+
+**Super Admin dashboard** (DEC-284)
+
+- Overview.
+- Students.
+- Batch Advisors.
+- CR/GR management.
+- Configuration.
+- Calendar.
+- Department-wide oversight.
 
 ## 6.9 Analytics
 
-Analytics should provide meaningful aggregate information.
+- BAs see statistics for their assigned sections. The Super Admin sees department-wide statistics. (DEC-280)
+- Useful analytics include complaint categories and percentages, section-wise complaint distribution, and resolved versus unresolved complaints. (DEC-281)
+- No individual student names appear in aggregate charts, and aggregate reporting must not expose individual identities. (DEC-090)
+- No meaningless decorative charts. (DEC-090)
 
-Potential breakdowns include:
-- Complaint categories.
-- Sections.
-- Percentages and other useful summaries.
+Open: privacy thresholds where small groups could reveal identities (O25).
 
-Analytics should support decision-making rather than merely decorate dashboards.
+# 7. Scope Boundaries
 
-Individual student privacy must be protected.
+Not included in Version 1:
 
-Exact reporting requirements remain open.
+- Anonymous complaints and secret access codes. (DEC-030)
+- Attachments. (DEC-080)
+- A public social feed. (DEC-081)
+- Student comments on collective issues. (DEC-241)
+- Chat or follow-up messaging. (DEC-052, DEC-263)
+- Email or other external notifications. (DEC-070)
+- General university or department announcements. (DEC-083)
+- Complaint priority levels, priority queues and overdue indicators. (DEC-226)
+- Automatic semester promotion. (DEC-021)
+- Google Calendar integration. (DEC-061)
+- A separate department-admin, Administrator or HOD portal. (DEC-082)
+- Special routing for complaints against administrators or the Super Admin. (DEC-230)
+- A university-wide deployment. (DEC-002)
 
-# 7. Scope and Product Boundaries
+New features can be proposed. They require discussion and the owner's approval before they become requirements.
 
-## 7.1 Initial Version 1 Direction
+# 8. Design Philosophy and User Experience
 
-The initial version should focus on delivering the essential student and advisor experience.
+Design is a core product concern, not a final styling exercise. (DEC-120)
 
-The established functional areas are:
+## 8.1 Direction
 
-- Student email verification.
-- Student profiles and declared academic information.
-- Advisor accounts and approval.
-- Advisor section assignments.
-- Anonymous complaints.
-- Suggestions.
-- Appreciation.
-- Student-advisor meeting coordination.
-- Advisor priority queues.
-- In-platform notifications.
-- Useful aggregate analytics.
-- Super Admin functionality.
+Modern, clean, professional, consistent, intuitive, accessible, responsive and trustworthy, with a recognisable visual identity connected to UOL.
 
-This is an initial scope direction, not a fully finalized requirements specification.
+## 8.2 UOL branding
 
-## 7.2 Explicit Boundaries
+We intend to use appropriate UOL branding. Official brand assets and guidelines must be researched and validated before the interface is finalised (O18). Do not invent an official palette or present unofficial choices as UOL standards.
 
-Do not assume the following are included in Version 1:
+## 8.3 Mobile-first
 
-- A separate department-admin portal.
-- SAP ID-based automatic student assignment.
-- A university-wide deployment.
-- External notification services.
-- Complex enterprise infrastructure.
-- Features not supported by stakeholder research or approved requirements.
+The interface must work well on phones, tablets, laptops and desktops. Many students may use the platform mainly on their phones.
 
-New features can be proposed, but require discussion and approval.
-
-# 8. Design Philosophy and User Experience Ambition
-
-Design is a core product concern, not a final styling exercise.
-
-We want UOL Student Affairs to look and feel like a polished, professionally developed university platform.
-
-## 8.1 Overall Design Direction
-
-The intended qualities are:
-
-- Modern.
-- Clean.
-- Professional.
-- Consistent.
-- Intuitive.
-- Accessible.
-- Responsive.
-- Trustworthy.
-
-The product should have a recognizable visual identity connected to UOL.
-
-## 8.2 UOL Branding
-
-We intend to use appropriate UOL branding, including its logo, colors, and visual identity.
-
-Official brand assets and exact design guidelines need to be researched and validated before finalizing the interface.
-
-Do not invent an official university brand palette or claim that unofficial design choices are official UOL standards.
-
-## 8.3 Mobile-First Design
-
-The interface must work well on:
-- Mobile phones.
-- Tablets.
-- Laptops.
-- Desktop screens.
-
-Mobile usability is particularly important for students who may primarily access the platform using their phones.
-
-## 8.4 Interface Quality
+## 8.4 Interface quality
 
 We want:
+
 - Consistent spacing and typography.
 - Clear information hierarchy.
-- Reusable interface components.
+- Reusable components.
 - Intuitive navigation.
-- Thoughtful dashboards.
-- Meaningful visualizations.
 - Clear form validation.
-- Helpful empty states.
-- Useful loading and error states.
+- Helpful empty, loading and error states.
 - Accessible contrast and readable text.
-- Consistent design across all user roles.
+- A consistent experience across all roles.
 
-Avoid:
-- Generic dashboard templates without product-specific thinking.
+We avoid:
+
+- Generic dashboard templates.
 - Excessive gradients and decorative effects.
-- Unnecessary animations.
-- Cluttered interfaces.
-- Inconsistent components.
-- Charts that do not communicate meaningful information.
-- Interfaces that look attractive but are difficult to use.
+- Unnecessary animation.
+- Cluttered layouts.
+- Charts that communicate nothing.
 
-## 8.5 Design Process
+## 8.5 Design process
 
-Before implementing major interfaces:
+Before implementing a major interface:
 
 1. Identify the user and their objective.
 2. Understand the workflow.
-3. Establish information hierarchy.
-4. Explore appropriate layouts.
+3. Establish the information hierarchy.
+4. Explore layouts.
 5. Discuss visual direction.
 6. Agree on the design.
 7. Implement reusable components.
 8. Review on mobile and desktop.
 
-We want to explore design references and professional UI patterns rather than immediately settle for the first generated layout.
-
-The precise design system has not yet been approved.
+The contents of each dashboard are confirmed (section 6.8). The design system and visual references are not yet approved (O18).
 
 # 9. Technical Direction
 
-The currently agreed technology stack is:
-
 | Area | Technology |
 |---|---|
-| Language | Python 3.13 |
-| Backend | Django 5.2 LTS |
-| Database target | MySQL 8.4 LTS |
+| Language | Python 3.13 (3.13.15 installed) |
+| Backend | Django 5.2 LTS (5.2.19 installed) |
+| Database | MySQL. Development on the existing MySQL Server 8.0.44. |
+| Authentication | Google OAuth (library not yet chosen) |
+| Configuration | `.env` loaded with python-dotenv |
 | Frontend rendering | Django Templates |
 | Structure and styling | HTML and CSS |
-| Client-side behavior | Vanilla JavaScript |
+| Client-side behaviour | Vanilla JavaScript |
 | UI framework | Bootstrap 5.3 |
-| Dynamic interactions | HTMX when useful |
-| Version control | Git and GitHub |
+| Dynamic interactions | HTMX only where genuinely useful |
 | Testing | Django testing framework and pytest |
-| Development IDE | Visual Studio Code |
+| Version control | Git and GitHub |
+| IDE | Visual Studio Code |
 | Database management | MySQL Workbench |
+| AI-assisted implementation | Claude Code |
 
-## 9.1 Architectural Philosophy
+## 9.1 Architectural philosophy
 
-We prefer a straightforward, maintainable Django application.
+A straightforward, maintainable Django application. No microservices, Kubernetes, separate Node.js backend, React, Next.js or Redis without a justified proposal and approval. (DEC-101)
 
-Avoid unnecessary complexity such as:
-- Microservices.
-- Kubernetes.
-- A separate Node.js backend.
-- React or Next.js as an initial requirement.
-- Unnecessary infrastructure dependencies.
+## 9.2 Database and environment
 
-Architecture decisions should be based on actual requirements, not technology trends.
-
-## 9.2 Existing Environment Constraints
-
-Development takes place on Windows 11.
-
-The machine currently has MySQL Server 8.0.44 installed and running.
-
-Existing databases belonging to another academic project must be preserved:
-
-- `db_final_group_project_working`
-- `db_final_group_project`
-
-Do not upgrade, uninstall, reset, overwrite, or modify the existing MySQL installation or these databases without explicit permission and verified backups.
-
-The safe approach to using the intended MySQL 8.4 target must be evaluated before implementation.
-
-Never commit credentials, API keys, secret keys, or `.env` files.
+- Development takes place on Windows 11.
+- The project uses its own database, `uol_student_affairs` (utf8mb4), on the existing MySQL Server 8.0.44, through an application user whose privileges are limited to that database. (DEC-290)
+- The existing MySQL 8.0.44 installation must be preserved. (DEC-102)
+- The databases `db_final_group_project_working` and `db_final_group_project` belong to another academic project and must never be modified or deleted. (DEC-102)
+- MySQL 8.4 LTS remains a future evaluation and target question (O19). It is not installed, and upgrading the existing server is not approved. (DEC-100)
+- Secrets are loaded from `.env`; `.env.example` contains placeholders only. Secrets are never committed or written into documentation. (DEC-291, DEC-103)
 
 # 10. Security and Privacy Principles
 
-Security is especially important because the platform may handle confidential student concerns.
+Complaints are identified and linked to student accounts, so the platform holds records that connect named students to their concerns. Protecting those records is a central requirement.
 
-The system should follow appropriate Django security practices.
+Confirmed access rules:
 
-Areas requiring careful design include:
+- Students see only their own complaints, Student Voice submissions and meetings.
+- BAs see only their explicitly assigned sections.
+- CR/GR gain only representative permissions and cannot see individual complaints, private Student Voice submissions or other students' meetings.
+- Advisor responses to collective issues are private to CR/GR.
+- The Super Admin has department-wide oversight.
+- Student profile changes are audited.
+- Deactivation preserves history.
+- Aggregate reporting must not expose individual identities.
 
-- Authentication.
-- Authorization.
-- Role-based permissions.
-- Advisor section-level access.
-- Anonymous complaint confidentiality.
-- Secure secret-code handling.
-- Input validation.
-- CSRF protection.
+Areas requiring careful technical design:
+
+- Google OAuth and restriction to permitted accounts.
+- Enforcement of every access rule above on the server.
+- Secure bootstrap of the initial Super Admin.
+- Input validation and CSRF protection.
 - Session management.
-- Password and credential storage.
 - Sensitive information in logs.
-- Secure file uploads if attachments are introduced.
-- Protection against unauthorized access to complaint records.
+- Storage of OAuth credentials and other secrets.
 
-Privacy should be considered during requirements and architecture design, not added after implementation.
-
-The precise threat model and security requirements remain to be developed.
+The detailed threat model and security testing plan are still to be developed (O22).
 
 # 11. AI-Assisted Development Strategy
 
-We intend to use two independent AI collaborators and Claude Code.
+## 11.1 Roles
 
-## 11.1 ChatGPT
+| Collaborator | Responsibilities |
+|---|---|
+| ChatGPT | Requirements analysis, planning, architectural critique, security review, explanations, independent evaluation of Claude's proposals. |
+| Claude | Independent product brainstorming, design exploration, requirements challenges, technical recommendations, implementation planning, critical evaluation of ChatGPT's suggestions. |
+| Claude Code | Implementation, file editing, testing, debugging, and Git operations with the owner's approval. |
+| Project owner | The only person authorised to approve product decisions. Sets priorities, gives final acceptance, and learns and understands the code. |
 
-Primary responsibilities:
-- Product planning.
-- Requirements engineering.
-- Critical analysis.
-- Architecture review.
-- Security considerations.
-- Explaining technical decisions.
-- Independent evaluation of Claude's proposals.
+The two AI collaborators are meant to give independent perspectives. Neither should simply agree with the other.
 
-## 11.2 Claude
-
-Primary responsibilities:
-- Independent product brainstorming.
-- Product and design strategy.
-- Identifying overlooked requirements.
-- UI/UX exploration.
-- Architecture proposals.
-- Technical recommendations.
-- Critical evaluation of ChatGPT's suggestions.
-- Development planning.
-
-Claude should not simply agree with ChatGPT.
-
-We want independent thinking and reasoned disagreement.
-
-## 11.3 Claude Code
-
-Primary responsibilities:
-- Working with the local codebase.
-- Implementing approved features.
-- Editing project files.
-- Running tests.
-- Debugging.
-- Reviewing code changes.
-- Supporting Git operations with the owner's approval.
-
-## 11.4 Human Project Owner
-
-The project owner:
-- Makes final decisions.
-- Approves requirements.
-- Approves design direction.
-- Approves architecture.
-- Reviews significant implementation.
-- Learns and understands the code.
-- Approves Git operations and changes.
-
-## 11.5 Collaboration Cycle
-
-Our intended workflow:
+## 11.2 Collaboration cycle
 
 1. Identify a product problem or feature.
 2. Discuss it with ChatGPT.
 3. Give Claude the same context for an independent proposal.
-4. Compare both perspectives.
-5. Challenge assumptions and evaluate alternatives.
-6. Make a decision as the project owner.
-7. Update project documentation.
-8. Give Claude Code the approved specification.
-9. Implement incrementally.
-10. Test and review.
-11. Commit and push verified work.
+4. Compare both perspectives and challenge assumptions.
+5. The owner decides.
+6. Update `DECISIONS.md` and the affected documents.
+7. Give Claude Code the approved specification.
+8. Implement incrementally.
+9. Test and review.
+10. Commit and push verified work.
 
-Do not begin major implementation merely because an idea sounds good.
+## 11.3 Shared context
+
+The GitHub repository is the canonical source of truth. (DEC-004)
+
+Context documents are changed in the repository first, through a reviewed commit. The exact committed versions are then copied to the Claude Project knowledge and shared with ChatGPT. No collaborator treats an uncommitted draft as current context.
 
 # 12. GitHub and Engineering Workflow
 
-Repository:
+Repository: https://github.com/azeemworks925-eng/uol-student-affairs
 
-https://github.com/azeemworks925-eng/uol-student-affairs
-
-GitHub is intended to remain updated throughout development.
-
-We want a professional and understandable development history.
-
-Rules:
-
-- Keep `main` stable.
+- Keep `main` stable and tested.
 - Use feature branches for substantial features.
-- Make small, meaningful commits.
-- Test changes before merging.
+- Make logical, meaningful commits.
+- Review changes before committing.
+- Test before merging.
 - Push meaningful, verified work during every working session.
 - Do not create artificial commits.
-- Do not push knowingly broken code to `main`.
+- Never push knowingly broken work to `main`.
 - Never commit secrets.
 
 Example commit messages:
 
-- `docs: add master project brief`
-- `docs: define complaint workflows`
-- `feat: implement student email verification`
-- `fix: prevent duplicate complaint submissions`
-- `test: add anonymous complaint workflow tests`
+- `docs: reconcile project context with confirmed decisions`
+- `feat: implement Google sign-in`
+- `fix: prevent duplicate support on collective issues`
+- `test: add complaint workflow tests`
 - `security: enforce advisor section permissions`
 
-The owner wants to understand Git operations, not blindly execute commands.
+The owner wants to understand each Git operation, not run commands blindly.
 
-# 13. Development Roadmap
+# 13. Current Status
 
-The following is a proposed roadmap, not a rigid schedule.
+Three things are kept distinct.
 
-## Phase 1 — Product Discovery and Requirements
+**1. Django foundation: created and tested locally**
 
-- Establish product vision.
-- Review stakeholder feedback.
-- Conduct additional advisor research.
-- Identify student and advisor needs.
-- Define functional requirements.
-- Define non-functional requirements.
-- Identify privacy and security expectations.
-- Clarify Version 1 scope.
-- Document unresolved decisions.
+- Windows 11 development environment.
+- Python 3.13.15 and Django 5.2.19.
+- MySQL Server 8.0.44, with the database `uol_student_affairs` created with utf8mb4.
+- Application database user with privileges limited to the project database.
+- Django project structure created with `manage.py` and `config`.
+- Custom `accounts.User` model created.
+- Initial accounts migration generated and applied.
+- Settings load secrets from `.env` using python-dotenv; `.env.example` exists with placeholders.
+- Django system check passed; database connection and migrations verified.
 
-## Phase 2 — Product Design and UX
+**2. Product features: not yet implemented**
 
-- Establish design philosophy.
-- Research UOL branding.
-- Identify user journeys.
-- Design information architecture.
-- Explore interface references.
-- Create wireframes.
-- Develop a consistent UI design system.
-- Review responsive layouts.
+The foundation is not a complete application. No business workflow or user-facing feature has been implemented.
 
-## Phase 3 — System Design
+**3. Commit and push status**
 
-- Define application architecture.
-- Design database entities and relationships.
-- Establish permission boundaries.
-- Define workflows and state transitions.
-- Review security architecture.
-- Document important technical decisions.
+Whether the foundation work has been committed and pushed is not recorded in this brief. Confirm it with `git status` and `git log`, then replace this paragraph with the actual state.
 
-## Phase 4 — Development Foundation
+# 14. Development Roadmap
 
-- Establish a safe Python and Django environment.
-- Finalize the MySQL development setup.
-- Configure project settings.
-- Establish environment variable handling.
-- Set up Git branches and development practices.
-- Configure testing.
+A proposed roadmap, not a fixed schedule.
 
-## Phase 5 — Incremental Implementation
+| Phase | Content | State |
+|---|---|---|
+| 1. Requirements | V1 product workflows, roles and boundaries. | Confirmed. Three workflow details remain (O27 to O29). |
+| 2. Development foundation | Environment, Django project, database, custom user model, secrets handling. | Created and tested locally. |
+| 3. System design | App structure, database schema, permission enforcement, state transitions, threat model. | Next (O20, O22). |
+| 4. Product design and UX | UOL brand research, user journeys, wireframes, design system, responsive review. | To do (O18). |
+| 5. Incremental implementation | One feature at a time. Each has confirmed requirements, acceptance criteria, an implementation plan, tests, a code review and updated documentation. | Not started. |
+| 6. Quality assurance | Functional, permission, security, responsive, usability and regression testing. | Not started. |
+| 7. Demonstration and potential pilot | README, screenshots, setup instructions, architecture diagrams, demonstration. Any pilot requires approval from the appropriate university stakeholders. | Not started. |
 
-Build features in logically grouped stages.
+Phases 3 and 4 can overlap, and implementation can begin on features whose requirements and design are ready.
 
-Each feature should have:
-- An approved specification.
-- Clear acceptance criteria.
-- An implementation plan.
-- Appropriate tests.
-- A code review.
-- Updated documentation.
+# 15. Open Items
 
-## Phase 6 — Quality Assurance
+Product workflows are settled. The complete list of remaining items is in `DECISIONS.md`, section 5.
 
-- Functional testing.
-- Permission testing.
-- Security testing.
-- Responsive design testing.
-- Usability testing.
-- Regression testing.
-- Stakeholder feedback.
+**Technical implementation choices**
 
-## Phase 7 — Demonstration and Potential Pilot
+- Domain enforcement and verification for students and staff (O2).
+- Google OAuth library, client setup and credential handling (O3).
+- Bootstrap mechanism for the initial Super Admin (O26).
+- Django app structure and database schema (O20).
+- Design system, official UOL brand assets and visual references (O18).
+- Threat model and security testing plan (O22).
+- Deployment, hosting, backups and recovery (O21).
+- Future MySQL 8.4 evaluation (O19).
+- Project licence (O23).
+- Privacy thresholds for small groups in analytics (O25).
 
-Prepare:
-- Professional documentation.
-- A polished README.
-- Screenshots and demonstrations.
-- Setup instructions.
-- Architecture diagrams.
-- A demonstration suitable for academic evaluation and stakeholder discussion.
+**Workflow details needing a short answer from the owner**
 
-Any departmental pilot would require appropriate university stakeholder approval.
+- How the responsible or relevant BA is chosen when a section has several BAs (O27).
+- How a complaint cancellation request is handled and recorded (O28).
+- Meeting status names, and whether a student can cancel or ask to reschedule a confirmed meeting (O29).
 
-# 14. Open Decisions and Research Areas
-
-These areas must not be treated as finalized.
-
-## Product and Requirements
-- Detailed student journeys.
-- Detailed advisor workflows.
-- Exact complaint categories.
-- Complaint statuses and transitions.
-- Suggestion and appreciation statuses.
-- Meeting cancellation and rejection rules.
-- CR responsibilities.
-- Complete role and permission boundaries.
-
-## Anonymous Complaints
-- Reference-number format.
-- Secret access-code generation and storage.
-- Complaint retrieval process.
-- Advisor response mechanism.
-- Confidentiality boundaries.
-- Retention and archival rules.
-
-## Advisor Dashboard
-- Names and definitions of the three priority queues.
-- Queue entry and exit rules.
-- Priority calculations.
-- Sorting and filtering.
-
-## Authentication
-- OTP email provider.
-- OTP expiration and resend rules.
-- Rate limiting.
-- Verification abuse prevention.
-- Advisor onboarding details.
-
-## Analytics
-- Exact metrics.
-- Filters and time periods.
-- Visualization types.
-- Privacy thresholds and aggregation rules.
-
-## Design
-- Official UOL branding assets.
-- Final color palette.
-- Typography.
-- Navigation structure.
-- Dashboard layouts.
-- Component library and design tokens.
-
-## Technical
-- Safe MySQL 8.4 environment.
-- Final database architecture.
-- Detailed Django application structure.
-- Deployment environment.
-- Hosting and operational requirements.
-- Backup and recovery strategy.
-
-Do not resolve these automatically. Research, discuss, and obtain approval.
-
-# 15. Immediate Priorities
-
-At the time of writing, the project is still in planning.
-
-The initial local repository contains:
-
-- `.gitignore`
-- `README.md`
-- `PROJECT_CONTEXT.md`
-
-The initial documentation commit has already been pushed to GitHub.
-
-Application implementation has not started.
-
-Our immediate priorities are:
-
-1. Give all AI collaborators a consistent understanding of the project.
-2. Conduct an independent strategic review with Claude.
-3. Critically evaluate Claude's recommendations with ChatGPT.
-4. Refine the product vision.
-5. Identify gaps in stakeholder research.
-6. Establish a clear design philosophy.
-7. Define the Version 1 requirements.
-8. Develop system architecture only when requirements are sufficiently clear.
-
----
+Open items are resolved when the work reaches them. They do not block features they do not affect.
 
 # 16. Instructions to AI Collaborators
 
-Read this document together with `PROJECT_CONTEXT.md` and `README.md`.
+Read this document together with `PROJECT_CONTEXT.md`, `DECISIONS.md` and `DEVELOPMENT_LOG.md`.
 
-Treat this brief as a consolidated introduction, not as permission to invent requirements.
-
-When reviewing the project:
-
-- Preserve all confirmed decisions.
-- Identify contradictions if you find any.
-- Separate facts from assumptions.
-- Identify missing stakeholder evidence.
-- Challenge weak product ideas.
-- Recommend improvements with reasons.
-- Explain trade-offs.
+- Preserve all CONFIRMED decisions. Do not reopen settled product decisions.
+- Never treat an OPEN item as decided.
+- Never invent requirements, stakeholder feedback or implementation progress.
+- Separate confirmed product decisions from technical implementation choices.
+- Challenge weak ideas and explain trade-offs, clearly labelled as proposals.
 - Avoid unnecessary technical complexity.
-- Do not begin implementation yet.
-
-We want an independent and honest assessment.
-
-Our ambition is to create a high-quality product that is useful to students and advisors, technically sound, professionally designed, and suitable for a possible departmental pilot.
+- Implement a feature only when its requirements are confirmed, and never claim it works without testing it.
 
 **Think like a product team building a real university platform, while respecting the realities of an individual academic project.**

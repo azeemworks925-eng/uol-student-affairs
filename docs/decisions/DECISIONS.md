@@ -1,0 +1,264 @@
+# UOL Student Affairs — Decision Register
+
+**Purpose:** The authoritative record of what has been decided, what has been replaced, and what is still open.
+**Last reconciled:** 2026-11-16
+**Canonical location:** This file in the GitHub repository. If any other document or copy disagrees with this file, this file wins.
+
+## How to read this file
+
+| Status | Meaning |
+|---|---|
+| CONFIRMED | Agreed by the project owner. Do not change without the owner's approval. |
+| SUPERSEDED | An older decision that has been replaced. Kept for history only. |
+| OUT OF SCOPE | Deliberately left outside V1 or outside current requirements. Do not reopen without the owner. |
+| OPEN | Not decided. Do not assume an answer. |
+
+Rules for every collaborator (human or AI):
+
+- Only the project owner can approve a product decision.
+- Never resolve an OPEN item by assumption.
+- When a decision changes, mark the old entry SUPERSEDED, add or revise the new entry, and record the change in `DEVELOPMENT_LOG.md`.
+- IDs are permanent labels. They are never reused or renumbered. IDs DEC-001 to DEC-120 date from the first reconciliation; IDs from DEC-200 were added in the second. "(revised)" marks an earlier entry whose wording was extended.
+
+---
+
+## 1. CONFIRMED decisions
+
+### 1.1 Product and governance
+
+| ID | Decision |
+|---|---|
+| DEC-001 | UOL Student Affairs is an independently developed academic project. It is not commissioned, approved or deployed by The University of Lahore, and must never be described as such. |
+| DEC-002 | The initial target is the Software Engineering Department. |
+| DEC-003 | The project owner makes all final product and architecture decisions. AI collaborators propose, challenge and explain; they do not approve. |
+| DEC-004 | The GitHub repository is the canonical source of truth for project context. Copies used by Claude Desktop, Claude Code and ChatGPT must mirror the committed versions. |
+| DEC-005 | No further stakeholder interviews or surveys are planned at this stage. |
+
+### 1.2 Authentication and accounts
+
+| ID | Decision |
+|---|---|
+| DEC-010 (revised) | Authentication is Google OAuth. All roles use one shared Google login page. |
+| DEC-200 | There is no role selector. Django checks the authenticated Google identity against the user records in MySQL and directs the user to the correct dashboard. |
+| DEC-011 (revised) | Student emails follow the exact format of an eight-digit SAP ID followed by `@student.uol.edu.pk`. The SAP ID is extracted from the verified student email. |
+| DEC-201 | Student registration collects full name, batch, semester and section. Department defaults to Software Engineering. There is no Morning/Evening field. |
+| DEC-012 (revised) | Students self-register after Google login and become active immediately. There is no individual Super Admin approval. |
+| DEC-202 | Students cannot submit profile correction requests. The Super Admin can correct student information. |
+| DEC-014 | The Super Admin is the Head of Batch Advisors and has department-wide oversight. |
+| DEC-203 | The initial Super Admin account must be configured securely through a bootstrap process. |
+| DEC-013 (revised) | The Super Admin creates Batch Advisor (BA) accounts by entering the teacher's name and official UOL email, then assigning semesters and sections. There is no BA self-registration or application process. BAs use the same Google login page. |
+| DEC-204 | A BA can have multiple sections and semesters. Sections can be split among BAs. Multiple BAs can be assigned to one section. Assignments can change. The existing BA structure must not be hardcoded. |
+| DEC-015 (revised) | BA access is determined by explicit assignments. BAs see only their assigned sections. |
+| DEC-016 (revised) | Every section has exactly one CR and one GR. GR means Girls Representative. They are existing student accounts with additional permissions, not separate account types or login systems. |
+
+### 1.3 Academic structure and student records
+
+| ID | Decision |
+|---|---|
+| DEC-020 (revised) | Batches, semesters and sections are database-managed. The Super Admin can add, edit and deactivate academic structure entries. |
+| DEC-210 | Deactivating an academic structure entry preserves its associated students and historical records. |
+| DEC-021 (revised) | There is no automatic semester promotion. The Super Admin manually updates students' semester and section. |
+| DEC-211 | Student profile changes are audited. |
+| DEC-212 | Deactivating a student is a soft delete. It preserves historical records and revokes representative permissions. |
+
+### 1.4 Complaints
+
+| ID | Decision |
+|---|---|
+| DEC-030 | Complaints are identified and linked to student accounts. There are no anonymous complaints and no secret access codes. |
+| DEC-031 (revised) | Each complaint receives a unique reference ID. Students have an authenticated "My Submissions" view with status history and advisor responses. |
+| DEC-220 | The main categories initially include Academic, Non-academic, Personal/Wellbeing and Other. Categories and subcategories are dynamically managed by the Super Admin. |
+| DEC-221 | Statuses are Received, Under Review, Resolved and Rejected. A rejection reason is mandatory and visible to the student. A resolution note is mandatory. |
+| DEC-222 | After resolution, a student can indicate "Still not resolved", which returns the complaint to Under Review. |
+| DEC-223 | Students can add further information without losing the original description or history. |
+| DEC-224 | Students can request cancellation but cannot delete complaints. |
+| DEC-225 | A duplicate complaint warning is allowed. Duplicate submissions are not blocked. |
+| DEC-226 | There are no complaint priority levels, no three priority queues and no 15-day overdue indicator. |
+| DEC-227 | Complaints are routed to BAs based on section assignments. All BAs assigned to a section can see its complaints, but one designated BA is the responsible owner of each individual complaint. |
+| DEC-228 | The Super Admin can open, review, reassign, take over and respond to any complaint. |
+| DEC-229 | Students see only their own complaints. BAs see only complaints from their assigned sections. |
+| DEC-230 | There is no special complaint-routing hierarchy for complaints against administrators or the Super Admin in V1. |
+
+### 1.5 CR/GR collective issues
+
+| ID | Decision |
+|---|---|
+| DEC-040 (revised) | CR/GR have a separate collective issue workflow. Either representative can independently raise a collective issue for their own section. |
+| DEC-240 | CR and GR have identical permissions and responsibilities and retain normal student permissions. A student can hold only one representative assignment, for one section. |
+| DEC-245 | BAs can assign and replace the CR and GR of their assigned sections. The Super Admin can also manage these assignments. |
+| DEC-241 | A collective issue appears on the home page of students in that section. A student can support an issue once. Support cannot be withdrawn or changed. CR/GR can support their own issue. There are no student comments. |
+| DEC-242 | Published issues cannot be edited or deleted by CR/GR in V1. |
+| DEC-243 | The BA receives the issue and responds privately to the CR/GR. Other students cannot see the advisor's response. After the advisor responds, the issue disappears from student home pages. CR/GR retain the issue and the private response in their dashboard. The underlying record and support count are preserved. |
+| DEC-244 | Statuses are Received, Under Review and Resolved. The BA can update the status and provide a short official response. A resolution note is mandatory and private to CR/GR. |
+| DEC-246 | CR/GR cannot see individual complaints, private Student Voice submissions or other students' meeting details. |
+| DEC-247 | The Super Admin has department-wide oversight of collective issues. |
+
+### 1.6 Student Voice
+
+| ID | Decision |
+|---|---|
+| DEC-050 | Student Voice has exactly three types: Ideas, Questions and Feedback. |
+| DEC-250 | Student Voice replaces the previous Suggestions and Appreciation submission types. |
+| DEC-251 | Submissions are typed text. There is no tracking ID. |
+| DEC-252 | Ideas and Feedback are reviewed by the relevant BA. An individual response is not mandatory. |
+| DEC-051 (revised) | A Question receives one official BA answer, visible beside the question. |
+| DEC-052 | There is no chat or follow-up messaging. |
+| DEC-253 | Submissions are private to the submitting student, the relevant BA and the Super Admin. Other students and CR/GR cannot see them. |
+| DEC-254 | The Super Admin has oversight of all submissions. There is no dedicated Student Voice section on the Super Admin dashboard; it is handled through the relevant BA workflow. |
+
+### 1.7 Meetings
+
+| ID | Decision |
+|---|---|
+| DEC-060 (revised) | Students can request a meeting with their assigned BA, giving a reason and preferred availability. The BA can accept/confirm, suggest another time, or decline with a reason. |
+| DEC-260 | A BA can also invite students. A BA can view and manage meetings involving assigned students, and can schedule, reschedule and cancel meetings. |
+| DEC-061 (revised) | The BA calendar has month, week and day views. It is an internal portal calendar, not a Google Calendar integration. |
+| DEC-261 | Students see only their own meetings: date, time, location and status. |
+| DEC-262 | The Super Admin has department-wide meeting oversight. |
+| DEC-263 | There is no chat in the meeting workflow. |
+
+### 1.8 Notifications
+
+| ID | Decision |
+|---|---|
+| DEC-070 (revised) | Notifications are in-app only. There are no email notifications in V1. |
+| DEC-270 | Notification events include: complaint status changes and advisor responses; official answers to Student Voice questions; meeting confirmation, rescheduling and cancellation; and new CR/GR issues in the student's section. Notifications link to the relevant record. |
+
+### 1.9 Analytics and dashboards
+
+| ID | Decision |
+|---|---|
+| DEC-090 (revised) | Analytics must be useful, not decorative. Aggregate reporting must not expose individual student identities; no individual student names appear in aggregate charts. |
+| DEC-280 | BAs see statistics for their assigned sections. The Super Admin sees department-wide statistics. |
+| DEC-281 | Useful analytics include complaint categories and percentages, section-wise complaint distribution, and resolved versus unresolved complaints. |
+| DEC-282 | Student dashboard: (1) Your Actions: pending complaint updates, unanswered questions, meeting requests. (2) Section Updates: active CR/GR issues awaiting student support. (3) Quick Access: Submit Complaint, Student Voice and My Meetings. |
+| DEC-283 | BA dashboard: compact overview, actionable complaint inbox, search and filters, complaint details, CR/GR issues, meeting calendar and useful section statistics. The section filter defaults to All Assigned Sections. |
+| DEC-284 | Super Admin dashboard: overview, students, Batch Advisors, CR/GR management, configuration, calendar and department-wide oversight. |
+
+### 1.10 V1 exclusions
+
+| ID | Decision |
+|---|---|
+| DEC-080 | No attachments in V1. |
+| DEC-081 | No public social feed in V1. |
+| DEC-082 | No separate department-admin, Administrator or HOD portal in V1. |
+| DEC-083 | No general university or department announcements in V1. |
+
+Other exclusions are stated where they belong: anonymous complaints (DEC-030), priority levels, queues and overdue indicator (DEC-226), chat (DEC-052, DEC-263), email notifications (DEC-070), automatic promotion (DEC-021), Google Calendar integration (DEC-061), student comments on collective issues (DEC-241).
+
+### 1.11 Technology and environment
+
+| ID | Decision |
+|---|---|
+| DEC-100 (revised) | Stack: Python 3.13, Django 5.2 LTS, MySQL, Django Templates, HTML, CSS, vanilla JavaScript, Bootstrap 5.3, HTMX only where genuinely useful, Django testing framework and pytest, Git and GitHub. Development currently runs on the existing MySQL Server 8.0.44. MySQL 8.4 LTS remains a future evaluation and target question (O19); it is not installed, and upgrading the existing server is not approved. |
+| DEC-101 | No React, Next.js, separate Node.js backend, microservices, Kubernetes, Redis or similar infrastructure without a justified proposal and owner approval. |
+| DEC-102 | The existing MySQL Server 8.0.44 installation must be preserved. The other academic project's databases, `db_final_group_project_working` and `db_final_group_project`, must never be modified or deleted. |
+| DEC-290 | The project uses its own database, `uol_student_affairs` (utf8mb4), with an application database user whose privileges are limited to that database. |
+| DEC-103 | Secrets (passwords, API keys, OAuth client secrets, the Django secret key, `.env` contents) are never committed and never written into documentation. |
+| DEC-291 | Django settings load secrets from `.env` using python-dotenv. `.env.example` contains placeholders only. |
+
+### 1.12 Process and design
+
+| ID | Decision |
+|---|---|
+| DEC-110 | Git workflow: `main` stays stable and tested, feature branches for substantial features, logical conventional commits, review before commit, no artificial commits. |
+| DEC-111 | Development cycle: Understand → Research → Design → Discuss → Approve → Document → Implement → Test → Review. |
+| DEC-120 | Design is a core product concern: mobile-first, responsive, consistent components, clear hierarchy, accessible, connected to UOL's visual identity. No generic dashboard templates, excessive gradients or unnecessary animation. |
+
+---
+
+## 2. OUT OF SCOPE by decision
+
+| ID | Item |
+|---|---|
+| DEC-231 | How a complaint about a student's own Batch Advisor is handled. This edge case has deliberately been left outside current requirements and is not to be reopened. |
+| DEC-230 | Special routing for complaints against administrators or the Super Admin (see 1.4). |
+
+---
+
+## 3. SUPERSEDED decisions
+
+| ID | Old decision | Replaced by |
+|---|---|---|
+| SUP-01 | Students verify their UOL email using an OTP. | DEC-010 |
+| SUP-02 | Withdrawn from this list. The original decision, that SAP ID is not used to assign a student's section automatically, still holds: section is declared at registration (DEC-201). What changed is that the SAP ID is now extracted from the email (DEC-011). | — |
+| SUP-03 | Students can submit complaints anonymously, accessed by reference number and secret access code, not linked to student accounts. | DEC-030, DEC-031 |
+| SUP-04 | Advisor accounts are approved by the Super Admin after an advisor requests one. | DEC-013 |
+| SUP-05 | The Super Admin assigns sections to advisors. | DEC-013, DEC-204 (semesters and sections) |
+| SUP-06 | The Super Admin role is not tied to a specific position. | DEC-014 |
+| SUP-07 | One active CR per section, responsibilities undefined. | DEC-016, DEC-040, DEC-240 |
+| SUP-08 | Attachments undecided. | DEC-080 |
+| SUP-09 | Further advisor research is required before requirements are finalised. | DEC-005 |
+| SUP-10 | The role name "Academic Advisor". | "Batch Advisor (BA)" |
+| SUP-11 | FastAPI backend (from the earlier Student Voice Portal concept). | DEC-100 |
+| SUP-12 | Suggestions and Appreciation are separate submission types, each with a simple status workflow. | DEC-250 |
+| SUP-13 | Students declare their name, department, batch and section. | DEC-201 (full name, batch, semester and section; department defaults) |
+| SUP-14 | Complaints concerning the Administrator or HOD are directed to the appropriate official university channel. | DEC-230 |
+| SUP-15 | The advisor dashboard has three priority queues under "Needs Attention". | DEC-226, DEC-283 |
+| SUP-16 | A 15-day overdue indicator (from the earlier Student Voice Portal concept). | DEC-226 |
+
+---
+
+## 4. Resolution of previously open items
+
+Kept for traceability. These items appeared as NEEDS CONFIRMATION (Q) or OPEN (O) in the first reconciliation.
+
+| Old ID | Question | Outcome |
+|---|---|---|
+| Q1 | Does Student Voice replace Suggestions and Appreciation? | Yes. DEC-250 |
+| Q2 | What do students declare at registration? | DEC-201, DEC-011 |
+| Q3 | Rule on complaints about the Administrator or HOD | Out of scope for V1. DEC-230 |
+| Q4 | Multiple advisors per section | Yes. DEC-204, DEC-227 |
+| Q5 | Three priority queues | Not included. DEC-226 |
+| Q6 | 15-day overdue indicator | Not included. DEC-226 |
+| O1 | Sign-in for BAs and the Super Admin; first Super Admin | DEC-010, DEC-200, DEC-013, DEC-203. The bootstrap mechanism itself remains open as O26. |
+| O2 | Domain enforcement | Still open (technical). See section 5. |
+| O3 | OAuth implementation | Still open (technical). See section 5. |
+| O4 | How students change semester or section | DEC-021 |
+| O5 | CR/GR lifecycle and the meaning of GR | DEC-016, DEC-240, DEC-245 |
+| O6 | Collective issue visibility and support | DEC-241, DEC-243 |
+| O7 | Student Voice visibility and answers | DEC-051, DEC-252, DEC-253, DEC-254 |
+| O8 | The "did not solve" mechanism | DEC-222, DEC-223 |
+| O9 | Complaint ownership with several advisors | DEC-227, DEC-228. How the owner is designated remains open as O27. |
+| O10 | Complaints about a student's own BA | Out of scope. DEC-231 |
+| O11 | Calendar scope | DEC-061, DEC-261 |
+| O12 | Complaint categories and statuses | DEC-220, DEC-221 |
+| O13 | Statuses for collective issues and Student Voice | Collective issues: DEC-244. No status workflow has been specified for Student Voice. |
+| O14 | Meeting rules | DEC-060, DEC-260. Remaining details are open as O29. |
+| O15 | Notification events | DEC-270 |
+| O16 | Analytics | DEC-090, DEC-280, DEC-281. Privacy thresholds remain open as O25. |
+| O17 | Role and permission matrix | Settled at the product level by DEC-015, DEC-228, DEC-229, DEC-240, DEC-245, DEC-246, DEC-253, DEC-261 and DEC-262. |
+| O24 | What the early prototype was | Not a blocker. A minor gap in the historical record only. |
+
+---
+
+## 5. OPEN items
+
+Product workflows are settled by section 1. What remains falls into two groups.
+
+### 5.1 Technical implementation choices
+
+These do not change what the product does. They are resolved during design and implementation, with the owner's approval where a new dependency or risk is involved.
+
+| ID | Open item |
+|---|---|
+| O2 | Technical verification and domain enforcement for students and staff: how the email format is enforced, how staff accounts are verified, and confirmation that the relevant UOL accounts work with Google sign-in. |
+| O3 | The Google OAuth library and implementation details; OAuth client setup; secure handling of the client credentials. |
+| O26 | The exact bootstrap mechanism for the initial Super Admin account (DEC-203). |
+| O20 | Final Django app structure and database schema. |
+| O18 | Final design system, official UOL brand assets and validated visual references. |
+| O22 | Detailed threat model and security testing plan. |
+| O21 | Deployment, hosting, backups and recovery. |
+| O19 | Whether and how to move to MySQL 8.4 in future, without touching the existing 8.0.44 installation (DEC-102). |
+| O23 | Project licence. |
+| O25 | Privacy thresholds for aggregate analytics where small groups could reveal identities. |
+
+### 5.2 Workflow details not covered by the confirmed decisions
+
+These are gaps found while reconciling, not reopened decisions. Each needs a short answer from the owner before the related feature is built.
+
+| ID | Open item |
+|---|---|
+| O27 | In a section with several BAs: how the responsible BA for a complaint is designated (DEC-227), and which BA is the "relevant" or "assigned" BA for collective issues, Student Voice and meeting requests. |
+| O28 | How a complaint cancellation request (DEC-224) is acted on and recorded, given that the statuses are Received, Under Review, Resolved and Rejected (DEC-221). |
+| O29 | Meeting status names, and whether a student can cancel or ask to reschedule a meeting that has been confirmed. |
