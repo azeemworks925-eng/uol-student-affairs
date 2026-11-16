@@ -4,6 +4,7 @@
 <main id="main" class="sa-auth" tabindex="-1">
   <div class="sa-auth-card{% block card_class %}{% endblock %}">
     <a class="sa-wordmark" href="{% url 'account_login' %}"><small>UOL</small><span>Student Affairs</span></a>
+    {% include "includes/messages.html" %}
     {% block content %}{% endblock %}
   </div>
 </main>

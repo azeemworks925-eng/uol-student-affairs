@@ -1,7 +1,7 @@
 {# Account menu. Profile and appearance join it as those features are built (DESIGN_PLAN.md 3). #}
 <div class="dropdown{% if dropup %} dropup{% endif %}">
-  <button class="{{ button_class|default:'sa-account-btn' }}" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu for {{ user.get_full_name }}">
-    <span class="sa-avatar">{{ user.get_full_name|slice:":1"|upper }}</span>
+  <button class="{{ button_class|default:'sa-account-btn' }}" type="button" data-bs-toggle="dropdown" aria-expanded="false"{% if not show_name %} aria-label="Account menu for {{ user.get_full_name }}"{% endif %}>
+    <span class="sa-avatar" aria-hidden="true">{{ user.get_full_name|slice:":1"|upper }}</span>
     {% if show_name %}<span class="meta">{{ user.get_full_name }}<span>{{ user.get_role_display }}</span></span>{% endif %}
   </button>
   <div class="dropdown-menu {{ menu_class }}">

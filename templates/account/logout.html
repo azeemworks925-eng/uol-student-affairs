@@ -1,0 +1,13 @@
+{% extends "layouts/auth.html" %}
+{# Reached only when a signed-in user opens the sign-out address directly; the menus sign out with a POST. #}
+{% block title %}Sign out · UOL Student Affairs{% endblock %}
+{% block content %}
+  <span class="sa-eyebrow">Sign out</span>
+  <h1 class="sa-display">Sign out of Student Affairs?</h1>
+  <form method="post" action="{% url 'account_logout' %}" class="panel">
+    {% csrf_token %}
+    {{ redirect_field }}
+    <button type="submit" class="btn btn-sa-primary btn-lg w-100">Sign out</button>
+  </form>
+  <p class="note mt-3"><a href="{% url 'home' %}">Stay signed in</a></p>
+{% endblock %}

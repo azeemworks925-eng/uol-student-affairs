@@ -55,6 +55,7 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
 a { color: var(--sa-accent); text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 :focus-visible { outline: 2px solid var(--sa-focus); outline-offset: 2px; box-shadow: none !important; }
+#main:focus { outline: none; } /* focused only by the skip link; the content itself is the target */
 .skip-link { position: absolute; left: 12px; top: -48px; z-index: 100; padding: 8px 12px; border-radius: 8px; background: var(--sa-ink); color: #fff; }
 .skip-link:focus { top: 12px; color: #fff; }
 svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
@@ -96,6 +97,13 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
 .invalid-feedback { display: block; color: var(--sa-negative); font-size: 13px; margin-top: 6px; }
 .form-text { color: var(--sa-muted); font-size: 13px; }
 
+/* Messages (sign-in, sign-out). Calm notices, not empty states. */
+.sa-messages { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; }
+.sa-message { padding: 12px 16px; border: 1px solid var(--sa-border-strong); border-left: 3px solid var(--sa-accent); border-radius: 10px; background: var(--sa-surface); font-size: 14px; }
+.sa-message--error { border-left-color: var(--sa-negative); }
+.sa-auth .sa-messages { margin: 0 0 clamp(12px, 3vh, 20px); }
+@media (max-width: 767.98px) { .sa-page > .sa-messages { margin-top: 16px; } }
+
 /* Empty states */
 .sa-empty { display: flex; gap: 14px; align-items: flex-start; padding: 18px 20px; border: 1px dashed var(--sa-border-strong); border-radius: 14px; background: var(--sa-surface); }
 .sa-empty svg { color: var(--sa-muted); margin-top: 2px; }
@@ -105,8 +113,8 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
 /* ---------- Application shell ---------- */
 .sa-app { display: grid; grid-template-columns: var(--sa-sidebar-w) minmax(0, 1fr); min-height: 100vh; }
 .sa-app--rail { grid-template-columns: 72px minmax(0, 1fr); }
-.sa-main { min-width: 0; display: flex; flex-direction: column; }
-.sa-page { width: 100%; max-width: 1120px; margin: 0 auto; padding: clamp(16px, 3vh, 24px) clamp(24px, 3.5vw, 48px) 56px; }
+.sa-main { min-width: 0; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+.sa-page { flex: 1 0 auto; width: 100%; max-width: 1120px; margin: 0 auto; padding: clamp(16px, 3vh, 24px) clamp(24px, 3.5vw, 48px) 56px; }
 .sa-page--wide { max-width: 1240px; }
 
 .sa-wordmark { display: flex; align-items: baseline; gap: 6px; color: var(--sa-heading); text-decoration: none !important; }
@@ -135,7 +143,7 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
 .sa-rail-link:hover { background: var(--sa-subtle); color: var(--sa-ink); }
 .sa-rail-link[aria-current="page"] { color: var(--sa-ink); background: var(--sa-subtle); }
 .sa-rail-link[aria-current="page"]::before { content: ""; position: absolute; left: -14px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--sa-ink); }
-.sa-rail-link[aria-disabled="true"] { color: var(--sa-border-strong); cursor: default; }
+.sa-rail-link[aria-disabled="true"] { color: var(--sa-disabled); cursor: default; }
 .sa-rail-link[aria-disabled="true"]:hover { background: transparent; }
 
 /* Account menu (sidebar foot, rail foot, mobile header). */
@@ -146,19 +154,23 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
 .sa-account-btn .meta { min-width: 0; }
 .sa-account-btn .meta span { display: block; color: var(--sa-muted); }
 .dropdown-menu { --bs-dropdown-border-color: var(--sa-border); --bs-dropdown-border-radius: 12px; --bs-dropdown-link-active-bg: var(--sa-subtle); --bs-dropdown-link-active-color: var(--sa-ink); --bs-dropdown-font-size: 14px; box-shadow: 0 12px 32px rgba(22, 32, 28, .12); padding: 6px; }
-.dropdown-item { border-radius: 8px; padding: 8px 12px; }
+.dropdown-item { border-radius: 8px; padding: 11px 12px; }
 .dropdown-header { color: var(--sa-muted); font-size: 12px; }
 
 /* Mobile header and bottom navigation (DEC-304: four student destinations, no "More"). */
 .sa-mobilebar { display: none; }
 .sa-bottomnav { display: none; }
 .offcanvas { --bs-offcanvas-width: 300px; --bs-offcanvas-bg: var(--sa-surface); }
+.offcanvas:focus, .offcanvas:focus-visible { outline: none; } /* Bootstrap focuses the panel to contain focus; its controls show their own focus */
+.offcanvas .sa-nav-link { min-height: 44px; }
+.offcanvas .btn-close { box-sizing: border-box; width: 44px; height: 44px; padding: 0; background-size: 14px; }
 
 @media (max-width: 767.98px) {
   .sa-app, .sa-app--rail { display: block; }
   .sa-sidebar, .sa-rail { display: none; }
   .sa-page { padding: 0 16px 24px; }
   .sa-mobilebar { position: sticky; top: 0; z-index: 1020; display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 56px; padding: 0 8px 0 16px; background: rgba(245, 247, 245, .94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--sa-border); }
+  .sa-mobilebar .sa-wordmark { padding: 12px 0; }
   .sa-mobilebar .sa-wordmark span { font-size: 19px; }
   .sa-iconbtn { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: transparent; color: var(--sa-ink); }
   .sa-bottomnav { position: sticky; bottom: 0; z-index: 1020; display: grid; grid-template-columns: repeat(4, 1fr); height: 64px; padding-bottom: env(safe-area-inset-bottom); background: var(--sa-surface); border-top: 1px solid var(--sa-border); }
@@ -176,6 +188,7 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
 .sa-auth .sa-display { font-size: var(--sa-display-l); margin: 10px 0 12px; }
 .sa-auth .panel { margin-top: clamp(16px, 3vh, 24px); padding: clamp(18px, 3vh, 24px); background: var(--sa-surface); border: 1px solid var(--sa-border); border-radius: 16px; }
 .sa-auth .note { font-size: 13px; color: var(--sa-muted); margin: 12px 0 0; }
+.sa-auth .note .btn-link { font-size: inherit; padding: 10px 2px; margin: -10px 0; } /* larger hit area, same line */
 .sa-google { width: 100%; }
 
 /* ---------- Student home (Design D) ---------- */

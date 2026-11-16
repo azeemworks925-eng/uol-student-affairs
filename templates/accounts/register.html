@@ -5,7 +5,7 @@
 {% block content %}
   <span class="sa-eyebrow">One-time registration</span>
   <h1 class="sa-display">Complete your registration.</h1>
-  <p class="sa-lede">Signed in as <b>{{ user.email }}</b>. <span class="soft">Your SAP ID, <span class="sa-ref sa-ref--inline">{{ sap_id }}</span>, is taken from this address.</span></p>
+  <p class="sa-lede">Signed in as <b>{{ user.email }}</b>. {% if sap_id %}<span class="soft">Your SAP ID, <span class="sa-ref sa-ref--inline">{{ sap_id }}</span>, is taken from this address.</span>{% endif %}</p>
   <form method="post" class="panel" novalidate>
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="invalid-feedback mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
@@ -22,6 +22,6 @@
   </form>
   <form method="post" action="{% url 'account_logout' %}" class="note mt-3">
     {% csrf_token %}
-    Not you? <button type="submit" class="btn btn-link p-0 align-baseline">Sign out</button>
+    Not you? <button type="submit" class="btn btn-link align-baseline">Sign out</button>
   </form>
 {% endblock %}

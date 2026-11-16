@@ -15,9 +15,9 @@
     <nav class="sa-quick" aria-label="Quick access">
       {% for item in quick_access %}
         {% if item.url %}
-          <a class="sa-quick-item{% if item.primary %} sa-quick-item--primary{% endif %}" href="{{ item.url }}"><span class="ic"><svg class="sa-i"><use href="#i-{{ item.icon }}"/></svg></span><span><b>{{ item.label }}</b><span class="d">{{ item.description }}</span></span><svg class="sa-i" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          <a class="sa-quick-item{% if item.primary %} sa-quick-item--primary{% endif %}" href="{{ item.url }}"><span class="ic"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></span><span><b>{{ item.label }}</b><span class="d">{{ item.description }}</span></span><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>
         {% else %}
-          <span class="sa-quick-item" role="link" aria-disabled="true"><span class="ic"><svg class="sa-i"><use href="#i-{{ item.icon }}"/></svg></span><span><b>{{ item.label }}</b><span class="d">Available soon</span></span><span></span></span>
+          <span class="sa-quick-item" role="link" aria-disabled="true"><span class="ic"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></span><span><b>{{ item.label }}</b><span class="d">Available soon</span></span><span></span></span>
         {% endif %}
       {% endfor %}
     </nav>
@@ -27,7 +27,7 @@
 <section class="sa-section" aria-labelledby="updates-title">
   <div class="sa-section-head"><h2 class="sa-h2" id="updates-title">Your latest updates</h2></div>
   <div class="sa-empty">
-    <svg class="sa-i" aria-hidden="true"><use href="#i-inbox"/></svg>
+    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
     <div><p class="title">No updates yet.</p><p class="sa-muted sa-small">Replies to your complaints, answers in Student Voice and meeting changes will appear here.</p></div>
   </div>
 </section>
@@ -35,7 +35,7 @@
 <section class="sa-board" aria-labelledby="board-title">
   <div class="intro"><span class="sa-eyebrow">Your section</span><h2 class="sa-display" id="board-title">What your section is raising</h2></div>
   <div class="sa-empty">
-    <svg class="sa-i" aria-hidden="true"><use href="#i-hand"/></svg>
+    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-hand"/></svg>
     <div><p class="title">No open issues in your section.</p><p class="sa-muted sa-small">When your CR or GR raises an issue for {{ cohort_label }}, you can support it here.</p></div>
   </div>
 </section>

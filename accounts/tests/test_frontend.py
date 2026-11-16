@@ -206,3 +206,104 @@ class AuthLayoutTests(TestCase):
     def test_valid_form_has_no_error_attributes(self):
         form = StudentRegistrationForm()
         self.assertNotIn("aria-invalid", str(form["full_name"]))
+
+
+class RoleNavigationScopeTests(TestCase):
+    """Each role's shell lists only its own destinations. Views still enforce access (test_permissions)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.academics = make_academics()
+        cls.student = make_student(academics=cls.academics)
+        cls.advisor = make_advisor(cohorts=[cohort(cls.academics)])
+        cls.admin = make_super_admin()
+
+    def page(self, user, url_name):
+        self.client.force_login(user)
+        return self.client.get(reverse(url_name)).content.decode()
+
+    def test_student_shell_has_no_staff_destinations(self):
+        html = self.page(self.student, "student_home")
+        self.assertNotIn("/admin/", html)
+        for label in ("Collective Issues", "Representatives", "Statistics", "Batch Advisors", "CR/GR Management"):
+            self.assertNotIn(label, html)
+
+    def test_advisor_shell_has_no_super_admin_destinations(self):
+        html = self.page(self.advisor, "advisor_home")
+        self.assertNotIn("/admin/", html)
+        for label in ("Oversight", "Configuration", "Batch Advisors", "CR/GR Management", "Complaint Categories"):
+            self.assertNotIn(label, html)
+
+    def test_hidden_navigation_is_not_the_only_barrier(self):
+        self.client.force_login(self.student)
+        for name in ("advisor_home", "super_admin_home"):
+            self.assertNotEqual(self.client.get(reverse(name)).status_code, 200)
+        self.assertNotEqual(self.client.get(reverse("admin:index")).status_code, 200)
+        self.client.force_login(self.advisor)
+        self.assertNotEqual(self.client.get(reverse("super_admin_home")).status_code, 200)
+        self.assertNotEqual(self.client.get(reverse("admin:index")).status_code, 200)
+
+    def test_anonymous_visitors_get_no_shell(self):
+        for name in ("student_home", "advisor_home", "super_admin_home", "student_register"):
+            response = self.client.get(reverse(name))
+            self.assertEqual(response.status_code, 302)
+            self.assertTrue(response["Location"].startswith(reverse("account_login")))
+
+    def test_navigation_is_a_landmark_and_icons_are_decorative(self):
+        for user, name in ((self.student, "student_home"), (self.advisor, "advisor_home"), (self.admin, "super_admin_home")):
+            with self.subTest(page=name):
+                html = self.page(user, name)
+                if user == self.advisor:
+                    self.assertIn('<nav class="sa-rail" aria-label="Main navigation">', html)
+                else:
+                    self.assertIn('<nav aria-label="Main navigation">', html)
+                svgs = re.findall(r"<svg class=\"sa-i\"[^>]*>", html)
+                self.assertTrue(svgs)
+                self.assertTrue(all('aria-hidden="true"' in tag for tag in svgs), svgs)
+
+
+class SignInFlowPageTests(TestCase):
+    """django-allauth pages a user can reach use the portal layout, not allauth's default."""
+
+    def assert_portal_page(self, response, text):
+        self.assertTemplateUsed(response, "layouts/auth.html")
+        self.assertContains(response, text, status_code=response.status_code)
+        self.assertNotContains(response, "Menu:", status_code=response.status_code)
+
+    def test_login_cancelled(self):
+        self.assert_portal_page(self.client.get(reverse("socialaccount_login_cancelled")), "Sign-in cancelled.")
+
+    def test_login_error(self):
+        response = self.client.get(reverse("socialaccount_login_error"))
+        self.assertEqual(response.status_code, 401)
+        self.assert_portal_page(response, "Sign-in did not complete.")
+
+    def test_account_inactive(self):
+        self.assert_portal_page(self.client.get(reverse("account_inactive")), "This account is inactive.")
+
+    def test_sign_out_confirmation_posts_and_shows_message(self):
+        self.client.force_login(make_super_admin())
+        response = self.client.get(reverse("account_logout"))
+        self.assert_portal_page(response, "Sign out of Student Affairs?")
+        self.assertContains(response, 'name="csrfmiddlewaretoken"')
+
+        response = self.client.post(reverse("account_logout"), follow=True)
+        self.assertRedirects(response, reverse("account_login"))
+        self.assertContains(response, 'class="sa-message"')
+        self.assertContains(response, "You have signed out.")
+
+    def test_other_allauth_pages_fall_back_to_the_portal_layout(self):
+        from django.template import engines
+        from django.test import RequestFactory
+        from django.contrib.auth.models import AnonymousUser
+
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+        page = engines["django"].from_string(
+            '{% extends "account/base_entrance.html" %}{% block head_title %}Example{% endblock %}'
+            "{% block content %}<p>Example body</p>{% endblock %}"
+        ).render({}, request)
+        self.assertIn("<title>Example · UOL Student Affairs</title>", page)
+        self.assertIn('class="sa-auth-card"', page)
+        self.assertIn("<p>Example body</p>", page)
+        self.assertNotIn("Menu:", page)

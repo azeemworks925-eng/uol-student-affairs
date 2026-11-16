@@ -20,11 +20,12 @@ class NavItem:
     icon: str
     url_name: str | None = None
     query: dict | None = None
+    kwargs: dict | None = None
 
     def url(self):
         if not self.url_name:
             return None
-        base = reverse(self.url_name)
+        base = reverse(self.url_name, kwargs=self.kwargs)
         return f"{base}?{urlencode(self.query)}" if self.query else base
 
 
@@ -63,7 +64,7 @@ NAVIGATION = {
             NavItem("CR/GR Management", "badge"),
         ]),
         ("Configuration", [
-            NavItem("Academic Structure", "layers", "admin:app_list", None),
+            NavItem("Academic Structure", "layers", "admin:app_list", kwargs={"app_label": "academics"}),
             NavItem("Complaint Categories", "tags"),
         ]),
     ],
@@ -71,14 +72,10 @@ NAVIGATION = {
 
 
 def _resolve(item, current_url_name):
-    if item.url_name == "admin:app_list":
-        url = reverse("admin:app_list", kwargs={"app_label": "academics"})
-    else:
-        url = item.url()
     return {
         "label": item.label,
         "icon": item.icon,
-        "url": url,
+        "url": item.url(),
         "current": bool(item.url_name) and item.url_name == current_url_name,
     }
 
