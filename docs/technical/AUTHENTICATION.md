@@ -60,7 +60,15 @@ All rules are in `accounts/identity.py` and `accounts/adapters.py`.
 | Audit (DEC-211) | `StudentProfileChange` records the Super Admin's changes to a student's full name, batch, semester and section: old and new values, who made the change, and when. It is read-only in the admin. |
 | Academic structure (DEC-020, DEC-210) | The `academics` app holds `Batch`, `Semester` and `Section` with `is_active` flags. They cannot be deleted. Inactive entries are not offered at registration. |
 
-Migrations: `academics/0001_initial` and `accounts/0002_account_foundation`. Both are additive; `accounts/0001_initial` is unchanged.
+| Advisor assignments | `AdvisorAssignment` links a Batch Advisor to one **cohort**: the exact batch + semester + section combination (owner decision, 2026-11-16). All three are required. Each advisor and cohort pair is unique. Several advisors may share a cohort, and one advisor may hold several cohorts (DEC-204). |
+
+Migrations:
+- `academics/0001_initial` and `accounts/0002_account_foundation` are additive; `accounts/0001_initial` is unchanged.
+- `accounts/0003_advisor_assignment_batch` adds the required batch and replaces the unique constraint, changing it from advisor + semester + section to advisor + batch + semester + section.
+  - A batch cannot be inferred for an assignment made before batches were part of the scope, and guessing would give an advisor access to the wrong students. So the migration's first step refuses to continue if any assignments exist.
+  - It does this before any schema change, which matters because MySQL cannot roll back schema changes. Nothing is changed or deleted, and the error message lists each assignment.
+  - Recovery: record the listed assignments, remove them, run `migrate` again, then re-create each with its batch.
+  - Both the refusal and the normal path are covered by `accounts/tests/test_migrations.py`.
 
 ## 5. Staff accounts and the initial Super Admin
 
@@ -77,7 +85,7 @@ The command:
 
 The Super Admin then signs in with Google. The first sign-in links their Google identity to the account. Because the command needs shell access to the server, it cannot be triggered from the web.
 
-**Batch Advisors (DEC-013).** The Super Admin creates them in the admin (Accounts → Users → Add) with name, official email and role. No password is set. The advisor's first Google sign-in with that email activates the account; the user list shows "Google sign-in: Linked" or "Not signed in yet". Semesters and sections are assigned on the advisor's page. One advisor may hold several assignments, and several advisors may share a section (DEC-204). There is no self-registration.
+**Batch Advisors (DEC-013).** The Super Admin creates them in the admin (Accounts → Users → Add) with name, official email and role. No password is set. The advisor's first Google sign-in with that email activates the account; the user list shows "Google sign-in: Linked" or "Not signed in yet". Cohorts (batch, semester and section, all required) are assigned on the advisor's page or under Accounts → Advisor assignments. One advisor may hold several cohorts, and several advisors may share a cohort (DEC-204). There is no self-registration.
 
 Django's own `createsuperuser` command still works, but it creates a password that no page accepts. Use `bootstrap_super_admin`.
 
@@ -86,8 +94,10 @@ Django's own `createsuperuser` command still works, but it creates a password th
 From `accounts.permissions`:
 
 - Decorators: `student_required`, `batch_advisor_required`, `super_admin_required`, and `role_required(*roles)`. They redirect anonymous users to sign-in and return 403 for any other role.
-- `visible_student_profiles(user)`: everything for the Super Admin, the assigned semester and section pairs for a Batch Advisor, only their own profile for a student, and nothing for inactive or anonymous users.
-- `can_access_section(user, semester, section)`: the same rule for a single section.
+- `visible_student_profiles(user)`: everything for the Super Admin, only students in the advisor's assigned cohorts for a Batch Advisor, only their own profile for a student, and nothing for inactive or anonymous users.
+- `can_access_cohort(user, batch, semester, section)`: the same rule for a single cohort.
+
+A cohort matches only when **all three** of batch, semester and section match. An advisor assigned to Fall 2024, Semester 4, Section A cannot see Spring 2025, Semester 4, Section A. When a later module scopes its own records, such as complaints, it must filter on all three fields as well, for example through the profile of the student who owns the record.
 
 Access is decided only from the stored role and assignments, never from URL or request parameters. `StudentRegistrationMiddleware` keeps unregistered students on the registration page whatever URL they request.
 

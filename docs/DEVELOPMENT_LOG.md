@@ -48,12 +48,12 @@ Rules:
 - Account model:
   - Review M1: the role is the single source of truth. Only the Super Admin holds `is_staff`/`is_superuser`, enforced on every save.
   - Review M2: `create_user()` validates the email format, the role, the role's email rule and uniqueness.
-  - New `User.full_name`, a `StudentProfile` with a unique SAP ID, and an `AdvisorAssignment` linking a Batch Advisor to a semester and section. One advisor can hold several assignments, and several advisors can share a section (DEC-204).
+  - New `User.full_name`, a `StudentProfile` with a unique SAP ID, and an `AdvisorAssignment` linking a Batch Advisor to a semester and section, later scoped to batch + semester + section (see the follow-up below). One advisor can hold several assignments, and several advisors can share a section (DEC-204).
   - `StudentProfileChange` audits the Super Admin's corrections (DEC-211).
   - Accounts are deactivated, not deleted (DEC-212).
 - Staff provisioning in the Django admin: the Super Admin creates Batch Advisor accounts from name and official email, with no password, and assigns semesters and sections (DEC-013). There is no Batch Advisor self-registration.
 - `manage.py bootstrap_super_admin` creates the initial Super Admin (DEC-203). It runs only when none exists, requires a staff email and sets no password. This is a proposed resolution of O26.
-- Reusable access control in `accounts.permissions`: role decorators, plus `visible_student_profiles()` and `can_access_section()` scoped by assignments.
+- Reusable access control in `accounts.permissions`: role decorators, plus `visible_student_profiles()` and `can_access_section()` scoped by assignments. `can_access_section()` was renamed to `can_access_cohort()` in the follow-up below.
 - Session hardening: 8-hour sessions, HttpOnly and SameSite=Lax cookies, and secure cookies whenever `DEBUG` is off.
 - Placeholder role pages only. No dashboard interfaces were built (DEC-120).
 - Migrations `academics/0001_initial` and `accounts/0002_account_foundation`, both additive, applied to the development database.
@@ -72,6 +72,28 @@ Rules:
 - `manage.py makemigrations --check --dry-run`: no changes detected.
 - `manage.py migrate --check`: all migrations applied.
 
+**Follow-up: assignments scoped to the exact cohort (owner decision, 2026-11-16)**
+
+- Owner decision: Batch Advisor assignments are scoped to the exact combination of batch, semester and section. This should also be recorded in `DECISIONS.md` as a confirmed decision.
+- `AdvisorAssignment` now requires a batch. Uniqueness changed from advisor + semester + section to advisor + batch + semester + section. Several advisors can still share a cohort, and one advisor can hold several cohorts.
+- `visible_student_profiles()` and `can_access_cohort()` (renamed from `can_access_section()`) grant access only when batch, semester and section all match. The admin assignment forms and lists include the batch.
+- New migration `accounts/0003_advisor_assignment_batch`. `0002` was already applied to the development and test databases, so it was not edited.
+  - Its first step refuses to continue if any assignments exist, because a batch cannot be inferred safely. It does this before any schema change, since MySQL cannot roll back schema changes, and lists the assignments so they can be re-created with a batch.
+  - The first version of this guard ran after the column was added, which would have left the documented recovery steps unworkable on both databases. It was moved before shipping.
+  - The development database had no assignments, and `0003` was applied to it.
+- Tests: 125 in total, up from 118.
+  - New: exact-cohort scoping, including the same semester and section in another batch and every partial match; several cohorts per advisor; a shared cohort; batch required; duplicate cohort rejected; admin cohort assignment.
+  - Two migration tests run against the real test database: the refusal leaves the schema and data unchanged, and the normal path produces the new constraint.
+- A mutation check made the scope helpers ignore the batch. The 4 batch-specific tests failed, and with nothing changed none failed.
+
+**Verified after the follow-up (2026-11-16)**
+
+- All 125 tests passed on MySQL 8.0.44 (`--keepdb`). A second consecutive run also passed, confirming the test database is consistent after the migration tests.
+- All 125 tests passed on SQLite.
+- `manage.py check`: no issues.
+- `makemigrations --check --dry-run`: no changes detected.
+- `migrate --check`: all migrations applied.
+
 **Not verified**
 
 - Google sign-in with a real UOL account. No OAuth client is configured, and no external verification has been done. See `AUTHENTICATION.md` section 8.
@@ -80,7 +102,7 @@ Rules:
 
 - O2: confirm the official staff email domain or domains. `uol.edu.pk` is assumed.
 - O2: confirm that UOL uses Google Workspace for both domains, that UOL permits the app, and the actual `hd` claim values.
-- Advisor assignments are recorded per semester and section, without the batch. Confirm this matches how sections are identified, or whether the batch must be part of an assignment.
+- ~~Advisor assignments are recorded per semester and section, without the batch.~~ Resolved: the owner confirmed that assignments are scoped to batch + semester + section (follow-up below).
 - Can more than one Super Admin exist? Bootstrap creates only the first one. The admin currently allows a Super Admin to create another.
 - Email and role are fixed after an account is created. Confirm that the Super Admin should not change them, or define a procedure for email changes.
 - Session length of 8 hours: confirm or change.
