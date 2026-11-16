@@ -94,6 +94,24 @@ Rules:
 - `makemigrations --check --dry-run`: no changes detected.
 - `migrate --check`: all migrations applied.
 
+**Final review of PR #3 (2026-11-16)**
+
+- Decision references: the docstrings of `AdvisorAssignment`, the cohort scope helpers and migration `0003` now cite DEC-205. Only comments changed; `makemigrations --check` confirmed the migration's operations are unchanged.
+- Session edge cases reviewed and covered by 11 new tests:
+  - A user signed in through the real Google flow, whose session uses allauth's backend, loses access on the next request after deactivation. allauth's backend inherits Django's active-user check.
+  - A student deactivated during registration cannot complete it, and no profile is created.
+  - A reactivated student signs in again with the same Google identity.
+- Two defects found and fixed. Both were confirmed by failing tests before the fix.
+  - Two simultaneous registration submissions caused a server error. The one-profile-per-student constraint already prevented a duplicate profile, so no data was affected. The view now treats the constraint violation as "already registered".
+  - The last active Super Admin could be deactivated in the admin. That would have left no one able to manage the portal, and `bootstrap_super_admin` refuses while any Super Admin account exists. The admin now refuses to deactivate the last active Super Admin. This is a safeguard, not a product change.
+- Multiple Super Admins verified:
+  - After bootstrap, an existing Super Admin can create further Super Admins in the admin. They get a staff email, no password and the admin flags, and are activated by their first Google sign-in.
+  - Bootstrap still refuses once any Super Admin exists.
+  - A Super Admin can be deactivated while another active one remains.
+- Full diff reviewed for security, data integrity, migration safety and consistency with `DECISIONS.md`. No blocking code issues were found. The remaining blockers are external or approvals, listed in the PR.
+- Migration note: reversing `0003` drops the batch column, losing the batch of every assignment. The reversal also fails if one advisor holds the same semester and section in two batches, because the old unique constraint cannot be restored. Do not reverse it once cohorts are in use.
+- Verified: 136 of 136 tests passed on MySQL 8.0.44 (`--keepdb`) and on SQLite. `check`, `makemigrations --check` and `migrate --check` were clean.
+
 **Not verified**
 
 - Google sign-in with a real UOL account. No OAuth client is configured, and no external verification has been done. See `AUTHENTICATION.md` section 8.
@@ -103,7 +121,7 @@ Rules:
 - O2: confirm the official staff email domain or domains. `uol.edu.pk` is assumed.
 - O2: confirm that UOL uses Google Workspace for both domains, that UOL permits the app, and the actual `hd` claim values.
 - ~~Advisor assignments are recorded per semester and section, without the batch.~~ Resolved: the owner confirmed that assignments are scoped to batch + semester + section (follow-up below).
-- Can more than one Super Admin exist? Bootstrap creates only the first one. The admin currently allows a Super Admin to create another.
+- Can more than one Super Admin exist? This is now supported and verified (see the final review below). If it is a confirmed product decision, it should be recorded in `DECISIONS.md`; DEC-014 describes the Super Admin in the singular.
 - Email and role are fixed after an account is created. Confirm that the Super Admin should not change them, or define a procedure for email changes.
 - Session length of 8 hours: confirm or change.
 - MySQL warning W036: MySQL cannot enforce two conditional unique constraints on allauth's `EmailAddress` table. The portal's identity checks do not depend on that table.
