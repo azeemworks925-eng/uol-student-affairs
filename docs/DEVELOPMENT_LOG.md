@@ -19,7 +19,7 @@ Rules:
 | V1 product workflows | Confirmed in `DECISIONS.md`. |
 | Django foundation | Complete and verified locally: custom user model, admin, email normalization, 32 account tests passing on MySQL 8.0.44 and SQLite. |
 | Product features | Not implemented. |
-| Commit and push status of the foundation | Not yet committed or pushed. The foundation files are untracked on the local branch `chore/email-normalization`. Update this row after committing. |
+| Commit and push status of the foundation | Committed as `99b1ba2` ("feat: establish Django foundation and account system") on branch `chore/django-foundation` and pushed to `origin/chore/django-foundation`. Not yet merged into `main`. |
 
 ---
 
@@ -66,10 +66,11 @@ Rules:
 - `manage.py check`: no issues.
 - `manage.py makemigrations --check --dry-run`: no changes detected.
 - `manage.py migrate --check`: all migrations applied to the development database.
+- Committed as `99b1ba2` ("feat: establish Django foundation and account system") on branch `chore/django-foundation` and pushed successfully to `origin/chore/django-foundation`. The working tree was clean immediately after the push.
 
 **Not done**
 
-- Nothing committed or pushed yet.
+- Foundation committed and pushed; not yet merged into main.
 - No authentication pages or Google OAuth (O3), and no product features.
 
 **Notes for later work**
