@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load socialaccount %}
+{# The single shared sign-in page for every role (DEC-010, DEC-200). #}
+{% block title %}Sign in · UOL Student Affairs{% endblock %}
+{% block content %}
+  <h1>Sign in</h1>
+  {% get_providers as providers %}
+  {% if providers %}
+    <p>Students, Batch Advisors and the Super Admin all sign in with their UOL Google account.</p>
+    <form method="post" action="{% provider_login_url 'google' %}">
+      {% csrf_token %}
+      {% if redirect_field_value %}
+        <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+      {% endif %}
+      <button type="submit">Sign in with Google</button>
+    </form>
+  {% else %}
+    <p>Google sign-in is not configured on this server.</p>
+  {% endif %}
+{% endblock %}

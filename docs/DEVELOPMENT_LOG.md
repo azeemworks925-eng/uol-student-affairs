@@ -18,8 +18,119 @@ Rules:
 |---|---|
 | V1 product workflows | Confirmed in `DECISIONS.md`. |
 | Django foundation | Complete and verified locally: custom user model, admin, email normalization, 32 account tests passing on MySQL 8.0.44 and SQLite. |
+| Authentication and account foundation | Implemented on branch `feat/auth-account-foundation` (PR #3). Reviewed and approved for merging by the owner on 2026-11-16. Google sign-in is tested with simulated Google responses only; it has not been verified with a real UOL account. |
 | Product features | Not implemented. |
 | Commit and push status of the foundation | Committed as `99b1ba2` ("feat: establish Django foundation and account system") on branch `chore/django-foundation` and pushed to `origin/chore/django-foundation`. Merged into `main` through PR #1 as merge commit `a1ed704` on 2026-11-16. |
+
+---
+
+## 2026-11-16 — Authentication and account foundation
+
+**Context**
+
+- PR #2 (development log update) was merged into `main` as merge commit `6fc52b7`. This work branches from that commit as `feat/auth-account-foundation`.
+- The full design is documented in `docs/technical/AUTHENTICATION.md`.
+
+**What was done**
+
+- Google sign-in for every role through one shared page, using django-allauth 65.22.1 (DEC-010, DEC-200). This is a proposed resolution of O3 and needs the owner's approval as a new dependency.
+  - Sign-in starts with a CSRF-protected POST and uses `state` and PKCE.
+  - ID tokens are checked for issuer, audience and expiry.
+  - Google's email must be verified, and its hosted-domain (`hd`) claim must be present and allowed by default.
+  - Password login, sign-up and reset are disabled. The Django admin's password login page redirects to Google sign-in.
+- Identity rules (DEC-011, DEC-012, DEC-013):
+  - Only valid student emails (eight-digit SAP ID at `@student.uol.edu.pk`) can sign up.
+  - Super Admin-created accounts are activated by linking on first sign-in.
+  - Unknown staff emails and personal Google accounts are refused.
+  - Each account is bound to one Google identity. A different identity, or a changed Google email, is refused.
+- Student registration after first sign-in (DEC-201): full name, batch, semester and section. The SAP ID is taken from the email and the department defaults to Software Engineering. Registration is one-time (DEC-202). Unregistered students are kept on the registration page whatever URL they request.
+- New `academics` app: database-managed batches, semesters and sections that are deactivated rather than deleted (DEC-020, DEC-210).
+- Account model:
+  - Review M1: the role is the single source of truth. Only the Super Admin holds `is_staff`/`is_superuser`, enforced on every save.
+  - Review M2: `create_user()` validates the email format, the role, the role's email rule and uniqueness.
+  - New `User.full_name`, a `StudentProfile` with a unique SAP ID, and an `AdvisorAssignment` linking a Batch Advisor to a semester and section, later scoped to batch + semester + section (see the follow-up below). One advisor can hold several assignments, and several advisors can share a section (DEC-204).
+  - `StudentProfileChange` audits the Super Admin's corrections (DEC-211).
+  - Accounts are deactivated, not deleted (DEC-212).
+- Staff provisioning in the Django admin: the Super Admin creates Batch Advisor accounts from name and official email, with no password, and assigns semesters and sections (DEC-013). There is no Batch Advisor self-registration.
+- `manage.py bootstrap_super_admin` creates the initial Super Admin (DEC-203). It runs only when none exists, requires a staff email and sets no password. This is a proposed resolution of O26.
+- Reusable access control in `accounts.permissions`: role decorators, plus `visible_student_profiles()` and `can_access_section()` scoped by assignments. `can_access_section()` was renamed to `can_access_cohort()` in the follow-up below.
+- Session hardening: 8-hour sessions, HttpOnly and SameSite=Lax cookies, and secure cookies whenever `DEBUG` is off.
+- Placeholder role pages only. No dashboard interfaces were built (DEC-120).
+- Migrations `academics/0001_initial` and `accounts/0002_account_foundation`, both additive, applied to the development database.
+
+**Tests**
+
+- The test suite was reorganized into `accounts/tests/` and has 118 tests. It covers: email normalization, student email validation, account creation and duplicate prevention, the Google sign-in callback (the real flow with only the token exchange stubbed), role consistency, staff provisioning, the Super Admin bootstrap, registration, and access-control boundaries.
+- The original 32 tests were carried over. Their sample data was updated where M2 validation now rejects it, for example student emails without a SAP ID, and duplicates now raise `ValidationError` before reaching the database. The removed admin email-change test was replaced by a test that email and role are fixed after creation.
+- A mutation check switched off each protection in memory: the identity rules, role sync, manager validation, the registration gate, the sign-up guard and the hosted-domain check. In every case the relevant tests failed, and with nothing switched off none failed.
+
+**Verified (2026-11-16)**
+
+- All 118 tests passed on MySQL 8.0.44 (`--keepdb`).
+- All 118 tests passed on SQLite.
+- `manage.py check`: no issues.
+- `manage.py makemigrations --check --dry-run`: no changes detected.
+- `manage.py migrate --check`: all migrations applied.
+
+**Follow-up: assignments scoped to the exact cohort (owner decision, 2026-11-16)**
+
+- Owner decision: Batch Advisor assignments are scoped to the exact combination of batch, semester and section. Recorded in `DECISIONS.md` as DEC-205.
+- `AdvisorAssignment` now requires a batch. Uniqueness changed from advisor + semester + section to advisor + batch + semester + section. Several advisors can still share a cohort, and one advisor can hold several cohorts.
+- `visible_student_profiles()` and `can_access_cohort()` (renamed from `can_access_section()`) grant access only when batch, semester and section all match. The admin assignment forms and lists include the batch.
+- New migration `accounts/0003_advisor_assignment_batch`. `0002` was already applied to the development and test databases, so it was not edited.
+  - Its first step refuses to continue if any assignments exist, because a batch cannot be inferred safely. It does this before any schema change, since MySQL cannot roll back schema changes, and lists the assignments so they can be re-created with a batch.
+  - The first version of this guard ran after the column was added, which would have left the documented recovery steps unworkable on both databases. It was moved before shipping.
+  - The development database had no assignments, and `0003` was applied to it.
+- Tests: 125 in total, up from 118.
+  - New: exact-cohort scoping, including the same semester and section in another batch and every partial match; several cohorts per advisor; a shared cohort; batch required; duplicate cohort rejected; admin cohort assignment.
+  - Two migration tests run against the real test database: the refusal leaves the schema and data unchanged, and the normal path produces the new constraint.
+- A mutation check made the scope helpers ignore the batch. The 4 batch-specific tests failed, and with nothing changed none failed.
+
+**Verified after the follow-up (2026-11-16)**
+
+- All 125 tests passed on MySQL 8.0.44 (`--keepdb`). A second consecutive run also passed, confirming the test database is consistent after the migration tests.
+- All 125 tests passed on SQLite.
+- `manage.py check`: no issues.
+- `makemigrations --check --dry-run`: no changes detected.
+- `migrate --check`: all migrations applied.
+
+**Final review of PR #3 (2026-11-16)**
+
+- Decision references: the docstrings of `AdvisorAssignment`, the cohort scope helpers and migration `0003` now cite DEC-205. Only comments changed; `makemigrations --check` confirmed the migration's operations are unchanged.
+- Session edge cases reviewed and covered by 11 new tests:
+  - A user signed in through the real Google flow, whose session uses allauth's backend, loses access on the next request after deactivation. allauth's backend inherits Django's active-user check.
+  - A student deactivated during registration cannot complete it, and no profile is created.
+  - A reactivated student signs in again with the same Google identity.
+- Two defects found and fixed. Both were confirmed by failing tests before the fix.
+  - Two simultaneous registration submissions caused a server error. The one-profile-per-student constraint already prevented a duplicate profile, so no data was affected. The view now treats the constraint violation as "already registered".
+  - The last active Super Admin could be deactivated in the admin. That would have left no one able to manage the portal, and `bootstrap_super_admin` refuses while any Super Admin account exists. The admin now refuses to deactivate the last active Super Admin. This is a safeguard, not a product change.
+- Multiple Super Admins verified:
+  - After bootstrap, an existing Super Admin can create further Super Admins in the admin. They get a staff email, no password and the admin flags, and are activated by their first Google sign-in.
+  - Bootstrap still refuses once any Super Admin exists.
+  - A Super Admin can be deactivated while another active one remains.
+- Full diff reviewed for security, data integrity, migration safety and consistency with `DECISIONS.md`. No blocking code issues were found. The remaining blockers are external or approvals, listed in the PR.
+- Migration note: reversing `0003` drops the batch column, losing the batch of every assignment. The reversal also fails if one advisor holds the same semester and section in two batches, because the old unique constraint cannot be restored. Do not reverse it once cohorts are in use.
+- Verified: 136 of 136 tests passed on MySQL 8.0.44 (`--keepdb`) and on SQLite. `check`, `makemigrations --check` and `migrate --check` were clean.
+
+**Owner approvals (2026-11-16)**
+
+- django-allauth is approved as a dependency. This settles the library choice for O3. O3 remains open for the OAuth client setup and credential handling, which need a real Google Cloud client.
+- Multiple Super Admins are approved, provided at least one remains active. Recorded as DEC-206. The implementation already enforces this: the admin refuses to deactivate the last active Super Admin.
+- The owner authorized merging PR #3. UOL's organizational verification is not a precondition for merging.
+
+**Not verified**
+
+- Google sign-in with a real UOL account. No OAuth client is configured, and no external verification has been done. See `AUTHENTICATION.md` section 8.
+
+**Open questions for the owner**
+
+- O2: confirm the official staff email domain or domains. `uol.edu.pk` is assumed.
+- O2: confirm that UOL uses Google Workspace for both domains, that UOL permits the app, and the actual `hd` claim values.
+- ~~Advisor assignments are recorded per semester and section, without the batch.~~ Resolved: the owner confirmed that assignments are scoped to batch + semester + section (follow-up below).
+- ~~Can more than one Super Admin exist?~~ Resolved: the owner approved multiple Super Admins, provided at least one remains active. Recorded as DEC-206.
+- Email and role are fixed after an account is created. Confirm that the Super Admin should not change them, or define a procedure for email changes.
+- Session length of 8 hours: confirm or change.
+- MySQL warning W036: MySQL cannot enforce two conditional unique constraints on allauth's `EmailAddress` table. The portal's identity checks do not depend on that table.
 
 ---
 
