@@ -35,27 +35,29 @@ def make_academics():
         "batch": Batch.objects.create(name="Fall 2024"),
         "semester": Semester.objects.create(number=4),
         "section": Section.objects.create(name="A"),
+        "other_batch": Batch.objects.create(name="Spring 2025"),
         "other_semester": Semester.objects.create(number=5),
         "other_section": Section.objects.create(name="B"),
     }
 
 
-def make_student(email=STUDENT_EMAIL, *, academics=None, semester=None, section=None, full_name="Test Student"):
+def cohort(academics, *, batch="batch", semester="semester", section="section"):
+    """A (batch, semester, section) tuple, picking each part by its key in `academics`."""
+    return academics[batch], academics[semester], academics[section]
+
+
+def make_student(email=STUDENT_EMAIL, *, academics=None, cohort=None, full_name="Test Student"):
     user = User.objects.create_user(email=email, full_name=full_name)
     if academics:
-        StudentProfile.objects.create(
-            user=user,
-            batch=academics["batch"],
-            semester=semester or academics["semester"],
-            section=section or academics["section"],
-        )
+        batch, semester, section = cohort or (academics["batch"], academics["semester"], academics["section"])
+        StudentProfile.objects.create(user=user, batch=batch, semester=semester, section=section)
     return user
 
 
-def make_advisor(email=ADVISOR_EMAIL, *, assignments=(), full_name="Test Advisor"):
+def make_advisor(email=ADVISOR_EMAIL, *, cohorts=(), full_name="Test Advisor"):
     advisor = User.objects.create_user(email=email, role=User.Role.BATCH_ADVISOR, full_name=full_name)
-    for semester, section in assignments:
-        AdvisorAssignment.objects.create(advisor=advisor, semester=semester, section=section)
+    for batch, semester, section in cohorts:
+        AdvisorAssignment.objects.create(advisor=advisor, batch=batch, semester=semester, section=section)
     return advisor
 
 

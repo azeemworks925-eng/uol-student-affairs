@@ -6,7 +6,15 @@ from django.urls import reverse
 
 from accounts.models import AdvisorAssignment, StudentProfileChange, User
 
-from .helpers import ADVISOR_EMAIL, STUDENT_EMAIL, make_academics, make_advisor, make_student, make_super_admin
+from .helpers import (
+    ADVISOR_EMAIL,
+    STUDENT_EMAIL,
+    cohort,
+    make_academics,
+    make_advisor,
+    make_student,
+    make_super_admin,
+)
 
 
 class AdminTestCase(TestCase):
@@ -96,24 +104,49 @@ class StaffProvisioningTests(AdminTestCase):
             f"{prefix}-MIN_NUM_FORMS": "0",
             f"{prefix}-MAX_NUM_FORMS": "1000",
         }
-        for i, (semester, section) in enumerate(forms):
+        for i, (batch, semester, section) in enumerate(forms):
+            data[f"{prefix}-{i}-batch"] = batch.pk if batch else ""
             data[f"{prefix}-{i}-semester"] = semester.pk
             data[f"{prefix}-{i}-section"] = section.pk
         return data
 
-    def test_super_admin_assigns_semesters_and_sections(self):
+    def post_assignments(self, advisor, cohorts):
+        return self.client.post(
+            reverse("admin:accounts_user_change", args=[advisor.pk]),
+            {"full_name": "Test Advisor", "is_active": "on", **self.empty_inline(cohorts)},
+        )
+
+    def test_super_admin_assigns_cohorts(self):
         advisor = make_advisor()
         a = self.academics
-        response = self.client.post(
-            reverse("admin:accounts_user_change", args=[advisor.pk]),
-            {"full_name": "Test Advisor", "is_active": "on",
-             **self.empty_inline([(a["semester"], a["section"]), (a["other_semester"], a["other_section"])])},
-        )
+        response = self.post_assignments(advisor, [
+            cohort(a),
+            cohort(a, batch="other_batch"),
+            cohort(a, semester="other_semester", section="other_section"),
+        ])
 
         self.assertEqual(response.status_code, 302)
         assignments = AdvisorAssignment.objects.filter(advisor=advisor)
-        self.assertEqual(assignments.count(), 2)
+        self.assertEqual(
+            {(x.batch, x.semester, x.section) for x in assignments},
+            {cohort(a), cohort(a, batch="other_batch"), cohort(a, semester="other_semester", section="other_section")},
+        )
         self.assertTrue(all(x.assigned_by == self.head for x in assignments))
+
+    def test_assignment_without_batch_is_rejected(self):
+        advisor = make_advisor()
+        response = self.post_assignments(advisor, [(None, self.academics["semester"], self.academics["section"])])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("batch", response.context["inline_admin_formsets"][0].formset.errors[0])
+        self.assertFalse(AdvisorAssignment.objects.exists())
+
+    def test_duplicate_cohort_in_one_submission_is_rejected(self):
+        advisor = make_advisor()
+        response = self.post_assignments(advisor, [cohort(self.academics), cohort(self.academics)])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(AdvisorAssignment.objects.exists())
 
     def test_assignment_inline_is_offered_only_for_batch_advisors(self):
         advisor_page = self.client.get(reverse("admin:accounts_user_change", args=[make_advisor().pk]))

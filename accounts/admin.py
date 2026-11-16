@@ -30,7 +30,7 @@ class PortalUserForm(forms.ModelForm):
 class AdvisorAssignmentInline(admin.TabularInline):
     model = AdvisorAssignment
     fk_name = "advisor"
-    fields = ("semester", "section", "assigned_by", "created_at")
+    fields = ("batch", "semester", "section", "assigned_by", "created_at")
     readonly_fields = ("assigned_by", "created_at")
     extra = 1
 
@@ -130,10 +130,11 @@ class StudentProfileAdmin(NoDeleteMixin, admin.ModelAdmin):
 
 @admin.register(AdvisorAssignment)
 class AdvisorAssignmentAdmin(admin.ModelAdmin):
-    list_display = ("advisor", "semester", "section", "assigned_by", "created_at")
-    list_filter = ("semester", "section")
+    list_display = ("advisor", "batch", "semester", "section", "assigned_by", "created_at")
+    list_filter = ("batch", "semester", "section")
     search_fields = ("advisor__email", "advisor__full_name")
-    fields = ("advisor", "semester", "section", "assigned_by", "created_at")
+    fields = ("advisor", "batch", "semester", "section", "assigned_by", "created_at")
+    list_select_related = ("advisor", "batch", "semester", "section", "assigned_by")
     readonly_fields = ("assigned_by", "created_at")
 
     def save_model(self, request, obj, form, change):

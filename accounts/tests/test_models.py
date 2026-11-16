@@ -10,6 +10,7 @@ from .helpers import (
     ADVISOR_EMAIL,
     OTHER_ADVISOR_EMAIL,
     STUDENT_EMAIL,
+    cohort,
     make_academics,
     make_advisor,
     make_student,
@@ -315,27 +316,40 @@ class AdvisorAssignmentTests(TestCase):
     def setUpTestData(cls):
         cls.academics = make_academics()
 
-    def test_several_advisors_can_share_a_section(self):
-        pair = (self.academics["semester"], self.academics["section"])
-        make_advisor(assignments=[pair])
-        make_advisor(OTHER_ADVISOR_EMAIL, assignments=[pair])
-        self.assertEqual(AdvisorAssignment.objects.filter(semester=pair[0], section=pair[1]).count(), 2)
+    def test_several_advisors_can_share_a_cohort(self):
+        batch, semester, section = cohort(self.academics)
+        make_advisor(cohorts=[(batch, semester, section)])
+        make_advisor(OTHER_ADVISOR_EMAIL, cohorts=[(batch, semester, section)])
+        self.assertEqual(
+            AdvisorAssignment.objects.filter(batch=batch, semester=semester, section=section).count(), 2
+        )
 
-    def test_an_advisor_can_have_several_sections_and_semesters(self):
+    def test_an_advisor_can_have_several_cohorts(self):
         a = self.academics
-        advisor = make_advisor(assignments=[(a["semester"], a["section"]), (a["other_semester"], a["other_section"])])
-        self.assertEqual(advisor.advisor_assignments.count(), 2)
+        advisor = make_advisor(cohorts=[
+            cohort(a),
+            cohort(a, batch="other_batch"),  # Same semester and section, different batch.
+            cohort(a, semester="other_semester", section="other_section"),
+        ])
+        self.assertEqual(advisor.advisor_assignments.count(), 3)
 
-    def test_duplicate_assignment_is_rejected(self):
-        pair = (self.academics["semester"], self.academics["section"])
-        advisor = make_advisor(assignments=[pair])
+    def test_duplicate_cohort_assignment_is_rejected(self):
+        batch, semester, section = cohort(self.academics)
+        advisor = make_advisor(cohorts=[(batch, semester, section)])
         with self.assertRaises(IntegrityError), transaction.atomic():
-            AdvisorAssignment.objects.create(advisor=advisor, semester=pair[0], section=pair[1])
+            AdvisorAssignment.objects.create(advisor=advisor, batch=batch, semester=semester, section=section)
+
+    def test_batch_is_required(self):
+        assignment = AdvisorAssignment(
+            advisor=make_advisor(), semester=self.academics["semester"], section=self.academics["section"]
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            assignment.full_clean()
+        self.assertIn("batch", ctx.exception.message_dict)
 
     def test_only_batch_advisors_can_be_assigned(self):
-        assignment = AdvisorAssignment(
-            advisor=make_student(), semester=self.academics["semester"], section=self.academics["section"]
-        )
+        batch, semester, section = cohort(self.academics)
+        assignment = AdvisorAssignment(advisor=make_student(), batch=batch, semester=semester, section=section)
         with self.assertRaises(ValidationError) as ctx:
             assignment.full_clean()
         self.assertIn("advisor", ctx.exception.message_dict)

@@ -163,10 +163,11 @@ class StudentProfile(models.Model):
 
 class AdvisorAssignment(models.Model):
     """
-    Assigns a Batch Advisor to a semester and section (DEC-013, DEC-204, DEC-015).
+    Assigns a Batch Advisor to one cohort: the exact batch + semester + section combination
+    (DEC-013, DEC-204, DEC-015; owner decision 2026-11-16).
 
-    Several advisors may share the same semester and section. Assignments are changed by
-    adding or removing rows.
+    Several advisors may share a cohort, and one advisor may hold several cohorts.
+    Assignments are changed by adding or removing rows.
     """
 
     advisor = models.ForeignKey(
@@ -175,6 +176,7 @@ class AdvisorAssignment(models.Model):
         related_name="advisor_assignments",
         limit_choices_to={"role": User.Role.BATCH_ADVISOR},
     )
+    batch = models.ForeignKey("academics.Batch", on_delete=models.PROTECT, related_name="advisor_assignments")
     semester = models.ForeignKey("academics.Semester", on_delete=models.PROTECT, related_name="advisor_assignments")
     section = models.ForeignKey("academics.Section", on_delete=models.PROTECT, related_name="advisor_assignments")
     assigned_by = models.ForeignKey(
@@ -187,15 +189,15 @@ class AdvisorAssignment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["semester__number", "section__name"]
+        ordering = ["batch__name", "semester__number", "section__name"]
         constraints = [
             models.UniqueConstraint(
-                fields=["advisor", "semester", "section"], name="unique_advisor_assignment"
+                fields=["advisor", "batch", "semester", "section"], name="unique_advisor_cohort_assignment"
             )
         ]
 
     def __str__(self):
-        return f"{self.advisor} - {self.semester}, {self.section}"
+        return f"{self.advisor} - {self.batch}, {self.semester}, {self.section}"
 
     def clean(self):
         if self.advisor_id and not self.advisor.is_batch_advisor:

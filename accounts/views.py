@@ -48,7 +48,7 @@ def student_home(request):
 
 @batch_advisor_required
 def advisor_home(request):
-    assignments = request.user.advisor_assignments.select_related("semester", "section")
+    assignments = request.user.advisor_assignments.select_related("batch", "semester", "section")
     return render(request, "accounts/role_home.html", {"assignments": assignments})
 
 

@@ -6,12 +6,12 @@
     <p>SAP ID {{ profile.sap_id }} · {{ profile.batch }} · {{ profile.semester }} · {{ profile.section }}</p>
   {% endif %}
   {% if assignments is not None %}
-    <h2>Assigned sections</h2>
+    <h2>Assigned cohorts</h2>
     <ul>
       {% for assignment in assignments %}
-        <li>{{ assignment.semester }}, {{ assignment.section }}</li>
+        <li>{{ assignment.batch }}, {{ assignment.semester }}, {{ assignment.section }}</li>
       {% empty %}
-        <li>No sections assigned yet.</li>
+        <li>No cohorts assigned yet.</li>
       {% endfor %}
     </ul>
   {% endif %}
