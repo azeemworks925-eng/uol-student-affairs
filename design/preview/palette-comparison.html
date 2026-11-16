@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<!--
+  UOL Student Affairs - palette comparison (DEVELOPMENT ONLY)
+
+  Not a product screen and not served by Django: this file lives outside templates/ and
+  static/, has no URL route, and is opened directly in a browser. It exists so the owner can
+  compare candidate palettes before any is approved. Nothing here is final.
+
+  Colour values: "UOL Student Affairs - Frontend Design Research Report", sections 4, 10 and 11.
+  Values the report does not give for Indigo are derived by the same method as Forest and are
+  marked "derived" in the token table at the bottom of the page.
+
+  External requests (development only): Bootstrap 5.3.3 CSS from jsDelivr and the Inter font
+  from Google Fonts. Without a network connection the page falls back to the system font and
+  loses Bootstrap's form-select arrow; all colours still render.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Palette comparison · UOL Student Affairs (development only)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+/* ---------------------------------------------------------------------------------
+   Page chrome. Deliberately neutral grey so no candidate is favoured by its surroundings.
+   --------------------------------------------------------------------------------- */
+body.chrome { background: #D9D9D9; color: #1A1A1A; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0; }
+.chrome-header { background: #F2F2F2; border-bottom: 1px solid #BDBDBD; padding: 16px 24px; position: sticky; top: 0; z-index: 10; }
+.chrome-header h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+.chrome-header p { margin: 0; font-size: 14px; color: #444; max-width: 110ch; }
+.chrome-warning { display: inline-block; background: #1A1A1A; color: #FFF; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; border-radius: 4px; padding: 2px 8px; margin-bottom: 8px; }
+.chrome-controls { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; font-size: 14px; align-items: center; }
+.chrome-controls label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.chrome-section { padding: 24px; scroll-margin-top: 140px; }
+.chrome-section > h2 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+.chrome-section > p { font-size: 14px; color: #444; margin: 0 0 16px; max-width: 110ch; }
+.cmp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; align-items: start; }
+.panel-label { font: 600 13px/1.4 system-ui, sans-serif; color: #1A1A1A; background: #F2F2F2; border: 1px solid #BDBDBD; border-bottom: 0; border-radius: 8px 8px 0 0; padding: 6px 12px; display: flex; justify-content: space-between; }
+.panel-wrap[hidden] { display: none; }
+
+/* ---------------------------------------------------------------------------------
+   Candidate palettes: exact values from the research report.
+   --------------------------------------------------------------------------------- */
+.panel[data-palette="forest"][data-bs-theme="light"] {
+  --sa-accent: #176B52; --sa-on-accent: #FFFFFF; --sa-accent-tint: #E4F0EA; --sa-focus-ring: #176B52;
+  --sa-canvas: #F5F7F5; --sa-surface: #FFFFFF; --sa-surface-raised: #FFFFFF; --sa-surface-subtle: #EDF2EE;
+  --sa-border: #DCE8E0; --sa-border-strong: #B8D8C7; --sa-border-control: #7A8A82;
+  --sa-text: #16201C; --sa-text-muted: #55635C; --sa-text-disabled: #8B978F;
+}
+.panel[data-palette="forest"][data-bs-theme="dark"] {
+  /* --sa-accent-tint: report formula "accent at 16% over surface" = #213931. */
+  --sa-accent: #5CC9A3; --sa-on-accent: #0F1513; --sa-accent-tint: #213931; --sa-focus-ring: #5CC9A3;
+  --sa-canvas: #0F1513; --sa-surface: #161E1B; --sa-surface-raised: #1E2925; --sa-surface-subtle: #1E2925;
+  --sa-border: #2C3A34; --sa-border-strong: #3D5047; --sa-border-control: #6F8279;
+  --sa-text: #E6EEEA; --sa-text-muted: #9DB0A7; --sa-text-disabled: #5F6F67;
+}
+.panel[data-palette="indigo"][data-bs-theme="light"] {
+  /* Derived (not in the report): surface-subtle, border-strong, border-control, text-disabled. */
+  --sa-accent: #4F46C8; --sa-on-accent: #FFFFFF; --sa-accent-tint: #ECEBFB; --sa-focus-ring: #4F46C8;
+  --sa-canvas: #F7F7FA; --sa-surface: #FFFFFF; --sa-surface-raised: #FFFFFF; --sa-surface-subtle: #EFEFF5;
+  --sa-border: #E3E2EC; --sa-border-strong: #C9C6E4; --sa-border-control: #7D7B94;
+  --sa-text: #17162B; --sa-text-muted: #5B5A72; --sa-text-disabled: #8E8DA3;
+}
+.panel[data-palette="indigo"][data-bs-theme="dark"] {
+  /* Derived (not in the report): surface-subtle, border-strong, border-control, text-disabled.
+     --sa-accent-tint: report formula "accent at 16% over surface" = #2E2C47. */
+  --sa-accent: #A29BFF; --sa-on-accent: #100F1A; --sa-accent-tint: #2E2C47; --sa-focus-ring: #A29BFF;
+  --sa-canvas: #100F1A; --sa-surface: #181724; --sa-surface-raised: #201F30; --sa-surface-subtle: #201F30;
+  --sa-border: #2F2E45; --sa-border-strong: #413F5E; --sa-border-control: #706E8C;
+  --sa-text: #EAE9F5; --sa-text-muted: #A5A3BF; --sa-text-disabled: #5E5C78;
+}
+/* Status tones: shared by every candidate (report section 4). */
+.panel[data-bs-theme="light"] {
+  --sa-info-bg: #E8F0FE; --sa-info-fg: #1B4AA8; --sa-progress-bg: #FDF1D7; --sa-progress-fg: #8A5300;
+  --sa-success-bg: #E6F4DF; --sa-success-fg: #2F6B1E; --sa-negative-bg: #FBEAE8; --sa-negative-fg: #9F2D22;
+}
+.panel[data-bs-theme="dark"] {
+  --sa-info-bg: #16233F; --sa-info-fg: #9DBBFF; --sa-progress-bg: #33270F; --sa-progress-fg: #F2C56B;
+  --sa-success-bg: #1B2C14; --sa-success-fg: #9AD27F; --sa-negative-bg: #3A1A17; --sa-negative-fg: #F2A198;
+}
+
+/* ---------------------------------------------------------------------------------
+   Fixed and density tokens (report section 11).
+   --------------------------------------------------------------------------------- */
+.panel {
+  --sa-font-sans: Inter, system-ui, sans-serif; --sa-font-mono: ui-monospace, Menlo, Consolas, monospace;
+  --sa-dur: 200ms; --sa-ease: ease-out;
+  /* Map onto Bootstrap 5.3's variables so its components follow the tokens. */
+  --bs-body-bg: var(--sa-surface); --bs-body-color: var(--sa-text); --bs-emphasis-color: var(--sa-text);
+  --bs-secondary-color: var(--sa-text-muted); --bs-border-color: var(--sa-border);
+  --bs-body-font-family: var(--sa-font-sans);
+  background: var(--sa-canvas); color: var(--sa-text); font-family: var(--sa-font-sans);
+  border: 1px solid #BDBDBD; border-radius: 0 0 8px 8px; padding: 24px 16px;
+}
+[data-density="roomy"] {
+  --sa-control-h: 44px; --sa-card-pad: 24px; --sa-card-radius: 16px; --sa-stack-gap: 16px;
+  --sa-row-min-h: 72px; --sa-badge-h: 28px; --sa-text-body: 1rem; --sa-text-small: .875rem;
+  --sa-text-card-title: 1rem; --sa-text-title: 1.75rem; --sa-input-font: 1rem; --sa-mono-size: .8125rem;
+}
+[data-density="compact"] {
+  --sa-control-h: 36px; --sa-card-pad: 16px; --sa-card-radius: 12px; --sa-stack-gap: 12px;
+  --sa-row-min-h: 48px; --sa-badge-h: 22px; --sa-text-body: .875rem; --sa-text-small: .8125rem;
+  --sa-text-card-title: .875rem; --sa-text-title: 1.375rem; --sa-input-font: .875rem; --sa-mono-size: .75rem;
+}
+.density-label { font: 600 12px/16px var(--sa-font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--sa-text-muted); margin: 0 0 8px; }
+.density-block + .density-block { margin-top: 24px; padding-top: 24px; border-top: 1px dashed var(--sa-border); }
+.stack { display: flex; flex-direction: column; gap: var(--sa-stack-gap); }
+.row-wrap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.muted { color: var(--sa-text-muted); }
+.mono { font-family: var(--sa-font-mono); font-size: var(--sa-mono-size); font-variant-numeric: tabular-nums; }
+.icon { width: 1.125em; height: 1.125em; flex: none; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Focus: 2px accent ring with 2px offset. .sa-focus shows the same ring statically. */
+.panel :focus-visible, .panel .sa-focus { outline: 2px solid var(--sa-focus-ring) !important; outline-offset: 2px; box-shadow: none !important; }
+
+/* Buttons */
+.sa-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: var(--sa-control-h);
+  padding: 0 16px; border-radius: 8px; border: 1px solid transparent; font: 500 var(--sa-text-body)/1.25 var(--sa-font-sans);
+  cursor: pointer; text-decoration: none; white-space: nowrap; transition: background-color var(--sa-dur) var(--sa-ease); }
+[data-density="compact"] .sa-btn { padding: 0 12px; }
+.sa-btn-primary { background: var(--sa-accent); color: var(--sa-on-accent); }
+.sa-btn-primary:hover, .sa-btn-primary.is-hover { background: color-mix(in srgb, var(--sa-accent) 86%, var(--sa-text)); }
+.sa-btn-secondary { background: var(--sa-surface); color: var(--sa-text); border-color: var(--sa-border-strong); }
+.sa-btn-secondary:hover, .sa-btn-secondary.is-hover { background: var(--sa-surface-subtle); }
+.sa-btn-quiet { background: transparent; color: var(--sa-accent); padding-left: 8px; padding-right: 8px; }
+.sa-btn-quiet:hover, .sa-btn-quiet.is-hover { background: var(--sa-surface-subtle); }
+.sa-btn:disabled, .sa-btn[aria-disabled="true"] { background: var(--sa-surface-subtle); color: var(--sa-text-disabled); border-color: var(--sa-border); cursor: not-allowed; }
+.sa-btn-quiet:disabled { background: transparent; border-color: transparent; }
+.state-caption { font-size: 12px; color: var(--sa-text-muted); margin-top: 4px; }
+
+/* Badges: tinted pill with icon and label. Neutral tag for categories. */
+.sa-badge { display: inline-flex; align-items: center; gap: 6px; height: var(--sa-badge-h); padding: 0 10px; border-radius: 999px;
+  font: 500 var(--sa-text-small)/1 var(--sa-font-sans); white-space: nowrap; }
+[data-density="compact"] .sa-badge { padding: 0 8px; gap: 4px; font-size: .75rem; }
+.sa-badge .icon { width: 1em; height: 1em; }
+.sa-badge[data-status="received"] { background: var(--sa-info-bg); color: var(--sa-info-fg); }
+.sa-badge[data-status="under-review"] { background: var(--sa-progress-bg); color: var(--sa-progress-fg); }
+.sa-badge[data-status="resolved"] { background: var(--sa-success-bg); color: var(--sa-success-fg); }
+.sa-badge[data-status="rejected"] { background: var(--sa-negative-bg); color: var(--sa-negative-fg); }
+.sa-tag { display: inline-flex; align-items: center; height: var(--sa-badge-h); padding: 0 8px; border-radius: 6px;
+  background: var(--sa-surface-subtle); color: var(--sa-text-muted); font: 500 var(--sa-text-small)/1 var(--sa-font-sans); }
+[data-density="compact"] .sa-tag { font-size: .75rem; }
+.versus { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; align-items: center; padding: 16px; border-radius: 12px; }
+.versus.on-surface { background: var(--sa-surface); border: 1px solid var(--sa-border); }
+.versus .k { font-size: 12px; color: var(--sa-text-muted); }
+.versus > * { justify-self: start; }
+
+/* Forms: Bootstrap .form-control / .form-select themed by tokens. */
+.panel .sa-label { display: block; font: 500 var(--sa-text-small)/1.4 var(--sa-font-sans); margin-bottom: 8px; color: var(--sa-text); }
+.panel .form-control, .panel .form-select { min-height: var(--sa-control-h); border: 1px solid var(--sa-border-control); border-radius: 8px;
+  background-color: var(--sa-surface); color: var(--sa-text); font: 400 var(--sa-input-font)/1.5 var(--sa-font-sans); padding: 8px 12px; }
+.panel .form-select { padding-right: 36px; }
+.panel textarea.form-control { min-height: calc(4 * 1.5em + 18px); resize: vertical; }
+.panel .form-control::placeholder { color: var(--sa-text-muted); opacity: 1; }
+.panel .form-control:focus, .panel .form-select:focus { border-color: var(--sa-accent); }
+.panel .form-control[readonly] { background: var(--sa-surface-subtle); }
+.panel .form-control.is-invalid, .panel .form-select.is-invalid { border-color: var(--sa-negative-fg); background-image: none; padding-right: 12px; }
+.sa-help { font-size: var(--sa-text-small); color: var(--sa-text-muted); margin-top: 8px; }
+.sa-error { font-size: var(--sa-text-small); color: var(--sa-negative-fg); margin-top: 8px; display: flex; gap: 6px; align-items: flex-start; }
+.sa-error .icon { margin-top: .15em; }
+.field + .field { margin-top: 16px; }
+[data-density="compact"] .field + .field { margin-top: 12px; }
+
+/* Cards */
+.sa-card { background: var(--sa-surface); border: 1px solid var(--sa-border); border-radius: var(--sa-card-radius); padding: var(--sa-card-pad); }
+.sa-card-title { font: 600 var(--sa-text-card-title)/1.5 var(--sa-font-sans); margin: 0; }
+.sa-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.sa-card-body { margin-top: 12px; font-size: var(--sa-text-body); line-height: 1.5; }
+.sa-card-foot { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--sa-border); font-size: var(--sa-text-small); color: var(--sa-text-muted); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.compact-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 10px 0; min-height: var(--sa-row-min-h); border-top: 1px solid var(--sa-border); font-size: var(--sa-text-body); }
+.compact-row:first-of-type { border-top: 0; }
+.compact-row .meta { grid-column: 1 / -1; font-size: var(--sa-text-small); color: var(--sa-text-muted); }
+
+/* Navigation */
+.sa-sidebar { width: 100%; max-width: 260px; background: var(--sa-surface); border: 1px solid var(--sa-border); border-radius: 12px; padding: 16px 12px; }
+.sa-wordmark { padding: 0 8px 16px; display: flex; align-items: baseline; gap: 6px; }
+.sa-wordmark small { font: 600 11px/1 var(--sa-font-sans); letter-spacing: .08em; color: var(--sa-text-muted); }
+.sa-wordmark span { font: 600 16px/1 var(--sa-font-sans); }
+.sa-nav-group { font: 600 12px/16px var(--sa-font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--sa-text-muted); padding: 12px 8px 6px; }
+.sa-nav { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.sa-nav-item { display: flex; align-items: center; gap: 12px; min-height: var(--sa-control-h); padding: 0 12px; border-radius: 8px;
+  color: var(--sa-text); text-decoration: none; font: 500 var(--sa-text-body)/1.25 var(--sa-font-sans); }
+.sa-nav-item .icon { color: var(--sa-text-muted); }
+.sa-nav-item:hover, .sa-nav-item.is-hover { background: var(--sa-surface-subtle); color: var(--sa-text); }
+.sa-nav-item[aria-current="page"] { background: var(--sa-accent-tint); color: var(--sa-accent); font-weight: 600; }
+.sa-nav-item[aria-current="page"] .icon { color: var(--sa-accent); }
+.sa-count { margin-left: auto; font: 500 12px/1 var(--sa-font-sans); font-variant-numeric: tabular-nums; color: var(--sa-text-muted);
+  background: var(--sa-surface-subtle); border-radius: 999px; padding: 4px 8px; }
+.sa-nav-item[aria-current="page"] .sa-count { background: var(--sa-surface); color: var(--sa-accent); }
+
+/* Student Dashboard (phone width, roomy) */
+.phone { max-width: 360px; margin: 0 auto; background: var(--sa-canvas); border: 1px solid var(--sa-border); border-radius: 20px; overflow: hidden; }
+.topbar { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--sa-surface); border-bottom: 1px solid var(--sa-border); }
+.topbar h1 { font: 600 20px/28px var(--sa-font-sans); margin: 0; }
+.icon-btn { position: relative; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--sa-text); background: transparent; border: 0; }
+.icon-btn .dot { position: absolute; top: 4px; right: 2px; box-shadow: 0 0 0 2px var(--sa-surface); min-width: 18px; height: 18px; border-radius: 999px; background: var(--sa-accent); color: var(--sa-on-accent); font: 600 11px/18px var(--sa-font-sans); text-align: center; padding: 0 4px; }
+.avatar { width: 36px; height: 36px; border-radius: 999px; background: var(--sa-accent-tint); color: var(--sa-accent); font: 600 14px/36px var(--sa-font-sans); text-align: center; }
+.dash { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.greeting h2 { font: 600 var(--sa-text-title)/1.2 var(--sa-font-sans); margin: 0; }
+.section-title { font: 600 20px/28px var(--sa-font-sans); margin: 0 0 8px; }
+.phone .sa-card { padding: 16px; }
+.action-row { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px 0; min-height: var(--sa-row-min-h); border-top: 1px solid var(--sa-border); color: var(--sa-text); text-decoration: none; }
+.action-row:first-child { border-top: 0; padding-top: 0; }
+.action-row:last-child { padding-bottom: 0; }
+.action-row .title { font-weight: 500; }
+.action-row .sub { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: var(--sa-text-small); color: var(--sa-text-muted); }
+.tiles { display: grid; gap: 12px; }
+.tile { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 0 16px; border-radius: 12px; font: 500 16px/1.25 var(--sa-font-sans); text-decoration: none; }
+.tile.primary { background: var(--sa-accent); color: var(--sa-on-accent); }
+.tile.secondary { background: var(--sa-surface); color: var(--sa-text); border: 1px solid var(--sa-border-strong); }
+.tile .chev { margin-left: auto; }
+.bottomnav { height: 64px; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--sa-surface); border-top: 1px solid var(--sa-border); }
+.bottomnav a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font: 500 11px/1 var(--sa-font-sans); color: var(--sa-text-muted); text-decoration: none; min-height: 44px; }
+.bottomnav a[aria-current="page"] { color: var(--sa-accent); font-weight: 600; }
+.bottomnav a[aria-current="page"] .pill { background: var(--sa-accent-tint); }
+.bottomnav .pill { width: 48px; height: 28px; border-radius: 999px; display: flex; align-items: center; justify-content: center; }
+.bottomnav .icon { width: 22px; height: 22px; }
+
+/* Contrast audit */
+.audit { width: 100%; border-collapse: collapse; font-size: 13px; background: #FFF; color: #1A1A1A; font-family: system-ui, sans-serif; }
+.audit th, .audit td { border-bottom: 1px solid #DDD; padding: 6px 8px; text-align: left; vertical-align: top; }
+.audit th { background: #F2F2F2; font-weight: 600; }
+.audit .swatch { display: inline-block; width: 12px; height: 12px; border: 1px solid #0003; border-radius: 3px; vertical-align: -2px; margin-right: 4px; }
+.verdict { font-weight: 600; white-space: nowrap; }
+.verdict.pass { color: #1E6B2A; } .verdict.fail { color: #A12A1E; } .verdict.note { color: #6B5300; }
+.tokens td.derived::after { content: " derived"; font-size: 11px; font-weight: 600; color: #6B5300; }
+</style>
+</head>
+<body class="chrome">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M3 13l2.5-7.5A1.5 1.5 0 0 1 6.9 4.5h10.2a1.5 1.5 0 0 1 1.4 1L21 13v5.5A1.5 1.5 0 0 1 19.5 20h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M3 13h5l1.5 2.5h5L16 13h5"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.3 4.6-4.8"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.2 9.2l5.6 5.6M14.8 9.2l-5.6 5.6"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.8v5M12 16.2h.01"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-6.5 8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3.5V8h4.5M8.5 12.5h7M8.5 16h5"/></symbol>
+  <symbol id="i-voice" viewBox="0 0 24 24"><path d="M4.5 6.5A2 2 0 0 1 6.5 4.5h11a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H11l-4.5 3.5v-3.5h0a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 2h-14z"/><path d="M10 20.5h4"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19c.7-3 2.8-4.6 5.5-4.6s4.8 1.6 5.5 4.6"/><path d="M15.5 6.2a3.1 3.1 0 0 1 0 5.6M17 14.6c1.8.5 3 1.9 3.5 4.4"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4.5 19.5h15M7.5 16v-4M12 16V8M16.5 16v-6"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18" cy="12" r="1.2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9.5 6.5L15 12l-5.5 5.5"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 12V6.8a1.4 1.4 0 0 1 2.8 0V11M10.8 10.5V5.6a1.4 1.4 0 0 1 2.8 0V11M13.6 10.8V6.8a1.4 1.4 0 0 1 2.8 0v6.4c0 4-2.4 6.8-6 6.8-2.4 0-3.8-1.1-5-3.2l-1.6-2.9a1.3 1.3 0 0 1 2.2-1.4L8 14.5"/></symbol>
+</svg>
+
+<header class="chrome-header">
+  <span class="chrome-warning">Development only · not a product screen</span>
+  <h1>Palette comparison: Forest and Indigo, light and dark</h1>
+  <p>Identical components rendered with the exact values from the Frontend Design Research Report. Nothing here is approved. Use Tab to see live focus rings. The grey page around the panels is neutral on purpose.</p>
+  <div class="chrome-controls" role="group" aria-label="Show palettes">
+    <strong>Show:</strong>
+    <label><input type="checkbox" data-toggle="forest-light" checked> Forest light</label>
+    <label><input type="checkbox" data-toggle="forest-dark" checked> Forest dark</label>
+    <label><input type="checkbox" data-toggle="indigo-light" checked> Indigo light</label>
+    <label><input type="checkbox" data-toggle="indigo-dark" checked> Indigo dark</label>
+    <span style="color:#555">Tip: show only the two dark panels to judge the accent against Resolved.</span>
+  </div>
+</header>
+
+<main>
+  <section class="chrome-section" id="buttons" data-section="buttons">
+    <h2>1. Buttons</h2>
+    <p>Primary, secondary and quiet, in both densities, with hover, focus and disabled states shown statically.</p>
+    <div class="cmp-grid"></div>
+  </section>
+  <section class="chrome-section" id="badges" data-section="badges">
+    <h2>2. Complaint status badges, and the accent against Resolved</h2>
+    <p>The four statuses from DEC-221, each with an icon and a label. The second block puts the accent's three uses (solid button, current navigation, accent text) directly beside the Resolved badge, on the canvas and on a card. This is the comparison the report says decides between Forest and Indigo.</p>
+    <div class="cmp-grid"></div>
+  </section>
+  <section class="chrome-section" id="forms" data-section="forms">
+    <h2>3. Text inputs, selects and textareas</h2>
+    <p>Default, filled, focus, error and read-only states. Roomy is the student complaint form; compact is the advisor's status update, where a rejection reason is mandatory (DEC-221).</p>
+    <div class="cmp-grid"></div>
+  </section>
+  <section class="chrome-section" id="cards" data-section="cards">
+    <h2>4. Standard and compact cards</h2>
+    <p>A student's complaint card (roomy) and a Batch Advisor's inbox card (compact), with hairline dividers instead of nested boxes.</p>
+    <div class="cmp-grid"></div>
+  </section>
+  <section class="chrome-section" id="nav" data-section="nav">
+    <h2>5. Navigation sidebar</h2>
+    <p>Student sidebar (roomy) and Batch Advisor sidebar (compact). The current item uses the accent tint, accent text and weight 600; one item shows hover and one shows the focus ring.</p>
+    <div class="cmp-grid"></div>
+  </section>
+  <section class="chrome-section" id="dashboard" data-section="dashboard">
+    <h2>6. Student Dashboard, phone width</h2>
+    <p>The three confirmed sections (DEC-282): Your Actions, Section Updates and Quick Access. No statistics. All names are fictional.</p>
+    <div class="cmp-grid"></div>
+  </section>
+  <section class="chrome-section" id="audit" data-section="audit">
+    <h2>7. Contrast measured from the rendered page</h2>
+    <p>Computed in the browser from the colours actually rendered above, using the WCAG 2.x contrast formula. Text needs 4.5:1; control boundaries and focus rings need 3:1. "Advisory" marks a pair that is below 3:1 but not a WCAG failure, because something else (such as the label) identifies the control.</p>
+    <div class="cmp-grid" id="audit-grid"></div>
+  </section>
+  <section class="chrome-section" id="tokens" data-section="tokens">
+    <h2>8. Token values used</h2>
+    <p>Values marked "derived" are not in the research report. They were derived for Indigo with the same method as Forest and must be reviewed before any decision.</p>
+    <div class="cmp-grid" id="token-grid"></div>
+  </section>
+</main>
+
+<!-- =========================================================================================
+     Component templates. Each is rendered once per palette, so all four panels are identical.
+     ========================================================================================= -->
+
+<template id="tpl-buttons">
+  <div class="density-block" data-density="roomy">
+    <p class="density-label">Roomy (students)</p>
+    <div class="row-wrap">
+      <button type="button" class="sa-btn sa-btn-primary"><svg class="icon"><use href="#i-plus"/></svg>Submit complaint</button>
+      <button type="button" class="sa-btn sa-btn-secondary">Support this issue</button>
+      <button type="button" class="sa-btn sa-btn-quiet">View all</button>
+    </div>
+    <div class="row-wrap" style="margin-top:12px">
+      <div><button type="button" class="sa-btn sa-btn-primary is-hover">Submit complaint</button><div class="state-caption">Hover</div></div>
+      <div><button type="button" class="sa-btn sa-btn-secondary sa-focus">Support this issue</button><div class="state-caption">Focus</div></div>
+      <div><button type="button" class="sa-btn sa-btn-primary" disabled>Submit complaint</button><div class="state-caption">Disabled</div></div>
+    </div>
+  </div>
+  <div class="density-block" data-density="compact">
+    <p class="density-label">Compact (staff)</p>
+    <div class="row-wrap">
+      <button type="button" class="sa-btn sa-btn-primary">Update status</button>
+      <button type="button" class="sa-btn sa-btn-secondary">Add information</button>
+      <button type="button" class="sa-btn sa-btn-quiet">Cancel</button>
+    </div>
+    <div class="row-wrap" style="margin-top:12px">
+      <div><button type="button" class="sa-btn sa-btn-primary sa-focus">Update status</button><div class="state-caption">Focus</div></div>
+      <div><button type="button" class="sa-btn sa-btn-secondary is-hover">Add information</button><div class="state-caption">Hover</div></div>
+      <div><button type="button" class="sa-btn sa-btn-secondary" disabled>Add information</button><div class="state-caption">Disabled</div></div>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-badges">
+  <div class="density-block" data-density="roomy">
+    <p class="density-label">Roomy, 28px</p>
+    <div class="row-wrap">
+      <span class="sa-badge" data-status="received"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg>Received</span>
+      <span class="sa-badge" data-status="under-review"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Under Review</span>
+      <span class="sa-badge" data-status="resolved"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Resolved</span>
+      <span class="sa-badge" data-status="rejected"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Rejected</span>
+      <span class="sa-tag">Academic</span>
+    </div>
+  </div>
+  <div class="density-block" data-density="compact">
+    <p class="density-label">Compact, 22px</p>
+    <div class="row-wrap">
+      <span class="sa-badge" data-status="received"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg>Received</span>
+      <span class="sa-badge" data-status="under-review"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Under Review</span>
+      <span class="sa-badge" data-status="resolved"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Resolved</span>
+      <span class="sa-badge" data-status="rejected"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Rejected</span>
+      <span class="sa-tag">Personal/Wellbeing</span>
+    </div>
+  </div>
+  <div class="density-block" data-density="roomy">
+    <p class="density-label">Accent beside Resolved</p>
+    <div class="versus">
+      <span class="k">On the canvas</span><span></span>
+      <span class="sa-btn sa-btn-primary" role="presentation">Submit complaint</span>
+      <span class="sa-badge" data-status="resolved"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Resolved</span>
+      <span class="sa-nav-item" aria-current="page" style="min-height:36px"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg>Complaints</span>
+      <span class="sa-badge" data-status="resolved"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Resolved</span>
+    </div>
+    <div class="versus on-surface" style="margin-top:12px">
+      <span class="k">On a card</span><span></span>
+      <a href="#" class="sa-btn-quiet" style="font-weight:500;text-decoration:none">View complaint</a>
+      <span class="sa-badge" data-status="resolved"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Resolved</span>
+      <span class="sa-btn sa-btn-primary" role="presentation">Support</span>
+      <span class="sa-badge" data-density="compact" data-status="resolved" style="height:22px;font-size:.75rem;padding:0 8px"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Resolved</span>
+    </div>
+  </div>
+</template>
+
+<template id="tpl-forms">
+  <div class="density-block" data-density="roomy">
+    <p class="density-label">Roomy: Submit Complaint</p>
+    <div class="field">
+      <label class="sa-label" for="title">Complaint title</label>
+      <input class="form-control" id="title" value="Projector in Room 204 not working" aria-describedby="title-help">
+      <p class="sa-help" id="title-help">Keep it short. You can add details below.</p>
+    </div>
+    <div class="field">
+      <label class="sa-label" for="category">Category</label>
+      <select class="form-select sa-focus" id="category">
+        <option>Academic</option><option>Non-academic</option><option>Personal/Wellbeing</option><option>Other</option>
+      </select>
+      <p class="sa-help">Shown with the focus ring.</p>
+    </div>
+    <div class="field">
+      <label class="sa-label" for="description">Description</label>
+      <textarea class="form-control" id="description" rows="4" placeholder="What happened, where and when?"></textarea>
+    </div>
+    <div class="field">
+      <label class="sa-label" for="title2">Complaint title</label>
+      <input class="form-control is-invalid" id="title2" value="" aria-invalid="true" aria-describedby="title2-error">
+      <p class="sa-error" id="title2-error"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>Enter a title for your complaint.</p>
+    </div>
+    <div class="field">
+      <label class="sa-label" for="sap">SAP ID</label>
+      <input class="form-control mono" id="sap" value="70012345" readonly>
+      <p class="sa-help">Read-only. Taken from your university email.</p>
+    </div>
+  </div>
+  <div class="density-block" data-density="compact">
+    <p class="density-label">Compact: advisor status update</p>
+    <div class="field">
+      <label class="sa-label" for="status">Status</label>
+      <select class="form-select" id="status">
+        <option>Received</option><option>Under Review</option><option>Resolved</option><option selected>Rejected</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="sa-label" for="reason">Rejection reason</label>
+      <textarea class="form-control is-invalid" id="reason" rows="4" aria-invalid="true" aria-describedby="reason-error"></textarea>
+      <p class="sa-error" id="reason-error"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>A rejection reason is required. The student will see it.</p>
+    </div>
+    <div class="field">
+      <label class="sa-label" for="search">Search complaints</label>
+      <input class="form-control sa-focus" id="search" type="search" placeholder="Reference, title or student">
+    </div>
+  </div>
+</template>
+
+<template id="tpl-cards">
+  <div class="density-block" data-density="roomy">
+    <p class="density-label">Standard card (roomy)</p>
+    <article class="sa-card">
+      <div class="sa-card-head">
+        <div>
+          <h3 class="sa-card-title">Projector in Room 204 not working</h3>
+          <div class="muted mono" style="margin-top:4px">CMP-2026-0142</div>
+        </div>
+        <span class="sa-badge" data-status="under-review"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Under Review</span>
+      </div>
+      <div class="sa-card-body">The projector has not turned on for the last three Data Structures lectures. We have been working from printed slides.</div>
+      <div class="row-wrap" style="margin-top:12px"><span class="sa-tag">Academic</span></div>
+      <div class="sa-card-foot"><span>Ms. Sana Iqbal responded · 2 hours ago</span><a href="#" class="sa-btn-quiet" style="font-weight:500;text-decoration:none">View</a></div>
+    </article>
+  </div>
+  <div class="density-block" data-density="compact">
+    <p class="density-label">Compact card (staff)</p>
+    <article class="sa-card">
+      <div class="sa-card-head">
+        <h3 class="sa-card-title">Complaints · Fall 2024, Semester 4, Section A</h3>
+        <span class="muted" style="font-size:var(--sa-text-small);white-space:nowrap">4 shown</span>
+      </div>
+      <div style="margin-top:8px">
+        <div class="compact-row"><span>Hostel Wi-Fi outage on the second floor</span><span class="sa-badge" data-status="received"><svg class="icon" aria-hidden="true"><use href="#i-inbox"/></svg>Received</span><span class="meta"><span class="mono">CMP-2026-0151</span> · Bilal Ahmed · 20 min ago</span></div>
+        <div class="compact-row"><span>Projector in Room 204 not working</span><span class="sa-badge" data-status="under-review"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Under Review</span><span class="meta"><span class="mono">CMP-2026-0142</span> · Ayesha Khan · 2 h ago</span></div>
+        <div class="compact-row"><span>Lab 3 computers missing compilers</span><span class="sa-badge" data-status="resolved"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Resolved</span><span class="meta"><span class="mono">CMP-2026-0128</span> · Usman Tariq · Yesterday</span></div>
+        <div class="compact-row"><span>Request to change quiz date</span><span class="sa-badge" data-status="rejected"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Rejected</span><span class="meta"><span class="mono">CMP-2026-0119</span> · Zainab Raza · 12 Nov</span></div>
+      </div>
+    </article>
+  </div>
+</template>
+
+<template id="tpl-nav">
+  <div class="density-block" data-density="roomy">
+    <p class="density-label">Student sidebar (roomy)</p>
+    <nav class="sa-sidebar" aria-label="Student">
+      <div class="sa-wordmark"><small>UOL</small><span>Student Affairs</span></div>
+      <ul class="sa-nav">
+        <li><a href="#" class="sa-nav-item" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg>Home</a></li>
+        <li><a href="#" class="sa-nav-item is-hover"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg>Complaints</a></li>
+        <li><a href="#" class="sa-nav-item"><svg class="icon" aria-hidden="true"><use href="#i-voice"/></svg>Student Voice</a></li>
+        <li><a href="#" class="sa-nav-item sa-focus"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>Meetings</a></li>
+        <li><a href="#" class="sa-nav-item"><svg class="icon" aria-hidden="true"><use href="#i-bell"/></svg>Notifications<span class="sa-count">3</span></a></li>
+        <li><a href="#" class="sa-nav-item"><svg class="icon" aria-hidden="true"><use href="#i-user"/></svg>Profile</a></li>
+      </ul>
+    </nav>
+    <p class="state-caption">Home: current · Complaints: hover · Meetings: focus</p>
+  </div>
+  <div class="density-block" data-density="compact">
+    <p class="density-label">Batch Advisor sidebar (compact)</p>
+    <nav class="sa-sidebar" aria-label="Batch Advisor">
+      <div class="sa-wordmark"><small>UOL</small><span>Student Affairs</span></div>
+      <ul class="sa-nav">
+        <li><a href="#" class="sa-nav-item"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg>Overview</a></li>
+        <li><a href="#" class="sa-nav-item" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg>Complaints<span class="sa-count">7</span></a></li>
+        <li><a href="#" class="sa-nav-item"><svg class="icon" aria-hidden="true"><use href="#i-hand"/></svg>Collective Issues<span class="sa-count">2</span></a></li>
+        <li><a href="#" class="sa-nav-item"><svg class="icon" aria-hidden="true"><use href="#i-voice"/></svg>Student Voice</a></li>
+        <li><a href="#" class="sa-nav-item"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>Meetings</a></li>
+        <li><a href="#" class="sa-nav-item"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>Representatives</a></li>
+        <li><a href="#" class="sa-nav-item"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Statistics</a></li>
+      </ul>
+    </nav>
+  </div>
+</template>
+
+<template id="tpl-dashboard">
+  <div class="phone" data-density="roomy">
+    <div class="topbar">
+      <h1>Home</h1>
+      <div class="row-wrap" style="gap:4px">
+        <button type="button" class="icon-btn" aria-label="Notifications, 3 unread"><svg class="icon" aria-hidden="true"><use href="#i-bell"/></svg><span class="dot">3</span></button>
+        <span class="avatar" aria-label="Account menu for Ayesha Khan">AK</span>
+      </div>
+    </div>
+    <div class="dash">
+      <div class="greeting">
+        <h2>Good morning, Ayesha</h2>
+        <div class="muted" style="font-size:var(--sa-text-small);margin-top:4px">Mon 16 Nov 2026</div>
+      </div>
+
+      <section>
+        <h3 class="section-title">Your Actions</h3>
+        <div class="sa-card">
+          <a href="#" class="action-row">
+            <span class="title">Projector in Room 204 not working</span>
+            <span class="sa-badge" data-status="under-review"><svg class="icon" aria-hidden="true"><use href="#i-clock"/></svg>Under Review</span>
+            <span class="sub">Your Batch Advisor responded · 2 h ago</span>
+          </a>
+          <a href="#" class="action-row">
+            <span class="title">Hostel Wi-Fi outage</span>
+            <span class="sa-badge" data-status="resolved"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Resolved</span>
+            <span class="sub">Resolution note added · Yesterday</span>
+          </a>
+          <a href="#" class="action-row">
+            <span class="title">Will the mid-term schedule change?</span>
+            <span class="sa-tag">Question</span>
+            <span class="sub">New answer in Student Voice · Yesterday</span>
+          </a>
+          <a href="#" class="action-row">
+            <span class="title">Meeting with Ms. Sana Iqbal</span>
+            <span class="sa-tag">Meeting</span>
+            <span class="sub">Suggested Tue 17 Nov, 11:00 AM · Today</span>
+          </a>
+        </div>
+      </section>
+
+      <section>
+        <h3 class="section-title">Section Updates</h3>
+        <div class="stack" style="gap:12px">
+          <div class="sa-card">
+            <div class="sa-card-title" style="font-size:16px">Fans not working in Room 204</div>
+            <div class="muted" style="font-size:var(--sa-text-small);margin-top:4px">Raised by your CR, Hamza Ali · 18 students support this</div>
+            <button type="button" class="sa-btn sa-btn-secondary" style="margin-top:12px;width:100%"><svg class="icon" aria-hidden="true"><use href="#i-hand"/></svg>Support</button>
+          </div>
+          <div class="sa-card">
+            <div class="sa-card-title" style="font-size:16px">Extra lab hours before finals</div>
+            <div class="muted" style="font-size:var(--sa-text-small);margin-top:4px">Raised by your GR, Fatima Noor · 26 students support this</div>
+            <button type="button" class="sa-btn sa-btn-quiet" style="margin-top:12px;width:100%" disabled><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Supported</button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h3 class="section-title">Quick Access</h3>
+        <div class="tiles">
+          <a href="#" class="tile primary"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Submit Complaint<svg class="icon chev" aria-hidden="true"><use href="#i-chev"/></svg></a>
+          <a href="#" class="tile secondary"><svg class="icon" aria-hidden="true"><use href="#i-voice"/></svg>Student Voice<svg class="icon chev" aria-hidden="true"><use href="#i-chev"/></svg></a>
+          <a href="#" class="tile secondary"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>My Meetings<svg class="icon chev" aria-hidden="true"><use href="#i-chev"/></svg></a>
+        </div>
+      </section>
+    </div>
+    <nav class="bottomnav" aria-label="Student">
+      <a href="#" aria-current="page"><span class="pill"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg></span>Home</a>
+      <a href="#"><span class="pill"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>Complaints</a>
+      <a href="#"><span class="pill"><svg class="icon" aria-hidden="true"><use href="#i-voice"/></svg></span>Voice</a>
+      <a href="#"><span class="pill"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg></span>Meetings</a>
+      <a href="#"><span class="pill"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></span>More</a>
+    </nav>
+  </div>
+</template>
+
+<script>
+(function () {
+  "use strict";
+  const PALETTES = [
+    { key: "forest-light", palette: "forest", theme: "light", label: "Forest · light" },
+    { key: "forest-dark", palette: "forest", theme: "dark", label: "Forest · dark" },
+    { key: "indigo-light", palette: "indigo", theme: "light", label: "Indigo · light" },
+    { key: "indigo-dark", palette: "indigo", theme: "dark", label: "Indigo · dark" },
+  ];
+  const SECTIONS = ["buttons", "badges", "forms", "cards", "nav", "dashboard"];
+
+  // 1. Render every template once per palette, giving each panel unique IDs.
+  for (const name of SECTIONS) {
+    const grid = document.querySelector(`[data-section="${name}"] .cmp-grid`);
+    const tpl = document.getElementById(`tpl-${name}`);
+    for (const p of PALETTES) {
+      const wrap = document.createElement("div");
+      wrap.className = "panel-wrap";
+      wrap.dataset.key = p.key;
+      wrap.innerHTML = `<div class="panel-label"><span>${p.label}</span><span>${name === "dashboard" ? "phone layout, max 360px" : ""}</span></div>`;
+      const panel = document.createElement("div");
+      panel.className = "panel";
+      panel.dataset.palette = p.palette;
+      panel.setAttribute("data-bs-theme", p.theme);
+      panel.appendChild(tpl.content.cloneNode(true));
+      for (const el of panel.querySelectorAll("[id]")) el.id = `${el.id}-${p.key}`;
+      for (const attr of ["for", "aria-describedby", "aria-labelledby"]) {
+        for (const el of panel.querySelectorAll(`[${attr}]`)) {
+          el.setAttribute(attr, el.getAttribute(attr).split(" ").map((v) => `${v}-${p.key}`).join(" "));
+        }
+      }
+      for (const a of panel.querySelectorAll('a[href="#"]')) a.addEventListener("click", (e) => e.preventDefault());
+      wrap.appendChild(panel);
+      grid.appendChild(wrap);
+    }
+  }
+
+  // 2. Palette visibility toggles.
+  for (const box of document.querySelectorAll("[data-toggle]")) {
+    box.addEventListener("change", () => {
+      for (const w of document.querySelectorAll(`.panel-wrap[data-key="${box.dataset.toggle}"]`)) w.hidden = !box.checked;
+    });
+  }
+
+  // 3. Contrast audit from rendered colours.
+  const parse = (c) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const v = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { r: v[0], g: v[1], b: v[2], a: v.length > 3 ? v[3] : 1 }; };
+  const hex = (c) => "#" + [c.r, c.g, c.b].map((x) => Math.round(x).toString(16).padStart(2, "0")).join("").toUpperCase();
+  const lin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+  const lum = (c) => 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const lab = (c) => {
+    const [r, g, b] = [lin(c.r), lin(c.g), lin(c.b)];
+    const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
+    const x = f((0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047), y = f(0.2126 * r + 0.7152 * g + 0.0722 * b), z = f((0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883);
+    return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+  };
+  const deltaE = (a, b) => Math.hypot(...lab(a).map((v, i) => v - lab(b)[i]));
+  const bgOf = (el) => { for (let n = el; n; n = n.parentElement) { const c = parse(getComputedStyle(n).backgroundColor); if (c && c.a > 0) return c; } return { r: 255, g: 255, b: 255, a: 1 }; };
+  const bgBehind = (el) => bgOf(el.parentElement);
+  const cs = (el, prop) => parse(getComputedStyle(el)[prop]);
+
+  const CHECKS = [
+    ["Body text on canvas", "buttons", ".panel", (e) => [cs(e, "color"), bgOf(e)], 4.5],
+    ["Muted text on card", "cards", ".sa-card-foot", (e) => [cs(e, "color"), bgOf(e)], 4.5],
+    ["Primary button label", "buttons", ".sa-btn-primary:not(:disabled)", (e) => [cs(e, "color"), bgOf(e)], 4.5],
+    ["Quiet button / accent text on card", "cards", ".sa-card-foot .sa-btn-quiet", (e) => [cs(e, "color"), bgOf(e)], 4.5],
+    ["Current nav item text on tint", "nav", '.sa-nav-item[aria-current="page"]', (e) => [cs(e, "color"), bgOf(e)], 4.5],
+    ["Received badge", "badges", '[data-status="received"]', (e) => [cs(e, "color"), bgOf(e)], 4.5],
+    ["Under Review badge", "badges", '[data-status="under-review"]', (e) => [cs(e, "color"), bgOf(e)], 4.5],
+    ["Resolved badge", "badges", '[data-status="resolved"]', (e) => [cs(e, "color"), bgOf(e)], 4.5],
+    ["Rejected badge", "badges", '[data-status="rejected"]', (e) => [cs(e, "color"), bgOf(e)], 4.5],
+    ["Neutral tag", "badges", ".sa-tag", (e) => [cs(e, "color"), bgOf(e)], 4.5],
+    ["Form error text", "forms", ".sa-error", (e) => [cs(e, "color"), bgOf(e)], 4.5],
+    ["Placeholder text in input", "forms", "textarea.form-control:not(.is-invalid)", (e) => [parse(getComputedStyle(e, "::placeholder").color), bgOf(e)], 4.5],
+    ["Input border vs surface", "forms", ".form-control:not(.is-invalid):not([readonly])", (e) => [cs(e, "borderTopColor"), bgBehind(e)], 3],
+    ["Error border vs surface", "forms", ".form-control.is-invalid", (e) => [cs(e, "borderTopColor"), bgBehind(e)], 3],
+    ["Focus ring vs canvas", "buttons", ".sa-btn-secondary.sa-focus", (e) => [cs(e, "outlineColor"), bgBehind(e)], 3],
+    ["Secondary button edge vs canvas", "buttons", ".sa-btn-secondary:not(.sa-focus):not(:disabled)", (e) => [cs(e, "borderTopColor"), bgBehind(e)], 3, "advisory"],
+    ["Secondary tile edge vs canvas", "dashboard", ".tile.secondary", (e) => [cs(e, "borderTopColor"), bgBehind(e)], 3, "advisory"],
+    ["Disabled button label", "buttons", ".sa-btn-primary:disabled", (e) => [cs(e, "color"), bgOf(e)], 0, "info"],
+    // Disabled-looking, but it tells the student their support is recorded (DEC-241).
+    ["'Supported' state label (meaningful)", "dashboard", ".sa-btn-quiet:disabled", (e) => [cs(e, "color"), bgOf(e)], 4.5, "advisory"],
+  ];
+
+  const grid = document.getElementById("audit-grid");
+  for (const p of PALETTES) {
+    const rows = [];
+    for (const [label, section, selector, get, need, kind] of CHECKS) {
+      const panel = document.querySelector(`[data-section="${section}"] .panel-wrap[data-key="${p.key}"] .panel`);
+      const el = selector === ".panel" ? panel : panel.querySelector(selector);
+      if (!el) { rows.push(`<tr><td>${label}</td><td colspan="3">not found</td></tr>`); continue; }
+      const [fg, bg] = get(el);
+      const r = ratio(fg, bg);
+      let verdict;
+      if (kind === "info") verdict = `<span class="verdict note">Exempt (disabled)</span>`;
+      else if (r >= need) verdict = `<span class="verdict pass">Pass (≥ ${need}:1)</span>`;
+      else if (kind === "advisory") verdict = `<span class="verdict note">Advisory (&lt; ${need}:1)</span>`;
+      else verdict = `<span class="verdict fail">Fail (&lt; ${need}:1)</span>`;
+      rows.push(`<tr><td>${label}</td><td><span class="swatch" style="background:${hex(fg)}"></span>${hex(fg)}<br><span class="swatch" style="background:${hex(bg)}"></span>${hex(bg)}</td><td>${r.toFixed(2)}:1</td><td>${verdict}</td></tr>`);
+    }
+    // Accent against Resolved: colour difference, not contrast.
+    const bp = document.querySelector(`[data-section="badges"] .panel-wrap[data-key="${p.key}"] .panel`);
+    const accent = bgOf(bp.querySelector(".versus .sa-btn-primary"));
+    const res = bp.querySelector('.versus [data-status="resolved"]');
+    const dText = deltaE(accent, cs(res, "color")), dFill = deltaE(accent, bgOf(res));
+    rows.push(`<tr><td>Accent vs Resolved text (colour difference)</td><td><span class="swatch" style="background:${hex(accent)}"></span>${hex(accent)}<br><span class="swatch" style="background:${hex(cs(res, "color"))}"></span>${hex(cs(res, "color"))}</td><td>ΔE ${dText.toFixed(1)}</td><td><span class="verdict note">${dText < 40 ? "Same colour family: judge by eye" : "Clearly different hues"}</span></td></tr>`);
+    rows.push(`<tr><td>Accent fill vs Resolved pill (colour difference)</td><td><span class="swatch" style="background:${hex(accent)}"></span>${hex(accent)}<br><span class="swatch" style="background:${hex(bgOf(res))}"></span>${hex(bgOf(res))}</td><td>ΔE ${dFill.toFixed(1)}</td><td></td></tr>`);
+    // The current-navigation tint sits beside Resolved pills on every list page.
+    const tint = bgOf(bp.querySelector('.versus .sa-nav-item[aria-current="page"]'));
+    const dTint = deltaE(tint, bgOf(res));
+    rows.push(`<tr><td>Current-nav tint vs Resolved pill (colour difference)</td><td><span class="swatch" style="background:${hex(tint)}"></span>${hex(tint)}<br><span class="swatch" style="background:${hex(bgOf(res))}"></span>${hex(bgOf(res))}</td><td>ΔE ${dTint.toFixed(1)}</td><td><span class="verdict note">${dTint < 10 ? "Nearly identical fills" : dTint < 25 ? "Similar fills: judge by eye" : "Clearly different"}</span></td></tr>`);
+    const wrap = document.createElement("div");
+    wrap.className = "panel-wrap"; wrap.dataset.key = p.key;
+    wrap.innerHTML = `<div class="panel-label"><span>${p.label}</span></div><table class="audit"><thead><tr><th>Pair</th><th>Colours</th><th>Ratio</th><th>Result</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+    grid.appendChild(wrap);
+  }
+
+  // 4. Token table, with derived values marked.
+  const TOKENS = ["accent", "on-accent", "accent-tint", "canvas", "surface", "surface-raised", "surface-subtle", "border", "border-strong", "border-control", "text", "text-muted", "text-disabled"];
+  const DERIVED = {
+    "forest-dark": ["accent-tint"],
+    "indigo-light": ["surface-subtle", "border-strong", "border-control", "text-disabled"],
+    "indigo-dark": ["accent-tint", "surface-subtle", "border-strong", "border-control", "text-disabled"],
+  };
+  const NOTES = { "forest-light": { "border-control": "report: about #7A8A82, to be verified" }, "forest-dark": { "border-control": "report: about #6F8279, to be verified", "accent-tint": "report formula: accent 16% over surface" }, "indigo-dark": { "accent-tint": "report formula: accent 16% over surface" } };
+  const tgrid = document.getElementById("token-grid");
+  for (const p of PALETTES) {
+    const panel = document.querySelector(`[data-section="buttons"] .panel-wrap[data-key="${p.key}"] .panel`);
+    const style = getComputedStyle(panel);
+    const rows = TOKENS.map((t) => {
+      const v = style.getPropertyValue(`--sa-${t}`).trim();
+      const derived = (DERIVED[p.key] || []).includes(t);
+      const note = (NOTES[p.key] || {})[t] || "";
+      return `<tr><td>--sa-${t}</td><td class="${derived ? "derived" : ""}"><span class="swatch" style="background:${v}"></span>${v}</td><td>${note}</td></tr>`;
+    });
+    const wrap = document.createElement("div");
+    wrap.className = "panel-wrap"; wrap.dataset.key = p.key;
+    wrap.innerHTML = `<div class="panel-label"><span>${p.label}</span></div><table class="audit tokens"><thead><tr><th>Token</th><th>Value</th><th>Note</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+    tgrid.appendChild(wrap);
+  }
+})();
+</script>
+</body>
+</html>

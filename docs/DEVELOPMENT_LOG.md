@@ -18,9 +18,49 @@ Rules:
 |---|---|
 | V1 product workflows | Confirmed in `DECISIONS.md`. |
 | Django foundation | Complete and verified locally: custom user model, admin, email normalization, 32 account tests passing on MySQL 8.0.44 and SQLite. |
-| Authentication and account foundation | Implemented on branch `feat/auth-account-foundation` (PR #3). Reviewed and approved for merging by the owner on 2026-11-16. Google sign-in is tested with simulated Google responses only; it has not been verified with a real UOL account. |
+| Authentication and account foundation | Merged into `main` through PR #3 as merge commit `df47133` on 2026-11-16. Google sign-in is tested with simulated Google responses only; it has not been verified with a real UOL account. |
+| Design system | Design philosophy approved in principle. A development-only palette comparison exists on branch `design/palette-preview`. No palette or design token is approved. |
 | Product features | Not implemented. |
 | Commit and push status of the foundation | Committed as `99b1ba2` ("feat: establish Django foundation and account system") on branch `chore/django-foundation` and pushed to `origin/chore/django-foundation`. Merged into `main` through PR #1 as merge commit `a1ed704` on 2026-11-16. |
+
+---
+
+## 2026-11-16 — Palette comparison preview (development only)
+
+**Context**
+
+- The owner reviewed the Frontend Design Research Report (`UOL Student Affairs — Frontend Design Research Report.docx`, kept outside the repository). The owner approved the design philosophy in principle: quiet structure, one shared system, two densities, responsive role-specific navigation, Bootstrap 5.3 and CSS tokens.
+- The owner asked for a rendered comparison of Forest and Indigo, in light and dark, before choosing a palette. No palette, token or design decision has been approved or recorded in `DECISIONS.md`.
+
+**What was done**
+
+- Added `design/preview/palette-comparison.html`, a standalone development-only page.
+  - It lives outside `templates/` and `static/`, has no Django URL, and is opened directly in a browser. No production page is affected.
+  - It loads Bootstrap 5.3.3 and the Inter font from CDNs. Neither is added to the project: no new Python or static dependency was added.
+- The page renders identical components in Forest light, Forest dark, Indigo light and Indigo dark. Each component is written once and cloned into all four panels:
+  - primary, secondary and quiet buttons (hover, focus and disabled states);
+  - the four complaint status badges (DEC-221) in both badge sizes, plus a block placing the accent beside the Resolved badge;
+  - inputs, selects and textareas (focus, error and read-only states);
+  - standard and compact cards;
+  - the student and Batch Advisor sidebars;
+  - a phone-width Student Dashboard with the three DEC-282 sections.
+- Content uses confirmed workflows only, with fictional names.
+- Colour values are the report's exact values. For Indigo, the report gives no strong border, control border, subtle surface or disabled text, so these were derived by the same method as Forest and are marked "derived" on the page. The dark accent tints use the report's formula (accent at 16% over the surface).
+- The page measures contrast in the browser from the rendered colours. It was rendered in headless Chrome to check layout and read those results, and three preview layout bugs found that way were fixed.
+
+**Findings from rendering** (also listed on the page)
+
+- Text contrast: every required pair passes WCAG AA in all four versions. That covers 15 pairs per version, including body and muted text, button labels, current navigation, all four badges, form errors, placeholders, input borders, error borders and focus rings. The report's stated ratios were confirmed, apart from rounding.
+- The Forest accent against Resolved:
+  - The solid accent and Resolved text are in the same green family: colour difference ΔE 28.9 in light and 27.3 in dark, against more than 100 for Indigo. They stay distinguishable because the accent is a solid fill and Resolved is a tinted pill with an icon.
+  - The report did not cover this closer clash: in Forest light, the current-navigation tint `#E4F0EA` and the Resolved pill `#E6F4DF` are nearly identical fills (ΔE 7.8). In Forest dark the difference is ΔE 12.8. For Indigo it is ΔE 19.9 in light and 36.8 in dark.
+- Secondary button and tile borders: about 1.4 to 2.1:1 against the canvas in all four versions, below 3:1. This is advisory, not a WCAG failure, because the label identifies the control. It does mean the button's edge is faint.
+- The "Supported" state on Section Updates: the report describes a quiet state. Rendered in disabled-text colour, it measures 2.8 to 3.2:1. Disabled controls are exempt from WCAG, but this text tells the student their support is recorded and cannot be withdrawn (DEC-241), so it should be readable.
+- Disabled button labels: 2.5 to 2.8:1. These are exempt and expected.
+
+**Not done**
+
+- No palette chosen, no tokens or decisions recorded, no application shell built.
 
 ---
 
