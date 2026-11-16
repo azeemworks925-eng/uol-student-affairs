@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<!-- DEVELOPMENT ONLY. Design exploration, not a product screen. Not served by Django. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Design explorations · UOL Student Affairs (development only)</title>
+<link rel="stylesheet" href="wire.css">
+<style>
+  .principles { counter-reset: p; display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px; margin-top: 24px; }
+  .principle { background: #fff; border: 1px solid #CFCFCF; border-radius: 12px; padding: 18px 20px; }
+  .principle h2 { font: 600 19px/1.3 var(--sans); margin: 0 0 6px; letter-spacing: -.01em; }
+  .principle h2::before { counter-increment: p; content: counter(p) ". "; color: var(--muted); }
+  .principle p { margin: 6px 0; color: #222; }
+  .principle .in { font-size: 13px; color: #444; }
+  .principle .in b { color: #222; }
+  .pages { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 16px; }
+  .pages a { display: block; background: #fff; border: 1px solid #BDBDBD; border-radius: 12px; padding: 16px 18px; text-decoration: none; }
+  .pages a b { display: block; font-size: 16px; margin-bottom: 4px; }
+  .pages a span { color: #444; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <span class="doc-tag">Development only · design exploration · nothing approved</span>
+  <h1>Confident type. Quiet colour. Meaningful information.</h1>
+  <div class="doc-intro">
+    <p>The approved philosophy, written as seven working principles (proposal for review), followed by low-fidelity alternatives for three key pages. The wireframes test layout and composition only: grey blocks, real content, and the approved Forest Light values used only where colour means something.</p>
+    <p>Grounded in <code>DECISIONS.md</code>. Nothing here adds a product feature. Where a page would need a decision that has not been made, the notes say so.</p>
+  </div>
+
+  <div class="principles">
+    <section class="principle">
+      <h2>Type carries the hierarchy</h2>
+      <p>Each page has one display-size moment, and it is information, not decoration. Below it, a clear three-step scale. Weight and size separate levels before colour or boxes do.</p>
+      <p class="in"><b>In practice:</b> one display line per page; section titles at about half its size; body text at a comfortable reading size; no extra boxes where a size step already shows hierarchy.</p>
+    </section>
+    <section class="principle">
+      <h2>Say it before you show it</h2>
+      <p>Every dashboard opens with a summary sentence calculated from real data: what changed and what is waiting. A chart appears only when it answers a confirmed question better than a sentence (DEC-281), and it is introduced by that sentence.</p>
+      <p class="in"><b>In practice:</b> "4 complaints are waiting for your response" before any number tile; no chart without a written takeaway; no invented metrics, trends or targets.</p>
+    </section>
+    <section class="principle">
+      <h2>Quiet colour, loud meaning</h2>
+      <p>Forest marks the one primary action, links and focus. Ink marks selection and the current place. The four status tones appear only on status. Everything else is neutral, which is what makes the coloured things readable at a glance.</p>
+      <p class="in"><b>In practice:</b> ink bar and weight for current navigation and active tabs (approved); no decorative colour, gradients or coloured icons; no red for counts or notifications.</p>
+    </section>
+    <section class="principle">
+      <h2>Every case shows where it is</h2>
+      <p>A complaint is a journey, not a row. One status track (Received → Under Review → Resolved or Rejected) appears at every scale: a full timeline on the case, a micro-track in lists, and the same states added up for staff. Reference IDs are always visible in monospace.</p>
+      <p class="in"><b>In practice:</b> <span class="ref">CMP-2026-0142</span> on every case; history is never lost when information is added or a case reopens (DEC-222, DEC-223).</p>
+    </section>
+    <section class="principle">
+      <h2>The cohort is the unit</h2>
+      <p>Access, assignment and analytics all work on the exact batch + semester + section cohort (DEC-205). The interface makes that scope visible: a cohort chip on every record and filter, and a cohort map for department-wide oversight.</p>
+      <p class="in"><b>In practice:</b> <span class="cohort">F24 · S4 · A</span> wherever scope matters; the current scope is always stated above lists and charts.</p>
+    </section>
+    <section class="principle">
+      <h2>Staff get workspaces, not dashboards</h2>
+      <p>Batch Advisors and the Super Admin do their work where they see it: lists and the open case side by side, keyboard-friendly, with search by reference ID or student name inside their existing permissions. Overview pages are short briefings that lead into the work.</p>
+      <p class="in"><b>In practice:</b> compact density; status changes, notes and responses in place; search never reveals anything outside the user's cohorts.</p>
+    </section>
+    <section class="principle">
+      <h2>Private by default, calm in tone</h2>
+      <p>The portal carries personal complaints. No other student's face or name appears where it is not needed, aggregates never identify students (DEC-090), notifications are calm, and every empty, loading and error state is written in plain, kind language.</p>
+      <p class="in"><b>In practice:</b> no avatar stacks; counts in ink, not red; small-group privacy thresholds still open (O25) and flagged wherever a chart is proposed.</p>
+    </section>
+  </div>
+
+  <h2 style="font:600 20px/1.3 var(--sans);margin:36px 0 0">Key page explorations</h2>
+  <div class="pages">
+    <a href="student-dashboard.html"><b>Student Dashboard</b><span>Three compositions of the confirmed sections: Your Actions, Section Updates and Quick Access (DEC-282).</span></a>
+    <a href="advisor-complaints.html"><b>Batch Advisor Complaints workspace</b><span>Three ways to handle complaints across assigned cohorts: split pane, status lanes, focus queue.</span></a>
+    <a href="admin-overview.html"><b>Super Admin Overview</b><span>Three oversight compositions: cohort map first, written briefing, scope explorer.</span></a>
+  </div>
+</div>
+</body>
+</html>

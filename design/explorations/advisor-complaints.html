@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<!-- DEVELOPMENT ONLY. Low-fidelity design exploration. Not a product screen; not served by Django. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Batch Advisor Complaints explorations · UOL Student Affairs (development only)</title>
+<link rel="stylesheet" href="wire.css">
+<style>
+  .ws { display: grid; grid-template-columns: 340px minmax(0, 1fr); min-height: 600px; border-top: 1px solid var(--line); }
+  .ws-list { border-right: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; min-width: 0; }
+  .ws-list .filters { padding: 12px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+  .item { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; font-size: 12px; position: relative; }
+  .item.sel { background: var(--subtle); }
+  .item.sel::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--ink); }
+  .item .t { font-size: 13px; font-weight: 500; }
+  .ws-detail { padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .composer { border: 1px solid #7A8A82; border-radius: 10px; padding: 10px; background: var(--surface); }
+  .composer .area { height: 54px; color: var(--muted); font-size: 13px; }
+  .compact .main { padding: 18px 20px; gap: 14px; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <span class="doc-tag">Development only · low fidelity · nothing approved</span>
+  <h1>Batch Advisor Complaints workspace: three compositions</h1>
+  <p>Grounded in DEC-283 (an actionable inbox with search, filters and complaint details; the cohort filter defaults to All Assigned Sections), DEC-221 (four statuses; a rejection reason and a resolution note are mandatory), DEC-222 ("Still not resolved"), DEC-223 (students add information), DEC-226 (no priority levels, queues or overdue indicator) and DEC-205 (exact cohorts). Sample advisor: Ms. Sana Iqbal, assigned to <span class="cohort">F24 · S4 · A</span> <span class="cohort">F24 · S4 · B</span> <span class="cohort">S25 · S2 · A</span>. Search covers reference ID and student name within these cohorts only.</p>
+  <nav class="doc-nav"><a href="index.html">← Principles</a><a href="#a">A · Split pane</a><a href="#b">B · Status lanes</a><a href="#c">C · Focus queue</a><a href="#compare">Comparison</a></nav>
+
+  <!-- ======================================================================= A -->
+  <section class="comp" id="a">
+    <h2>A · Split pane</h2>
+    <p class="thesis">An email-client workspace: the list on the left, the open case on the right, everything done in place. Selecting a complaint never leaves the page, so an advisor can move through their cohorts quickly. This is the "workspace, not dashboard" principle in its most familiar form.</p>
+    <div class="stage">
+      <div>
+        <p class="stage-label">Desktop, 1440px</p>
+        <div class="desk compact"><div class="desk-shell">
+          <nav class="side">
+            <div class="mark"><small>UOL</small>Student Affairs</div>
+            <a>Overview</a><a aria-current="page">Complaints<span class="count">4</span></a><a>Collective Issues<span class="count quiet">2</span></a><a>Student Voice</a><a>Meetings</a><a>Representatives</a><a>Statistics</a>
+            <div class="foot"><span class="avatar">SI</span><div>Sana Iqbal<br><span class="muted">Batch Advisor</span></div></div>
+          </nav>
+          <div style="min-width:0;display:flex;flex-direction:column">
+            <div class="main" style="padding-bottom:12px">
+              <div class="topbar"><h1 class="display-s" style="font-size:22px"><span class="n">1</span>4 complaints are waiting for your response. <span class="muted">1 was marked "Still not resolved".</span></h1><span class="tools"><span class="bell" data-count="2"></span></span></div>
+              <div class="row"><span class="n">2</span><span class="search grow">Search by reference ID or student name</span><span class="select">All assigned cohorts (3)</span><span class="select">Category: All</span></div>
+            </div>
+            <div class="ws">
+              <div class="ws-list">
+                <div class="filters"><div class="tabs"><span class="tab on">All<b>23</b></span><span class="tab">Received<b>4</b></span><span class="tab">Under Review<b>9</b></span><span class="tab">Resolved<b>7</b></span><span class="tab">Rejected<b>3</b></span></div></div>
+                <div class="item"><div class="row"><span class="ref">CMP-2026-0155</span><span class="flag">Still not resolved</span><span class="grow"></span><span class="muted">10 min</span></div><div class="t ellipsis">Hostel Wi-Fi outage</div><div class="row"><span class="muted grow">Bilal Ahmed</span><span class="cohort">F24 · S4 · B</span><span class="st review">Under Review</span></div></div>
+                <div class="item sel"><div class="row"><span class="ref">CMP-2026-0142</span><span class="tag">New information</span><span class="grow"></span><span class="muted">2 h</span></div><div class="t ellipsis">Projector in Room 204 not working</div><div class="row"><span class="muted grow">Ayesha Khan</span><span class="cohort">F24 · S4 · A</span><span class="st review">Under Review</span></div></div>
+                <div class="item"><div class="row"><span class="ref">CMP-2026-0151</span><span class="grow"></span><span class="muted">Yesterday</span></div><div class="t ellipsis">Lab 3 computers missing compilers</div><div class="row"><span class="muted grow">Usman Tariq</span><span class="cohort">S25 · S2 · A</span><span class="st received">Received</span></div></div>
+                <div class="item"><div class="row"><span class="ref">CMP-2026-0149</span><span class="grow"></span><span class="muted">2 days</span></div><div class="t ellipsis">Quiz rescheduled without notice</div><div class="row"><span class="muted grow">Zainab Raza</span><span class="cohort">F24 · S4 · A</span><span class="st received">Received</span></div></div>
+                <div class="item"><div class="row"><span class="ref">CMP-2026-0128</span><span class="grow"></span><span class="muted">12 Nov</span></div><div class="t ellipsis">Washroom on 2nd floor locked</div><div class="row"><span class="muted grow">Hamza Ali</span><span class="cohort">F24 · S4 · A</span><span class="st resolved">Resolved</span></div></div>
+              </div>
+              <div class="ws-detail">
+                <div class="row"><span class="ref">CMP-2026-0142</span><span class="grow"></span><span class="btn primary"><span class="n">3</span>Respond</span><span class="btn">Update status ▾</span></div>
+                <h2 class="display-s" style="font-size:24px">Projector in Room 204 not working</h2>
+                <div class="row small" style="flex-wrap:wrap"><b>Ayesha Khan</b><span class="mono">12345678</span><span class="cohort">F24 · S4 · A</span><span class="tag">Academic › Classroom equipment</span><span class="muted">Responsible: you <span class="n" title="O27">!</span></span></div>
+                <div><span class="n">4</span><div class="track" style="margin-top:6px"><i class="done"></i><b class="done"></b><i class="now-review"></i><b></b><i></i></div><div class="track-labels"><span>Received · 14 Nov</span><span class="now">Under Review · since 15 Nov</span><span>Resolved or Rejected</span></div></div>
+                <ol class="tl"><li><b>Ayesha added information</b> <span class="when">· 2 h ago</span><div class="note">It also happened in today's 11:30 lecture. The cable seems to be the problem.</div></li><li><b>You responded</b> <span class="when">· 15 Nov, 3:40 PM</span><div class="note">I have reported this to the IT office and will update you by Friday.</div></li><li><b>You moved it to Under Review</b> <span class="when">· 15 Nov, 3:38 PM</span></li><li><b>Submitted</b> <span class="when">· 14 Nov, 9:12 AM</span><div class="note">The projector has not turned on for the last three Data Structures lectures…</div></li></ol>
+                <div class="composer"><div class="area">Write a response to Ayesha…</div><div class="row"><span class="small muted grow">The student is notified (DEC-270)</span><span class="btn primary">Send response</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div></div>
+      </div>
+      <div>
+        <p class="stage-label">Phone, 360px (list → case)</p>
+        <div class="phone">
+          <div class="ph-top">Complaints <span class="row" style="gap:8px"><span class="bell" data-count="2"></span><span class="avatar">SI</span></span></div>
+          <div class="phone-body">
+            <p class="small"><b>4 waiting for your response</b></p>
+            <span class="search">Reference or student</span>
+            <div class="row"><span class="select">All cohorts</span><span class="select">Status</span></div>
+            <div class="card" style="padding:0"><div class="item"><div class="row"><span class="ref">CMP-2026-0155</span><span class="flag">Reopened</span></div><div class="t">Hostel Wi-Fi outage</div><div class="row"><span class="cohort">F24 · S4 · B</span><span class="st review">Review</span></div></div><div class="item"><div class="row"><span class="ref">CMP-2026-0142</span><span class="tag">New info</span></div><div class="t">Projector in Room 204</div><div class="row"><span class="cohort">F24 · S4 · A</span><span class="st review">Review</span></div></div><div class="item" style="border:0"><div class="row"><span class="ref">CMP-2026-0151</span></div><div class="t">Lab 3 computers</div><div class="row"><span class="cohort">S25 · S2 · A</span><span class="st received">Received</span></div></div></div>
+            <div class="ph-block" style="height:110px">Tap → full-screen case: back link, track, timeline, sticky bar with Respond and Update status</div>
+          </div>
+          <div class="ph-top" style="border-top:1px solid var(--line);border-bottom:0;font-weight:500;font-size:12px;color:var(--muted)">Staff menu in a drawer (no bottom tabs)</div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><h3>Hierarchy</h3><ol><li><span class="n">1</span> A summary sentence instead of stat tiles.</li><li><span class="n">2</span> Search and cohort filter (default: all assigned cohorts).</li><li>List with status tabs that show counts.</li><li><span class="n">3</span> The open case, with Respond as the one Forest action.</li></ol></div>
+      <div><h3>Visual elements</h3><ul><li><span class="n">4</span> Full journey track with dates; timeline newest first, the student's added information never overwriting the original (DEC-223).</li><li>List rows: reference, flag, title, student, cohort chip, status.</li><li>Ink marks the selected row, consistent with navigation.</li></ul></div>
+      <div><h3>Interactions</h3><ul><li>Update status opens the right form: Resolve asks for a resolution note, Reject asks for a reason, both mandatory (DEC-221).</li><li>Keyboard: ↑ ↓ to move, Enter to open, R to respond.</li><li>Search runs within assigned cohorts only.</li></ul></div>
+      <div><h3>Mobile</h3><ul><li>List and case become two screens. The case keeps a sticky action bar.</li></ul></div>
+      <div class="risk"><h3>Open questions</h3><ul><li>"Waiting for your response" needs a definition, for example "student activity since the last advisor action".</li><li><span class="n">!</span> "Responsible: you": how the responsible advisor is designated is open (O27).</li><li>How a cancellation request appears is open (O28).</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ======================================================================= B -->
+  <section class="comp" id="b">
+    <h2>B · Status lanes</h2>
+    <p class="thesis">The four statuses as lanes, so the shape of the advisor's work is visible at once: the status journey added up. Selecting a card opens the case in a drawer over the board. Visually the most distinctive, and closest to the "status as a journey" signature at aggregate scale.</p>
+    <div class="stage">
+      <div>
+        <p class="stage-label">Desktop, 1440px · case open in drawer</p>
+        <div class="desk compact"><div class="desk-shell">
+          <nav class="side">
+            <div class="mark"><small>UOL</small>Student Affairs</div>
+            <a>Overview</a><a aria-current="page">Complaints<span class="count">4</span></a><a>Collective Issues<span class="count quiet">2</span></a><a>Student Voice</a><a>Meetings</a><a>Representatives</a><a>Statistics</a>
+            <div class="foot"><span class="avatar">SI</span><div>Sana Iqbal</div></div>
+          </nav>
+          <main class="main with-drawer">
+            <div class="topbar"><h1 class="display-s" style="font-size:22px">Complaints <span class="muted">· all assigned cohorts</span></h1><span class="tools"><span class="search" style="width:260px">Reference or student</span><span class="select">All cohorts (3)</span></span></div>
+            <div class="lanes">
+              <div class="lane"><h4><span><span class="n">1</span>Received</span><span>4</span></h4><div class="mini-card"><span class="ref">CMP-2026-0151</span><b>Lab 3 computers missing compilers</b><div class="row"><span class="cohort">S25 · S2 · A</span><span class="muted">1 d</span></div></div><div class="mini-card"><span class="ref">CMP-2026-0149</span><b>Quiz rescheduled without notice</b><div class="row"><span class="cohort">F24 · S4 · A</span><span class="muted">2 d</span></div></div><div class="ph-block" style="height:40px">+ 2 more</div></div>
+              <div class="lane"><h4><span>Under Review</span><span>9</span></h4><div class="mini-card"><div class="row"><span class="ref">CMP-2026-0155</span><span class="flag">Reopened</span></div><b>Hostel Wi-Fi outage</b><div class="row"><span class="cohort">F24 · S4 · B</span></div></div><div class="mini-card sel"><div class="row"><span class="ref">CMP-2026-0142</span><span class="tag">New info</span></div><b>Projector in Room 204 not working</b><div class="row"><span class="cohort">F24 · S4 · A</span></div></div><div class="ph-block" style="height:40px">+ 7 more</div></div>
+              <div class="lane"><h4><span><span class="n">2</span>Resolved</span><span class="muted">7 this month</span></h4><div class="mini-card"><span class="ref">CMP-2026-0128</span><b>Washroom on 2nd floor locked</b></div><div class="ph-block" style="height:40px">Older resolved: see list</div></div>
+              <div class="lane"><h4><span>Rejected</span><span class="muted">3 this month</span></h4><div class="mini-card"><span class="ref">CMP-2026-0119</span><b>Request to change quiz date</b></div></div>
+            </div>
+            <div class="scrim"></div>
+            <aside class="drawer"><div class="row"><span class="ref">CMP-2026-0142</span><span class="grow"></span><span class="muted">Close ✕</span></div><h2 class="display-s" style="font-size:20px">Projector in Room 204 not working</h2><div class="row small"><b>Ayesha Khan</b><span class="cohort">F24 · S4 · A</span></div><div class="track"><i class="done"></i><b class="done"></b><i class="now-review"></i><b></b><i></i></div><ol class="tl"><li><b>Ayesha added information</b> <span class="when">· 2 h</span></li><li><b>You responded</b> <span class="when">· 15 Nov</span></li><li><b>Submitted</b> <span class="when">· 14 Nov</span></li></ol><div class="row" style="margin-top:auto"><span class="n">3</span><span class="btn primary grow">Respond</span><span class="btn">Resolve…</span><span class="btn">Reject…</span></div></aside>
+          </main>
+        </div></div>
+      </div>
+      <div>
+        <p class="stage-label">Phone, 360px</p>
+        <div class="phone">
+          <div class="ph-top">Complaints <span class="avatar">SI</span></div>
+          <div class="phone-body">
+            <div class="tabs" style="overflow:hidden;flex-wrap:nowrap"><span class="tab on">Received<b>4</b></span><span class="tab">Under Review<b>9</b></span><span class="tab">Resolved</span></div>
+            <div class="mini-card"><span class="ref">CMP-2026-0151</span><b>Lab 3 computers missing compilers</b><span class="cohort">S25 · S2 · A</span></div>
+            <div class="mini-card"><span class="ref">CMP-2026-0149</span><b>Quiz rescheduled without notice</b><span class="cohort">F24 · S4 · A</span></div>
+            <div class="ph-block" style="height:120px">Lanes don't fit a phone: they become status tabs. The board idea is lost here.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><h3>Hierarchy</h3><ol><li><span class="n">1</span> Received and Under Review, where the work is, come first and grow.</li><li><span class="n">2</span> Resolved and Rejected show only recent cases, so the terminal lanes don't grow forever.</li></ol></div>
+      <div><h3>Visual elements</h3><ul><li>Lane counts are the aggregate status journey: the advisor sees their workload's shape without a chart.</li><li>Flags (Reopened, New info) stand out on small cards.</li></ul></div>
+      <div><h3>Interactions</h3><ul><li><span class="n">3</span> Status changes use buttons in the drawer. <b>No drag-and-drop between lanes</b>, because resolving or rejecting requires a written note (DEC-221).</li><li>The drawer keeps the board visible behind it, so context is never lost.</li></ul></div>
+      <div><h3>Mobile</h3><ul><li>Becomes status tabs plus a list, which is essentially A's list. Phones get no board benefit.</li></ul></div>
+      <div class="risk"><h3>Risks</h3><ul><li>Looks like a task board (Trello), which implies drag-to-move and personal workflow: neither applies here.</li><li>Lanes read as queues or priorities, which DEC-226 deliberately excludes.</li><li>With 20+ open cases, cards truncate heavily; less text per case than A.</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ======================================================================= C -->
+  <section class="comp" id="c">
+    <h2>C · Focus queue</h2>
+    <p class="thesis">One case at a time at a comfortable reading width, with the list reduced to a slim rail and a context column for the student's other complaints in the advisor's cohorts. Optimised for reading carefully and responding well, which matters for sensitive complaints. Moves through cases with next and previous, oldest first.</p>
+    <div class="stage">
+      <div>
+        <p class="stage-label">Desktop, 1440px</p>
+        <div class="desk compact"><div class="desk-shell">
+          <nav class="side">
+            <div class="mark"><small>UOL</small>Student Affairs</div>
+            <a>Overview</a><a aria-current="page">Complaints<span class="count">4</span></a><a>Collective Issues<span class="count quiet">2</span></a><a>Student Voice</a><a>Meetings</a><a>Representatives</a><a>Statistics</a>
+            <div class="foot"><span class="avatar">SI</span><div>Sana Iqbal</div></div>
+          </nav>
+          <main class="main">
+            <div class="topbar"><div class="row"><span class="n">1</span><span class="tabs"><span class="tab on">Waiting for you<b>4</b></span><span class="tab">All open<b>13</b></span><span class="tab">Closed</span></span></div><span class="tools"><span class="search" style="width:240px">Reference or student</span><span class="select">All cohorts (3)</span></span></div>
+            <div style="display:grid;grid-template-columns:150px minmax(0,1fr) 220px;gap:16px;min-width:0">
+              <div class="stack" style="gap:4px;font-size:12px"><span class="n">2</span><div class="item sel" style="border:0;border-radius:8px"><span class="ref">0155</span>Hostel Wi-Fi</div><div class="item" style="border:0"><span class="ref">0142</span>Projector, Room 204</div><div class="item" style="border:0"><span class="ref">0151</span>Lab 3 computers</div><div class="item" style="border:0"><span class="ref">0149</span>Quiz rescheduled</div></div>
+              <div class="card" style="padding:22px 26px">
+                <div class="row"><span class="ref">CMP-2026-0155</span><span class="flag">Still not resolved</span><span class="grow"></span><span class="muted small">1 of 4 · <span class="kbd">J</span> <span class="kbd">K</span></span></div>
+                <h2 class="display-s" style="margin:12px 0 6px"><span class="n">3</span>Hostel Wi-Fi outage</h2>
+                <div class="row small"><b>Bilal Ahmed</b><span class="cohort">F24 · S4 · B</span><span class="tag">Non-academic</span></div>
+                <div class="track" style="margin:16px 0 4px"><i class="done"></i><b class="done"></b><i class="now-review"></i><b></b><i class="done"></i></div><div class="track-labels"><span>Received</span><span class="now">Back to Under Review</span><span>Was resolved 12 Nov</span></div>
+                <ol class="tl" style="margin-top:14px"><li><b>Bilal: "Still not resolved"</b> <span class="when">· 10 min ago</span><div class="note">The Wi-Fi worked for two days and stopped again on the second floor.</div></li><li><b>You resolved it</b> <span class="when">· 12 Nov</span><div class="note">Resolution note: the router on the second floor was replaced.</div></li></ol>
+                <div class="composer" style="margin-top:8px"><div class="area">Write a response to Bilal…</div><div class="row"><span class="grow"></span><span class="btn">Update status ▾</span><span class="btn primary">Send response</span></div></div>
+              </div>
+              <div class="stack"><span class="n">4</span><div class="card flat"><p class="eyebrow">This student</p><div class="small" style="margin-top:6px">1 other complaint in your cohorts</div><div class="small muted"><span class="ref">CMP-2026-0098</span> Resolved · Sep</div></div><div class="card flat"><p class="eyebrow">This cohort</p><div class="small" style="margin-top:6px"><span class="cohort">F24 · S4 · B</span></div><div class="small muted" style="margin-top:4px">CR Daniyal Shah · GR Maryam Aslam</div></div></div>
+            </div>
+          </main>
+        </div></div>
+      </div>
+      <div>
+        <p class="stage-label">Phone, 360px</p>
+        <div class="phone">
+          <div class="ph-top">1 of 4 waiting <span class="muted small">‹ ›</span></div>
+          <div class="phone-body">
+            <div class="row"><span class="ref">CMP-2026-0155</span><span class="flag">Reopened</span></div>
+            <h2 class="display-s" style="font-size:22px">Hostel Wi-Fi outage</h2>
+            <div class="row small"><b>Bilal Ahmed</b><span class="cohort">F24 · S4 · B</span></div>
+            <div class="track"><i class="done"></i><b class="done"></b><i class="now-review"></i><b></b><i class="done"></i></div>
+            <ol class="tl" style="margin-top:6px"><li><b>"Still not resolved"</b> <span class="when">· 10 min</span><div class="note">Stopped again on the second floor.</div></li></ol>
+            <div class="ph-block" style="height:70px">Sticky bar: Respond · Update status · Next ›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div><h3>Hierarchy</h3><ol><li><span class="n">1</span> "Waiting for you" is a view, not a priority: it lists cases with student activity since your last action, oldest first.</li><li><span class="n">2</span> A slim rail keeps the position in the set visible.</li><li><span class="n">3</span> One case at display size and reading width.</li><li><span class="n">4</span> Context column: the student's other complaints and the cohort's representatives, all within the advisor's own cohorts.</li></ol></div>
+      <div><h3>Visual elements</h3><ul><li>The track shows a reopened journey honestly: resolved, then back to Under Review (DEC-222).</li><li>Keyboard hints are visible but small.</li></ul></div>
+      <div><h3>Interactions</h3><ul><li>J/K or the arrows move through the set; responding moves to the next case automatically (optional).</li><li>"All open" and "Closed" fall back to a normal list.</li></ul></div>
+      <div><h3>Mobile</h3><ul><li>The best phone experience of the three: one case per screen with next and previous.</li></ul></div>
+      <div class="risk"><h3>Risks</h3><ul><li>"Waiting for you" could feel like a queue (DEC-226 rejected priority queues). It is a filtered view sorted by date, but the wording must avoid urgency.</li><li>Showing a student's other complaints is within permissions, but it should be checked against privacy expectations.</li><li>Weak for scanning or comparing many cases.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="verdict-box" id="compare">
+    <h2>Comparison and my recommendation</h2>
+    <table>
+      <tr><th></th><th>A · Split pane</th><th>B · Status lanes</th><th>C · Focus queue</th></tr>
+      <tr><td>Daily handling speed</td><td>High</td><td>Medium (drawer each time)</td><td>High for a known set</td></tr>
+      <tr><td>Overview of workload</td><td>Good (tabs with counts)</td><td>Best (lanes)</td><td>Weak</td></tr>
+      <tr><td>Fit with decisions</td><td>Clean</td><td>Risks reading as queues; no drag possible</td><td>Needs careful "waiting" wording</td></tr>
+      <tr><td>Sensitive reading</td><td>Good</td><td>Weakest (truncated cards)</td><td>Best</td></tr>
+      <tr><td>Phone</td><td>Good (two screens)</td><td>Loses its idea</td><td>Best</td></tr>
+    </table>
+    <p style="margin:12px 0 0"><b>Recommendation for discussion:</b> A as the workspace, with C's context column inside the case pane when the screen is wide enough, and C's one-case-per-screen flow as A's phone layout. I would not pursue B: its strength (seeing the status shape) is better shown on the advisor's Overview, and as a work surface it implies drag-and-drop and queues we have ruled out.</p>
+  </section>
+</div>
+</body>
+</html>
