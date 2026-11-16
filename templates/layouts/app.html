@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% comment %}
+  Application shell for signed-in users (DESIGN_PLAN.md section 3).
+  Student and Super Admin: sidebar. Batch Advisor: 72px icon rail.
+  Phones: header; students get the four-destination bottom navigation (DEC-304),
+  staff get a navigation drawer. Active navigation uses the ink indicator (DEC-301).
+{% endcomment %}
+{% block body %}
+{% with role=user.role %}
+<div class="sa-app{% if role == 'batch_advisor' %} sa-app--rail{% endif %}">
+
+  {% if role == "batch_advisor" %}
+  <nav class="sa-rail" aria-label="Main navigation">
+    <a class="sa-rail-mark" href="{% url 'home' %}" aria-label="Student Affairs home">S</a>
+    {% for item in sa_nav_items %}
+      {% if item.url %}
+        <a class="sa-rail-link" href="{{ item.url }}" title="{{ item.label }}" aria-label="{{ item.label }}"{% if item.current %} aria-current="page"{% endif %}><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></a>
+      {% else %}
+        <span class="sa-rail-link" role="link" aria-disabled="true" title="{{ item.label }} (not available yet)" aria-label="{{ item.label }}, not available yet"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></span>
+      {% endif %}
+    {% endfor %}
+    <div class="sa-account">{% include "includes/account_menu.html" with dropup=True button_class="sa-account-btn justify-content-center p-1" %}</div>
+  </nav>
+  {% else %}
+  <aside class="sa-sidebar" aria-label="Sidebar">
+    <a class="sa-wordmark" href="{% url 'home' %}"><small>UOL</small><span>Student Affairs</span></a>
+    {% include "includes/nav_groups.html" %}
+    <div class="sa-account">{% include "includes/account_menu.html" with dropup=True show_name=True %}</div>
+  </aside>
+  {% endif %}
+
+  <div class="sa-main">
+    <header class="sa-mobilebar">
+      {% if role != "student" %}
+        <button class="sa-iconbtn" type="button" data-bs-toggle="offcanvas" data-bs-target="#sa-drawer" aria-controls="sa-drawer" aria-label="Open navigation"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
+      {% endif %}
+      <a class="sa-wordmark" href="{% url 'home' %}"><small>UOL</small><span>Student Affairs</span></a>
+      {% include "includes/account_menu.html" with button_class="sa-iconbtn" menu_class="dropdown-menu-end" %}
+    </header>
+
+    <main id="main" class="sa-page{% block page_class %}{% endblock %}" tabindex="-1">
+      {% include "includes/messages.html" %}
+      {% block content %}{% endblock %}
+    </main>
+
+    {% if role == "student" %}
+    <nav class="sa-bottomnav" aria-label="Main navigation">
+      {% for item in sa_nav_items %}
+        {% if item.url %}
+          <a href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg>{% if item.label == "Student Voice" %}Voice{% else %}{{ item.label }}{% endif %}</a>
+        {% else %}
+          <span role="link" aria-disabled="true" aria-label="{{ item.label }}, not available yet"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg>{% if item.label == "Student Voice" %}Voice{% else %}{{ item.label }}{% endif %}</span>
+        {% endif %}
+      {% endfor %}
+    </nav>
+    {% endif %}
+  </div>
+</div>
+
+{% if role != "student" %}
+<div class="offcanvas offcanvas-start" tabindex="-1" id="sa-drawer" aria-labelledby="sa-drawer-title">
+  <div class="offcanvas-header">
+    <span class="sa-wordmark" id="sa-drawer-title"><small>UOL</small><span>Student Affairs</span></span>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close navigation"></button>
+  </div>
+  <div class="offcanvas-body">
+    {% include "includes/nav_groups.html" %}
+  </div>
+</div>
+{% endif %}
+{% endwith %}
+{% endblock %}

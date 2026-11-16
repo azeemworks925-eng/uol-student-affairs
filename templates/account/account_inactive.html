@@ -1,0 +1,10 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Account inactive · UOL Student Affairs{% endblock %}
+{% block content %}
+  <span class="sa-eyebrow">Sign-in</span>
+  <h1 class="sa-display">This account is inactive.</h1>
+  <div class="panel">
+    <p class="mb-0" role="alert">Your account has been deactivated. Contact the Super Admin if you think this is a mistake.</p>
+  </div>
+  <p class="note mt-3"><a href="{% url 'account_login' %}">Back to sign in</a></p>
+{% endblock %}

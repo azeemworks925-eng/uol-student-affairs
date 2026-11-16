@@ -1,0 +1,10 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Sign-in failed · UOL Student Affairs{% endblock %}
+{% block content %}
+  <span class="sa-eyebrow">Sign-in</span>
+  <h1 class="sa-display">Sign-in did not complete.</h1>
+  <div class="panel">
+    <p class="mb-0" role="alert">Something went wrong while signing in with Google. Please try again.</p>
+  </div>
+  <p class="note mt-3"><a href="{% url 'account_login' %}">Back to sign in</a></p>
+{% endblock %}

@@ -137,4 +137,4 @@ None of the following has been verified. No real UOL Google account has signed i
 
 - **MySQL warning W036 during `migrate`.** MySQL cannot enforce two conditional unique constraints on allauth's `EmailAddress` table. The portal's identity guarantees do not depend on that table; they rest on `User.email UNIQUE` and `SocialAccount (provider, uid) UNIQUE`.
 - **Google One Tap endpoint.** allauth also exposes `/accounts/google/login/token/`. It verifies signatures and goes through the same adapter rules.
-- **Placeholder pages only.** The pages are deliberately plain placeholders until the design direction is agreed (DEC-120).
+- **Sign-in pages.** The sign-in, sign-in denied and registration pages use the portal's sign-in layout (`templates/layouts/auth.html`). The django-allauth pages a user can reach (sign-out confirmation, sign-in cancelled, sign-in error, account inactive) are overridden in `templates/account/` and `templates/socialaccount/`; any other allauth page falls back to the same layout through `templates/allauth/layouts/base.html`. Sign-out is always a POST.

@@ -1,0 +1,6 @@
+{# Django and allauth messages (for example "You have signed out."). #}
+{% if messages %}
+  <ul class="sa-messages" role="status">
+    {% for message in messages %}<li class="sa-message{% if message.level_tag == 'error' %} sa-message--error{% endif %}">{{ message }}</li>{% endfor %}
+  </ul>
+{% endif %}
