@@ -74,7 +74,7 @@ Rules:
 
 **Follow-up: assignments scoped to the exact cohort (owner decision, 2026-11-16)**
 
-- Owner decision: Batch Advisor assignments are scoped to the exact combination of batch, semester and section. This should also be recorded in `DECISIONS.md` as a confirmed decision.
+- Owner decision: Batch Advisor assignments are scoped to the exact combination of batch, semester and section. Recorded in `DECISIONS.md` as DEC-205.
 - `AdvisorAssignment` now requires a batch. Uniqueness changed from advisor + semester + section to advisor + batch + semester + section. Several advisors can still share a cohort, and one advisor can hold several cohorts.
 - `visible_student_profiles()` and `can_access_cohort()` (renamed from `can_access_section()`) grant access only when batch, semester and section all match. The admin assignment forms and lists include the batch.
 - New migration `accounts/0003_advisor_assignment_batch`. `0002` was already applied to the development and test databases, so it was not edited.

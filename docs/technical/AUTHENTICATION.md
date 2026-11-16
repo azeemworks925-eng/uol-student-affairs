@@ -1,7 +1,7 @@
 # Authentication and Account Foundation
 
 **Status:** Implemented and tested with simulated Google responses. **Not yet verified with a real UOL Google account** (see section 8).
-**Related decisions:** DEC-010 to DEC-016, DEC-020, DEC-021, DEC-200 to DEC-204, DEC-210 to DEC-212. Open items O2, O3, O20 and O26.
+**Related decisions:** DEC-010 to DEC-016, DEC-020, DEC-021, DEC-200 to DEC-205, DEC-210 to DEC-212. Open items O2, O3, O20 and O26.
 
 ## 1. Sign-in flow
 
@@ -60,7 +60,7 @@ All rules are in `accounts/identity.py` and `accounts/adapters.py`.
 | Audit (DEC-211) | `StudentProfileChange` records the Super Admin's changes to a student's full name, batch, semester and section: old and new values, who made the change, and when. It is read-only in the admin. |
 | Academic structure (DEC-020, DEC-210) | The `academics` app holds `Batch`, `Semester` and `Section` with `is_active` flags. They cannot be deleted. Inactive entries are not offered at registration. |
 
-| Advisor assignments | `AdvisorAssignment` links a Batch Advisor to one **cohort**: the exact batch + semester + section combination (owner decision, 2026-11-16). All three are required. Each advisor and cohort pair is unique. Several advisors may share a cohort, and one advisor may hold several cohorts (DEC-204). |
+| Advisor assignments | `AdvisorAssignment` links a Batch Advisor to one **cohort**: the exact batch + semester + section combination (DEC-205). All three are required. Each advisor and cohort pair is unique. Several advisors may share a cohort, and one advisor may hold several cohorts (DEC-204). |
 
 Migrations:
 - `academics/0001_initial` and `accounts/0002_account_foundation` are additive; `accounts/0001_initial` is unchanged.

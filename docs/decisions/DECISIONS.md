@@ -49,6 +49,7 @@ Rules for every collaborator (human or AI):
 | DEC-013 (revised) | The Super Admin creates Batch Advisor (BA) accounts by entering the teacher's name and official UOL email, then assigning semesters and sections. There is no BA self-registration or application process. BAs use the same Google login page. |
 | DEC-204 | A BA can have multiple sections and semesters. Sections can be split among BAs. Multiple BAs can be assigned to one section. Assignments can change. The existing BA structure must not be hardcoded. |
 | DEC-015 (revised) | BA access is determined by explicit assignments. BAs see only their assigned sections. |
+| DEC-205 | Every BA assignment is tied to one cohort: the exact batch + semester + section combination. A BA may hold multiple cohort assignments, and multiple BAs may share the same cohort. All access-control checks, now and in future modules, must match all three fields; a partial match (for example, the same semester and section in another batch) grants no access. Confirmed by the owner on 2026-11-16. |
 | DEC-016 (revised) | Every section has exactly one CR and one GR. GR means Girls Representative. They are existing student accounts with additional permissions, not separate account types or login systems. |
 
 ### 1.3 Academic structure and student records
