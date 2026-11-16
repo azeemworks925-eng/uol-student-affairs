@@ -1,7 +1,10 @@
-{% extends "base.html" %}
+{% extends "layouts/auth.html" %}
 {% block title %}Sign-in not allowed · UOL Student Affairs{% endblock %}
 {% block content %}
-  <h1>Sign-in not allowed</h1>
-  <p>{{ reason }}</p>
-  <p><a href="{% url 'account_login' %}">Back to sign in</a></p>
+  <span class="sa-eyebrow">Sign-in</span>
+  <h1 class="sa-display">Sign-in not allowed.</h1>
+  <div class="panel">
+    <p class="mb-0" role="alert">{{ reason }}</p>
+  </div>
+  <p class="note mt-3"><a href="{% url 'account_login' %}">Back to sign in</a></p>
 {% endblock %}

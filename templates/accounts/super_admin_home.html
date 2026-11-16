@@ -1,0 +1,16 @@
+{% extends "layouts/app.html" %}
+{# Super Admin overview, Design D (DEC-302, DEC-306). The three DEC-281 analytics arrive with the complaints module. #}
+{% block title %}Overview · UOL Student Affairs{% endblock %}
+{% block page_class %} sa-page--wide{% endblock %}
+{% block content %}
+<header class="sa-masthead">
+  <span class="sa-eyebrow">Software Engineering · overview</span>
+  <h1 class="sa-display">No complaints have been recorded yet.</h1>
+  <p class="sa-lede">Once complaints exist, this page shows <span class="soft">distribution by section, category share and resolved vs not resolved, each with a written takeaway.</span></p>
+</header>
+
+<nav class="sa-goto" aria-label="Manage">
+  <span class="sa-small sa-muted">Manage</span>
+  {% for item in sa_nav_items %}{% if item.url and not item.current %}<a class="btn btn-sa-secondary btn-sm" href="{{ item.url }}">{{ item.label }}</a>{% endif %}{% endfor %}
+</nav>
+{% endblock %}

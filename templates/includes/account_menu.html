@@ -1,0 +1,14 @@
+{# Account menu. Profile and appearance join it as those features are built (DESIGN_PLAN.md 3). #}
+<div class="dropdown{% if dropup %} dropup{% endif %}">
+  <button class="{{ button_class|default:'sa-account-btn' }}" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu for {{ user.get_full_name }}">
+    <span class="sa-avatar">{{ user.get_full_name|slice:":1"|upper }}</span>
+    {% if show_name %}<span class="meta">{{ user.get_full_name }}<span>{{ user.get_role_display }}</span></span>{% endif %}
+  </button>
+  <div class="dropdown-menu {{ menu_class }}">
+    <h6 class="dropdown-header">{{ user.email }}</h6>
+    <form method="post" action="{% url 'account_logout' %}">
+      {% csrf_token %}
+      <button class="dropdown-item" type="submit">Sign out</button>
+    </form>
+  </div>
+</div>

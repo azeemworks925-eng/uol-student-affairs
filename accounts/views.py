@@ -4,12 +4,15 @@ from django.db import IntegrityError
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 
 from .forms import StudentRegistrationForm
+from .identity import extract_sap_id
 from .models import StudentProfile, User
 from .permissions import batch_advisor_required, student_required, super_admin_required
+from .presentation import first_name, greeting, personal_summary
 from .services import register_student
 
 ROLE_HOME_URL_NAMES = {
@@ -42,25 +45,49 @@ def student_register(request):
             # kept the data consistent, so the student is already registered.
             pass
         return redirect("home")
-    return render(request, "accounts/register.html", {"form": form})
+    return render(request, "accounts/register.html", {"form": form, "sap_id": extract_sap_id(request.user.email)})
 
 
-# Placeholder role areas. Dashboard interfaces wait for the agreed design direction.
+def cohort_label(batch, semester, section):
+    """The exact cohort, spelled out: "Fall 2024 · Semester 4 · Section A" (DEC-205)."""
+    return f"{batch} · {semester} · {section}"
+
+
+# Quick Access: three separate actions (DEC-282, DEC-303). A destination stays unavailable
+# (url None) until its module is built, so nothing links to a page that does not exist.
+QUICK_ACCESS = [
+    {"label": "Submit a complaint", "description": "Raise a problem with your Batch Advisor", "icon": "plus", "url": None, "primary": True},
+    {"label": "Student Voice", "description": "An idea, a question or feedback", "icon": "voice", "url": None},
+    {"label": "My meetings", "description": "Request or review meetings", "icon": "calendar", "url": None},
+]
+
 
 @student_required
 def student_home(request):
-    return render(request, "accounts/role_home.html", {"profile": request.user.student_profile})
+    profile = request.user.student_profile
+    # The student's own updates, most important/recent first. Complaints, Student Voice and
+    # meetings are not built yet, so there are none to show.
+    updates = []
+    return render(request, "accounts/student_home.html", {
+        "profile": profile,
+        "today": timezone.localdate(),
+        "greeting": greeting(),
+        "first_name": first_name(request.user),
+        "cohort_label": cohort_label(profile.batch, profile.semester, profile.section),
+        "summary": personal_summary(updates),
+        "quick_access": QUICK_ACCESS,
+    })
 
 
 @batch_advisor_required
 def advisor_home(request):
-    assignments = request.user.advisor_assignments.select_related("batch", "semester", "section")
-    return render(request, "accounts/role_home.html", {"assignments": assignments})
+    assignments = list(request.user.advisor_assignments.select_related("batch", "semester", "section"))
+    return render(request, "accounts/advisor_home.html", {"assignments": assignments})
 
 
 @super_admin_required
 def super_admin_home(request):
-    return render(request, "accounts/role_home.html")
+    return render(request, "accounts/super_admin_home.html")
 
 
 def admin_login_redirect(request):
