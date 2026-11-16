@@ -18,7 +18,7 @@ Rules:
 |---|---|
 | V1 product workflows | Confirmed in `DECISIONS.md`. |
 | Django foundation | Complete and verified locally: custom user model, admin, email normalization, 32 account tests passing on MySQL 8.0.44 and SQLite. |
-| Authentication and account foundation | Implemented on branch `feat/auth-account-foundation` and submitted for review; not merged. Google sign-in is tested with simulated Google responses only; it has not been verified with a real UOL account. |
+| Authentication and account foundation | Implemented on branch `feat/auth-account-foundation` (PR #3). Reviewed and approved for merging by the owner on 2026-11-16. Google sign-in is tested with simulated Google responses only; it has not been verified with a real UOL account. |
 | Product features | Not implemented. |
 | Commit and push status of the foundation | Committed as `99b1ba2` ("feat: establish Django foundation and account system") on branch `chore/django-foundation` and pushed to `origin/chore/django-foundation`. Merged into `main` through PR #1 as merge commit `a1ed704` on 2026-11-16. |
 
@@ -112,6 +112,12 @@ Rules:
 - Migration note: reversing `0003` drops the batch column, losing the batch of every assignment. The reversal also fails if one advisor holds the same semester and section in two batches, because the old unique constraint cannot be restored. Do not reverse it once cohorts are in use.
 - Verified: 136 of 136 tests passed on MySQL 8.0.44 (`--keepdb`) and on SQLite. `check`, `makemigrations --check` and `migrate --check` were clean.
 
+**Owner approvals (2026-11-16)**
+
+- django-allauth is approved as a dependency. This settles the library choice for O3. O3 remains open for the OAuth client setup and credential handling, which need a real Google Cloud client.
+- Multiple Super Admins are approved, provided at least one remains active. Recorded as DEC-206. The implementation already enforces this: the admin refuses to deactivate the last active Super Admin.
+- The owner authorized merging PR #3. UOL's organizational verification is not a precondition for merging.
+
 **Not verified**
 
 - Google sign-in with a real UOL account. No OAuth client is configured, and no external verification has been done. See `AUTHENTICATION.md` section 8.
@@ -121,7 +127,7 @@ Rules:
 - O2: confirm the official staff email domain or domains. `uol.edu.pk` is assumed.
 - O2: confirm that UOL uses Google Workspace for both domains, that UOL permits the app, and the actual `hd` claim values.
 - ~~Advisor assignments are recorded per semester and section, without the batch.~~ Resolved: the owner confirmed that assignments are scoped to batch + semester + section (follow-up below).
-- Can more than one Super Admin exist? This is now supported and verified (see the final review below). If it is a confirmed product decision, it should be recorded in `DECISIONS.md`; DEC-014 describes the Super Admin in the singular.
+- ~~Can more than one Super Admin exist?~~ Resolved: the owner approved multiple Super Admins, provided at least one remains active. Recorded as DEC-206.
 - Email and role are fixed after an account is created. Confirm that the Super Admin should not change them, or define a procedure for email changes.
 - Session length of 8 hours: confirm or change.
 - MySQL warning W036: MySQL cannot enforce two conditional unique constraints on allauth's `EmailAddress` table. The portal's identity checks do not depend on that table.
