@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<!-- DEVELOPMENT ONLY. Design D proposal for review. Not a product screen; not served by Django. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Super Admin Overview · Design D (development only)</title>
+<link rel="stylesheet" href="wire.css">
+<link rel="stylesheet" href="d/present.css">
+</head>
+<body>
+<div class="doc d-doc">
+  <span class="doc-tag">Development only · Design D proposal · nothing approved</span>
+  <h1>Super Admin Overview · D: A's cohort map + B's written briefing</h1>
+  <p class="lead">A calm, authoritative department overview, written as a short briefing. One headline sentence, then three numbered chapters, one for each approved DEC-281 analytic: <b>distribution by section</b> (the cohort map, in academic order), <b>category share</b> and <b>resolved vs unresolved</b>. Each has a written takeaway and a path into the records. No other analytics, KPI tiles or counts. Sample data is fictional.</p>
+  <nav class="doc-nav"><a href="index.html">← Principles and all explorations</a><a href="admin-overview.html">A / B / C and the comparison</a><a href="student-dashboard-d.html">Student · D (typography notes)</a><a href="advisor-complaints-d.html">Batch Advisor · D</a></nav>
+
+  <div class="d-switch" role="group" aria-label="Typography pairing">
+    <b>Typography:</b>
+    <button type="button" data-type-btn="newsreader" aria-pressed="true">Newsreader + Inter (proposal)</button>
+    <button type="button" data-type-btn="fraunces" aria-pressed="false">Fraunces + Inter</button>
+    <button type="button" data-type-btn="sans" aria-pressed="false">Inter only</button>
+    <span class="hint">Switches both views below</span>
+  </div>
+
+  <div class="d-stage">
+    <div>
+      <p class="d-label"><span>Desktop · 1440px, scaled to fit</span><a data-open="d/admin-overview.html" href="d/admin-overview.html" target="_blank">Open full screen ↗</a></p>
+      <div class="d-desk"><iframe title="Super Admin Overview, desktop" data-src="d/admin-overview.html" data-height="1420"></iframe></div>
+    </div>
+    <div>
+      <p class="d-label"><span>Phone · 360px (scroll inside)</span></p>
+      <div class="d-phones"><div><div class="d-phone"><iframe title="Super Admin Overview, phone" data-src="d/admin-overview.html"></iframe></div></div></div>
+    </div>
+  </div>
+
+  <div class="d-grid">
+    <div><h3>Focal point</h3><ul><li>The masthead sentence ("33 complaints are still unresolved."), closed by an ink rule, and then the cohort map, the largest visual on the page.</li></ul></div>
+    <div><h3>01 · Distribution by section</h3><ul><li>Rows in <b>academic order</b> (Semester 1 → 6) with the batch beneath; columns are sections. Each cell shows its unresolved count and its total, so shading is read in context.</li><li>Shading is mixed from ink and surface, never red, and never sorted into a ranking.</li><li>Every cell is a link into that exact cohort's records (DEC-205).</li></ul></div>
+    <div><h3>02 · Category share</h3><ul><li>One proportion bar plus a list in the configured category order (DEC-220), with counts and percentages, and a link into complaints by category.</li></ul></div>
+    <div><h3>03 · Resolved vs unresolved</h3><ul><li>Two large numerals over a split rule. Resolved uses the Resolved status tone, because it <i>is</i> status; unresolved stays neutral.</li><li>A visible footnote on how Rejected complaints are counted.</li></ul></div>
+    <div><h3>Paths into records</h3><ul><li>Map cells, the category link, the unresolved link, and a "Go to" row (no numbers) for complaints, collective issues, calendar, students and Batch Advisors.</li></ul></div>
+    <div><h3>Mobile (360px)</h3><ul><li>The masthead, then the chapters stacked. The map keeps its three section columns, with batch names dropped from row labels; the takeaway sentence names the cohort in full.</li></ul></div>
+    <div><h3>Trade-offs</h3><ul><li>A briefing is read top to bottom; it is less of a "control panel". That is deliberate: control lives in Complaints and Statistics.</li><li>Showing totals ("of 19") alongside counts adds numbers, but they belong to the same distribution analytic.</li></ul></div>
+    <div class="q"><h3>Open questions</h3><ul><li>How Rejected complaints count in resolved vs unresolved.</li><li>Time window: current semester or all time.</li><li>Whether each batch is in exactly one semester at a time (the map assumes so).</li><li>Small-section privacy (O25).</li></ul></div>
+  </div>
+</div>
+<script src="d/present.js"></script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<!-- DEVELOPMENT ONLY. Design D proposal, not a product screen. Not served by Django. Fictional sample data.
+     Analytics limited to DEC-281: category share, distribution by section, resolved versus unresolved. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Overview · Student Affairs (Design D, development only)</title>
+<script>{const q=new URLSearchParams(location.search);document.documentElement.dataset.type=q.get("type")||"newsreader";}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="d.css">
+<style>
+  body { font-size: 14px; }
+  .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
+  .page { max-width: 1240px; width: 100%; margin: 0 auto; padding: 20px 48px 64px; }
+  .top { display: flex; justify-content: flex-end; align-items: center; gap: 8px; height: 44px; }
+  .top .field { width: 300px; }
+
+  .masthead { padding: 24px 0 40px; border-bottom: 1px solid var(--ink); }
+  .masthead .display { font-size: 58px; margin: 14px 0 16px; max-width: 18ch; }
+  .masthead .lede { max-width: 58ch; }
+
+  .chapter { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 48px; padding: 40px 0; border-bottom: 1px solid var(--border); }
+  .chapter .no { font-family: var(--display); font-weight: var(--display-weight); font-size: 15px; color: var(--muted); letter-spacing: .02em; }
+  .chapter .label { font: 600 12px/16px var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 6px 0 14px; }
+  .chapter .side { display: flex; flex-direction: column; gap: 14px; }
+  .chapter .side .link { margin-top: 6px; }
+  .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; }
+  .pair .chapter { grid-template-columns: 1fr; gap: 20px; padding-right: 40px; }
+  .pair .chapter + .chapter { padding: 40px 0 40px 40px; border-left: 1px solid var(--border); }
+
+  /* 01 Distribution by section: cohort map in academic order */
+  .map { display: grid; grid-template-columns: 150px repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .map .colh { font: 600 11px/16px var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0 4px 2px; }
+  .map .rowh { align-self: center; line-height: 1.3; }
+  .map .rowh b { display: block; font-size: 14px; }
+  .map .rowh span { font-size: 12px; color: var(--muted); }
+  .cell { position: relative; display: flex; flex-direction: column; justify-content: space-between; min-height: 84px; padding: 12px 14px; border-radius: 12px; border: 1px solid transparent; transition: transform .15s var(--ease), box-shadow .15s var(--ease); }
+  a.cell:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(22, 32, 28, .12); }
+  .cell .c { font: 600 28px/1 var(--ui); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .cell .of { font-size: 12px; }
+  .cell.l0 { background: var(--surface); border-color: var(--border); color: var(--muted); }
+  .cell.l1 { background: color-mix(in srgb, var(--ink) 7%, var(--surface)); }
+  .cell.l2 { background: color-mix(in srgb, var(--ink) 14%, var(--surface)); }
+  .cell.l3 { background: color-mix(in srgb, var(--ink) 70%, var(--surface)); color: #fff; }
+  .cell.l4 { background: var(--ink); color: #fff; }
+  .cell.l1 .of, .cell.l2 .of { color: var(--muted); }
+  .cell.l3 .of, .cell.l4 .of { color: rgba(255, 255, 255, .85); }
+  .cell.none { background: transparent; border: 1px dashed var(--border); }
+  .scale { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+  .scale i { width: 22px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  /* 02 Category share */
+  .stackbar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; gap: 2px; margin: 4px 0 18px; }
+  .stackbar span:nth-child(1) { background: var(--ink); }
+  .stackbar span:nth-child(2) { background: color-mix(in srgb, var(--ink) 55%, var(--surface)); }
+  .stackbar span:nth-child(3) { background: color-mix(in srgb, var(--ink) 30%, var(--surface)); }
+  .stackbar span:nth-child(4) { background: color-mix(in srgb, var(--ink) 14%, var(--surface)); }
+  .cats { list-style: none; margin: 0; padding: 0; }
+  .cats li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto 48px; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); font-size: 14px; }
+  .cats li i { width: 10px; height: 10px; border-radius: 3px; }
+  .cats li:nth-child(1) i { background: var(--ink); } .cats li:nth-child(2) i { background: color-mix(in srgb, var(--ink) 55%, var(--surface)); } .cats li:nth-child(3) i { background: color-mix(in srgb, var(--ink) 30%, var(--surface)); } .cats li:nth-child(4) i { background: color-mix(in srgb, var(--ink) 14%, var(--surface)); }
+  .cats .n { color: var(--muted); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+  .cats .p { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* 03 Resolved vs unresolved */
+  .split { display: grid; grid-template-columns: 64fr 36fr; gap: 4px; margin-top: 4px; }
+  .split .part { padding-top: 14px; border-top: 4px solid var(--border-strong); }
+  .split .part.ok { border-top-color: var(--ok); }
+  .split .big { font-family: var(--display); font-weight: var(--display-weight); font-size: 52px; line-height: 1; color: var(--ink-heading); font-variant-numeric: tabular-nums; }
+  .split .lbl { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .foot { font-size: 12px; color: var(--muted); margin-top: 16px; }
+
+  .goto { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 28px; }
+  .goto .small { margin-right: 4px; }
+
+  @media (max-width: 1180px) {
+    .page { padding: 16px 32px 56px; }
+    .chapter { grid-template-columns: 1fr; gap: 20px; }
+    .masthead .display { font-size: 48px; }
+  }
+  @media (max-width: 767px) {
+    .app { display: block; }
+    .page { padding: 0 16px 32px; }
+    .top { display: none; }
+    .masthead { padding: 24px 0 28px; }
+    .masthead .display { font-size: 36px; margin: 10px 0 12px; }
+    .lede { font-size: 16px; }
+    .chapter { padding: 28px 0; }
+    .takeaway { font-size: 18px; }
+    .map { grid-template-columns: 64px repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .map .rowh b { font-size: 13px; }
+    .map .rowh span { display: none; }
+    .cell { min-height: 60px; padding: 8px 10px; border-radius: 10px; }
+    .cell .c { font-size: 20px; }
+    .cell .of { font-size: 11px; }
+    .pair { grid-template-columns: 1fr; }
+    .pair .chapter { padding-right: 0; }
+    .pair .chapter + .chapter { padding: 28px 0; border-left: 0; }
+    .split .big { font-size: 40px; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></symbol>
+  <symbol id="file" viewBox="0 0 24 24"><path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3.5V8h4.5M8.5 12.5h7M8.5 16h5"/></symbol>
+  <symbol id="hand" viewBox="0 0 24 24"><path d="M8 12V6.8a1.4 1.4 0 0 1 2.8 0V11M10.8 10.5V5.6a1.4 1.4 0 0 1 2.8 0V11M13.6 10.8V6.8a1.4 1.4 0 0 1 2.8 0v6.4c0 4-2.4 6.8-6 6.8-2.4 0-3.8-1.1-5-3.2l-1.6-2.9a1.3 1.3 0 0 1 2.2-1.4L8 14.5"/></symbol>
+  <symbol id="cal" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></symbol>
+  <symbol id="chart" viewBox="0 0 24 24"><path d="M4.5 19.5h15M7.5 16v-4M12 16V8M16.5 16v-6"/></symbol>
+  <symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19c.7-3 2.8-4.6 5.5-4.6s4.8 1.6 5.5 4.6"/><path d="M15.5 6.2a3.1 3.1 0 0 1 0 5.6M17 14.6c1.8.5 3 1.9 3.5 4.4"/></symbol>
+  <symbol id="badge" viewBox="0 0 24 24"><circle cx="12" cy="9" r="4.5"/><path d="M8.5 13l-1.5 7 5-2.5 5 2.5-1.5-7"/></symbol>
+  <symbol id="layers" viewBox="0 0 24 24"><path d="M12 4l8.5 4.5L12 13 3.5 8.5z"/><path d="M3.5 12.5L12 17l8.5-4.5M3.5 16.5L12 21l8.5-4.5"/></symbol>
+  <symbol id="tags" viewBox="0 0 24 24"><path d="M4 4h7l9 9-7 7-9-9z"/><circle cx="8.5" cy="8.5" r="1.3"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></symbol>
+  <symbol id="bell" viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 2h-14z"/><path d="M10 20.5h4"/></symbol>
+  <symbol id="menu" viewBox="0 0 24 24"><path d="M4.5 7h15M4.5 12h15M4.5 17h15"/></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="sidebar" aria-label="Super Admin navigation">
+    <div class="wordmark"><small>UOL</small><span>Student Affairs</span></div>
+    <div class="nav-group" style="padding-top:0">Oversight</div>
+    <ul class="nav">
+      <li><a href="#" aria-current="page"><svg class="i"><use href="#grid"/></svg>Overview</a></li>
+      <li><a href="#"><svg class="i"><use href="#file"/></svg>Complaints</a></li>
+      <li><a href="#"><svg class="i"><use href="#hand"/></svg>Collective Issues</a></li>
+      <li><a href="#"><svg class="i"><use href="#cal"/></svg>Calendar</a></li>
+      <li><a href="#"><svg class="i"><use href="#chart"/></svg>Statistics</a></li>
+    </ul>
+    <div class="nav-group">People</div>
+    <ul class="nav">
+      <li><a href="#"><svg class="i"><use href="#user"/></svg>Students</a></li>
+      <li><a href="#"><svg class="i"><use href="#users"/></svg>Batch Advisors</a></li>
+      <li><a href="#"><svg class="i"><use href="#badge"/></svg>CR/GR Management</a></li>
+    </ul>
+    <div class="nav-group">Configuration</div>
+    <ul class="nav">
+      <li><a href="#"><svg class="i"><use href="#layers"/></svg>Academic Structure</a></li>
+      <li><a href="#"><svg class="i"><use href="#tags"/></svg>Complaint Categories</a></li>
+    </ul>
+    <div class="me"><span class="avatar">NR</span><div>Dr. Nadia Rehman<br><span class="muted">Super Admin</span></div></div>
+  </aside>
+
+  <div>
+    <header class="mobilebar">
+      <a class="iconbtn" href="#" aria-label="Menu"><svg class="i"><use href="#menu"/></svg></a>
+      <div class="wordmark"><small>UOL</small><span>Student Affairs</span></div>
+      <a class="iconbtn" href="#" aria-label="Notifications"><svg class="i"><use href="#bell"/></svg></a>
+    </header>
+
+    <main class="page">
+      <div class="top"><label class="field"><svg class="i"><use href="#search"/></svg>Search reference or student name</label><a class="iconbtn" href="#" aria-label="Notifications"><svg class="i"><use href="#bell"/></svg></a></div>
+
+      <!-- Masthead: the department-wide statement -->
+      <header class="masthead">
+        <span class="eyebrow">Software Engineering · current semester</span>
+        <h1 class="display">33 complaints are still unresolved.</h1>
+        <p class="lede">58 have been resolved. <em>Below: where the unresolved complaints are, what they are about, and how much has been resolved.</em></p>
+      </header>
+
+      <!-- 01 Distribution by section -->
+      <section class="chapter" aria-labelledby="c1">
+        <div class="side">
+          <div><span class="no">01</span><p class="label" id="c1">Distribution by section</p></div>
+          <p class="takeaway">Fall 2024 · Semester 4 holds 15 of the 33 unresolved complaints. <em>Section B alone has 9.</em></p>
+          <div class="scale"><span>Unresolved</span><i style="background:color-mix(in srgb,var(--ink) 7%,var(--surface))"></i>1–2<i style="background:color-mix(in srgb,var(--ink) 14%,var(--surface))"></i>3–4<i style="background:color-mix(in srgb,var(--ink) 70%,var(--surface))"></i>5–6<i style="background:var(--ink)"></i>7+</div>
+          <p class="small muted">Each section shows its unresolved complaints and, below, all of its complaints this semester. Select a section to open its records.</p>
+        </div>
+        <div class="map" role="table" aria-label="Unresolved complaints by section, in academic order">
+          <span></span><span class="colh">Section A</span><span class="colh">Section B</span><span class="colh">Section C</span>
+          <span class="rowh"><b>Semester 1</b><span>Fall 2025 batch</span></span>
+          <a class="cell l1" href="#" aria-label="Fall 2025, Semester 1, Section A: 1 unresolved of 4"><span class="c">1</span><span class="of">of 4</span></a>
+          <a class="cell l1" href="#" aria-label="Fall 2025, Semester 1, Section B: 2 unresolved of 5"><span class="c">2</span><span class="of">of 5</span></a>
+          <span class="cell none" aria-label="No Section C"></span>
+          <span class="rowh"><b>Semester 2</b><span>Spring 2025 batch</span></span>
+          <a class="cell l2" href="#"><span class="c">3</span><span class="of">of 9</span></a>
+          <a class="cell l0" href="#"><span class="c">0</span><span class="of">of 5</span></a>
+          <a class="cell l2" href="#"><span class="c">4</span><span class="of">of 7</span></a>
+          <span class="rowh"><b>Semester 4</b><span>Fall 2024 batch</span></span>
+          <a class="cell l3" href="#"><span class="c">6</span><span class="of">of 18</span></a>
+          <a class="cell l4" href="#"><span class="c">9</span><span class="of">of 19</span></a>
+          <span class="cell none"></span>
+          <span class="rowh"><b>Semester 6</b><span>Fall 2023 batch</span></span>
+          <a class="cell l1" href="#"><span class="c">2</span><span class="of">of 7</span></a>
+          <a class="cell l3" href="#"><span class="c">5</span><span class="of">of 11</span></a>
+          <a class="cell l1" href="#"><span class="c">1</span><span class="of">of 6</span></a>
+        </div>
+      </section>
+
+      <div class="pair">
+        <!-- 02 Category share -->
+        <section class="chapter" aria-labelledby="c2">
+          <div><span class="no">02</span><p class="label" id="c2">Category share</p><p class="takeaway">Academic complaints are almost half of all complaints. <em>Personal/Wellbeing is 14%.</em></p></div>
+          <div>
+            <div class="stackbar" aria-hidden="true"><span style="width:46%"></span><span style="width:31%"></span><span style="width:14%"></span><span style="width:9%"></span></div>
+            <ul class="cats">
+              <li><i></i><span>Academic</span><span class="n">42</span><span class="p">46%</span></li>
+              <li><i></i><span>Non-academic</span><span class="n">28</span><span class="p">31%</span></li>
+              <li><i></i><span>Personal/Wellbeing</span><span class="n">13</span><span class="p">14%</span></li>
+              <li><i></i><span>Other</span><span class="n">8</span><span class="p">9%</span></li>
+            </ul>
+            <a class="link" href="#" style="margin-top:14px">Open complaints by category <svg class="i" style="width:16px;height:16px"><use href="#arrow"/></svg></a>
+          </div>
+        </section>
+        <!-- 03 Resolved vs unresolved -->
+        <section class="chapter" aria-labelledby="c3">
+          <div><span class="no">03</span><p class="label" id="c3">Resolved vs unresolved</p><p class="takeaway">Almost two in three complaints are resolved.</p></div>
+          <div>
+            <div class="split">
+              <div class="part ok"><div class="big">58</div><div class="lbl">Resolved · 64%</div></div>
+              <div class="part"><div class="big">33</div><div class="lbl">Unresolved · 36%</div></div>
+            </div>
+            <a class="link" href="#" style="margin-top:20px">Open unresolved complaints <svg class="i" style="width:16px;height:16px"><use href="#arrow"/></svg></a>
+            <p class="foot">Rejected complaints are not counted here; how they should count is still to be decided.</p>
+          </div>
+        </section>
+      </div>
+
+      <nav class="goto" aria-label="Go to"><span class="small muted">Go to</span><a class="btn sm" href="#">Complaints</a><a class="btn sm" href="#">Collective issues</a><a class="btn sm" href="#">Calendar</a><a class="btn sm" href="#">Students</a><a class="btn sm" href="#">Batch Advisors</a></nav>
+    </main>
+  </div>
+</div>
+<script>for (const a of document.querySelectorAll('a[href="#"]')) a.addEventListener("click", (e) => e.preventDefault());</script>
+</body>
+</html>

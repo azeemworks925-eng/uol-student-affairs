@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<!-- DEVELOPMENT ONLY. Design D proposal, not a product screen. Not served by Django. Fictional sample data. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Complaints · Student Affairs (Design D, development only)</title>
+<script>{const q=new URLSearchParams(location.search);const h=document.documentElement;h.dataset.type=q.get("type")||"newsreader";h.dataset.screen=q.get("screen")||"list";}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Inter:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="d.css">
+<style>
+  body { font-size: 14px; }
+  .app { display: grid; grid-template-columns: 72px 360px minmax(0, 1fr) 300px; min-height: 100vh; }
+  /* List column */
+  .list { position: sticky; top: 0; height: 100vh; overflow: auto; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  .list header { padding: 24px 20px 16px; display: flex; flex-direction: column; gap: 14px; border-bottom: 1px solid var(--border); }
+  .list header .display { font-size: 27px; line-height: 1.12; }
+  .list header .display em { font-style: normal; color: var(--muted); }
+  .filters { display: flex; gap: 8px; }
+  .filters .select { flex: 1; justify-content: space-between; }
+  .group { padding: 16px 20px 6px; display: flex; justify-content: space-between; font: 600 11px/16px var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .item { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+  .item:hover { background: var(--canvas); }
+  .item[aria-current="true"] { background: var(--canvas); }
+  .item[aria-current="true"]::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--ink); }
+  .item .top { display: flex; align-items: center; gap: 6px 8px; min-width: 0; flex-wrap: wrap; }
+  .item .t { grid-column: 1 / -1; font-weight: 600; font-size: 14px; line-height: 1.35; }
+  .item .who { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--muted); font-size: 13px; }
+  .item .when { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .item .st { justify-self: end; }
+  .item .status { height: 22px; font-size: 11px; padding: 0 8px; }
+
+  /* Case column: the focal point */
+  .case { min-width: 0; display: flex; flex-direction: column; }
+  .casebar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 12px; padding: 14px 40px; background: rgba(245, 247, 245, .94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+  .crumb { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: center; white-space: nowrap; }
+  .keys { font-size: 12px; color: var(--muted); }
+  .crumb b { color: var(--ink); font-weight: 500; }
+  .casebar .acts { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .casebody { padding: 32px 40px 24px; max-width: 820px; width: 100%; }
+  .casebody .display { font-size: 40px; line-height: 1.08; margin: 12px 0 16px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; color: var(--muted); font-size: 13px; }
+  .facts b { color: var(--ink); font-weight: 600; font-size: 14px; }
+  .journey-wrap { margin: 28px 0 36px; padding: 20px 24px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+  .journey-wrap .journey li { font-size: 13px; }
+  .history-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .composer { position: sticky; bottom: 0; margin-top: auto; padding: 16px 40px 20px; background: linear-gradient(180deg, rgba(245,247,245,0), var(--canvas) 24%); }
+  .composer .box { max-width: 740px; background: var(--surface); border: 1px solid var(--border-control); border-radius: 14px; padding: 12px 14px; box-shadow: 0 8px 24px rgba(22, 32, 28, .06); }
+  .composer .area { min-height: 44px; color: var(--muted); font-size: 15px; }
+  .composer .row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .composer .hint { margin-right: auto; font-size: 12px; color: var(--muted); }
+
+  /* Context column */
+  .context { position: sticky; top: 0; height: 100vh; overflow: auto; padding: 24px 24px; border-left: 1px solid var(--border); display: flex; flex-direction: column; gap: 28px; }
+  .context h3 { font: 600 11px/16px var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .person { display: flex; gap: 12px; align-items: center; }
+  .person .avatar { width: 40px; height: 40px; line-height: 38px; }
+  dl.kv { margin: 14px 0 0; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px 12px; font-size: 13px; }
+  dl.kv dt { color: var(--muted); }
+  dl.kv dd { margin: 0; font-weight: 500; }
+  .note-open { font-size: 12px; color: var(--muted); margin-top: 8px; padding: 8px 10px; border: 1px dashed var(--border-strong); border-radius: 8px; }
+  .others a { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid var(--border); font-size: 13px; }
+
+  .mback { display: none; }
+
+  @media (max-width: 1280px) {
+    .app { grid-template-columns: 72px 320px minmax(0, 1fr); }
+    .context { display: none; }
+  }
+  @media (max-width: 767px) {
+    body { font-size: 15px; }
+    .app { display: block; }
+    html[data-screen="list"] .case, html[data-screen="list"] .context { display: none; }
+    html[data-screen="case"] .list { display: none; }
+    .list { position: static; height: auto; border-right: 0; }
+    .list header { padding: 20px 16px 14px; }
+    .list header .display { font-size: 25px; }
+    .group { padding: 16px 16px 6px; }
+    .item { padding: 14px 16px; }
+    .casebar { padding: 10px 12px; }
+    .casebar .acts { display: none; }
+    .mback { display: inline-flex; }
+    .desk { display: none !important; }
+    .casebody { padding: 20px 16px 8px; }
+    .casebody .display { font-size: 30px; }
+    .journey-wrap { margin: 20px 0 28px; padding: 16px; }
+    html[data-screen="case"] .context { display: flex; position: static; height: auto; border: 0; border-top: 1px solid var(--border); padding: 24px 16px; }
+    .composer { padding: 12px 16px 16px; }
+    .composer .box { box-shadow: 0 -4px 16px rgba(22, 32, 28, .06); }
+    .composer .hint { display: none; }
+    .composer .row .btn { flex: 1; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></symbol>
+  <symbol id="file" viewBox="0 0 24 24"><path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3.5V8h4.5M8.5 12.5h7M8.5 16h5"/></symbol>
+  <symbol id="hand" viewBox="0 0 24 24"><path d="M8 12V6.8a1.4 1.4 0 0 1 2.8 0V11M10.8 10.5V5.6a1.4 1.4 0 0 1 2.8 0V11M13.6 10.8V6.8a1.4 1.4 0 0 1 2.8 0v6.4c0 4-2.4 6.8-6 6.8-2.4 0-3.8-1.1-5-3.2l-1.6-2.9a1.3 1.3 0 0 1 2.2-1.4L8 14.5"/></symbol>
+  <symbol id="voice" viewBox="0 0 24 24"><path d="M4.5 6.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H11l-4.5 3.5v-3.5a2 2 0 0 1-2-2z"/></symbol>
+  <symbol id="cal" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></symbol>
+  <symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19c.7-3 2.8-4.6 5.5-4.6s4.8 1.6 5.5 4.6"/><path d="M15.5 6.2a3.1 3.1 0 0 1 0 5.6M17 14.6c1.8.5 3 1.9 3.5 4.4"/></symbol>
+  <symbol id="chart" viewBox="0 0 24 24"><path d="M4.5 19.5h15M7.5 16v-4M12 16V8M16.5 16v-6"/></symbol>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="M6.5 9.5L12 15l5.5-5.5"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="M14.5 6.5L9 12l5.5 5.5"/></symbol>
+  <symbol id="bell" viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 2h-14z"/><path d="M10 20.5h4"/></symbol>
+  <symbol id="menu" viewBox="0 0 24 24"><path d="M4.5 7h15M4.5 12h15M4.5 17h15"/></symbol>
+</svg>
+
+<div class="app">
+  <nav class="rail" aria-label="Batch Advisor navigation">
+    <span class="mark" aria-label="Student Affairs">S</span>
+    <a href="#" title="Overview" aria-label="Overview"><svg class="i"><use href="#grid"/></svg></a>
+    <a href="#" title="Complaints" aria-label="Complaints, 4 waiting" aria-current="page"><svg class="i"><use href="#file"/></svg><span class="count">4</span></a>
+    <a href="#" title="Collective Issues" aria-label="Collective Issues"><svg class="i"><use href="#hand"/></svg></a>
+    <a href="#" title="Student Voice" aria-label="Student Voice"><svg class="i"><use href="#voice"/></svg></a>
+    <a href="#" title="Meetings" aria-label="Meetings"><svg class="i"><use href="#cal"/></svg></a>
+    <a href="#" title="Representatives" aria-label="Representatives"><svg class="i"><use href="#users"/></svg></a>
+    <a href="#" title="Statistics" aria-label="Statistics"><svg class="i"><use href="#chart"/></svg></a>
+    <span class="me avatar soft" title="Sana Iqbal">SI</span>
+  </nav>
+
+  <!-- ===== Complaint list ===== -->
+  <section class="list" aria-label="Complaints">
+    <header>
+      <div class="mobilebar" style="position:static;margin:-20px -16px 4px;padding:0 8px 0 4px;border:0;background:transparent"><a class="iconbtn" href="#" aria-label="Menu"><svg class="i"><use href="#menu"/></svg></a><span style="font-weight:600">Complaints</span><a class="iconbtn" href="#" aria-label="Notifications"><svg class="i"><use href="#bell"/></svg></a></div>
+      <span class="eyebrow">Complaints · your cohorts</span>
+      <h1 class="display">4 are waiting for your response. <em>One was marked still not resolved.</em></h1>
+      <label class="field"><svg class="i"><use href="#search"/></svg>Search reference or student name</label>
+      <div class="filters"><span class="select">All assigned cohorts<svg class="i"><use href="#down"/></svg></span><span class="select">Open<svg class="i"><use href="#down"/></svg></span></div>
+      <span class="keys desk"><span class="kbd">↑</span> <span class="kbd">↓</span> move · <span class="kbd">Enter</span> open · <span class="kbd">R</span> respond</span>
+    </header>
+
+    <div class="group"><span>Waiting for you</span><span>4</span></div>
+    <a class="item" href="?screen=case"><span class="top"><span class="ref">CMP-2026-0155</span><span class="flag">Still not resolved</span></span><span class="when">10 min</span><span class="t">Hostel Wi-Fi outage on the second floor</span><span class="who">Bilal Ahmed<span class="cohort">F24 · S4 · B</span></span><span class="st"><span class="status review">Under Review</span></span></a>
+    <a class="item" href="?screen=case" aria-current="true"><span class="top"><span class="ref">CMP-2026-0142</span><span class="tag">New information</span></span><span class="when">2 h</span><span class="t">Projector in Room 204 not working</span><span class="who">Ayesha Khan<span class="cohort">F24 · S4 · A</span></span><span class="st"><span class="status review">Under Review</span></span></a>
+    <a class="item" href="?screen=case"><span class="top"><span class="ref">CMP-2026-0151</span></span><span class="when">1 d</span><span class="t">Lab 3 computers missing compilers</span><span class="who">Usman Tariq<span class="cohort">S25 · S2 · A</span></span><span class="st"><span class="status received">Received</span></span></a>
+    <a class="item" href="?screen=case"><span class="top"><span class="ref">CMP-2026-0149</span></span><span class="when">2 d</span><span class="t">Quiz rescheduled without notice</span><span class="who">Zainab Raza<span class="cohort">F24 · S4 · A</span></span><span class="st"><span class="status received">Received</span></span></a>
+    <div class="group"><span>Other open</span><span>9</span></div>
+    <a class="item" href="?screen=case"><span class="top"><span class="ref">CMP-2026-0139</span></span><span class="when">4 d</span><span class="t">Library closes before evening classes end</span><span class="who">Ali Hassan<span class="cohort">S25 · S2 · A</span></span><span class="st"><span class="status review">Under Review</span></span></a>
+    <a class="item" href="?screen=case"><span class="top"><span class="ref">CMP-2026-0136</span></span><span class="when">5 d</span><span class="t">Water cooler broken near Lab 2</span><span class="who">Sara Malik<span class="cohort">F24 · S4 · B</span></span><span class="st"><span class="status review">Under Review</span></span></a>
+  </section>
+
+  <!-- ===== Selected case: the focal point ===== -->
+  <main class="case" aria-label="Selected complaint">
+    <div class="casebar">
+      <a class="btn ghost sm mback" href="?screen=list"><svg class="i"><use href="#back"/></svg>Complaints</a>
+      <span class="crumb desk">Complaints <span>/</span> <b class="mono" style="font-size:13px">CMP-2026-0142</b></span>
+      <div class="acts"><a class="btn" href="#">Update status<svg class="i" style="width:14px;height:14px"><use href="#down"/></svg></a><a class="btn primary" href="#">Respond</a></div>
+    </div>
+
+    <div class="casebody">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="ref">CMP-2026-0142</span><span class="status review">Under Review</span><span class="tag">New information from the student</span></div>
+      <h2 class="display">Projector in Room 204 not working</h2>
+      <div class="facts"><b>Ayesha Khan</b><span class="cohort">Fall 2024 · Semester 4 · A</span><span>Academic › Classroom equipment</span><span>Responsible: you</span></div>
+
+      <div class="journey-wrap">
+        <ol class="journey" aria-label="Complaint journey">
+          <li class="done"><b>Received</b>14 Nov, 9:12 AM</li>
+          <li class="now review"><b>Under Review</b>since 15 Nov</li>
+          <li><b>Resolved or Rejected</b>needs a note</li>
+        </ol>
+      </div>
+
+      <div class="history-head"><h3 class="h2">History</h3><span class="small muted">Newest first · nothing is ever overwritten</span></div>
+      <ol class="history">
+        <li class="student"><div><span class="who">Ayesha added information</span> <span class="when">· 2 hours ago</span></div><div class="quote">It also happened in today's 11:30 lecture. I think the HDMI cable is the problem, because the projector turns on but shows no signal.</div></li>
+        <li><div><span class="who">You responded</span> <span class="when">· 15 Nov, 3:40 PM</span></div><div class="quote">Thank you for reporting this. I have passed it to the IT office and will update you by Friday.</div></li>
+        <li><div><span class="who">You moved it to Under Review</span> <span class="when">· 15 Nov, 3:38 PM</span></div></li>
+        <li class="student"><div><span class="who">Ayesha submitted the complaint</span> <span class="when">· 14 Nov, 9:12 AM</span></div><div class="body">The projector in Room 204 has not turned on for the last three Data Structures lectures. We have been working from printed slides, and students at the back cannot follow the code examples.</div></li>
+      </ol>
+    </div>
+
+    <div class="composer">
+      <div class="box">
+        <div class="area">Write a response to Ayesha…</div>
+        <div class="row"><span class="hint">Ayesha is notified when you send. Resolving or rejecting asks for a written note.</span><a class="btn sm" href="#">Update status</a><a class="btn primary sm" href="#">Send response</a></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== Context: student, cohort and responsibility ===== -->
+  <aside class="context" aria-label="Case context">
+    <section>
+      <h3>Student</h3>
+      <div class="person"><span class="avatar soft">AK</span><div><b>Ayesha Khan</b><br><span class="mono muted">SAP 12345678</span></div></div>
+      <dl class="kv"><dt>Batch</dt><dd>Fall 2024</dd><dt>Semester</dt><dd>4</dd><dt>Section</dt><dd>A</dd></dl>
+    </section>
+    <section>
+      <h3>Responsibility</h3>
+      <dl class="kv" style="margin-top:0"><dt>Responsible</dt><dd>Sana Iqbal (you)</dd><dt>Also assigned</dt><dd>Omar Farooq</dd></dl>
+      <div class="note-open">Proposal: how the responsible advisor is designated is still open (O27).</div>
+    </section>
+    <section>
+      <h3>Case</h3>
+      <dl class="kv" style="margin-top:0"><dt>Reference</dt><dd class="mono">CMP-2026-0142</dd><dt>Category</dt><dd>Academic</dd><dt>Submitted</dt><dd>14 Nov 2026</dd></dl>
+    </section>
+    <section class="others">
+      <h3>Other complaints from Ayesha</h3>
+      <a href="#"><span><span class="ref">CMP-2026-0098</span><br>Lab timetable clash</span><span class="status resolved">Resolved</span></a>
+      <p class="small muted" style="margin-top:8px">Only complaints in your assigned cohorts.</p>
+    </section>
+  </aside>
+</div>
+<script>for (const a of document.querySelectorAll('a[href="#"]')) a.addEventListener("click", (e) => e.preventDefault());</script>
+</body>
+</html>
