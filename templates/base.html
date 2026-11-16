@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+{# Minimal structural template. Visual design waits for the agreed design direction (DEC-120). #}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}UOL Student Affairs{% endblock %}</title>
+</head>
+<body>
+  <header>
+    <strong>UOL Student Affairs</strong>
+    {% if user.is_authenticated %}
+      <span>{{ user.get_full_name }} ({{ user.get_role_display }})</span>
+      <form method="post" action="{% url 'account_logout' %}">
+        {% csrf_token %}
+        <button type="submit">Sign out</button>
+      </form>
+    {% endif %}
+  </header>
+  {% if messages %}
+    <ul>{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>
+  {% endif %}
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>

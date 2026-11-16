@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Complete registration · UOL Student Affairs{% endblock %}
+{% block content %}
+  <h1>Complete your registration</h1>
+  <p>Signed in as {{ user.email }}. Your SAP ID is taken from this address.</p>
+  <p>Check your details carefully: after registration, only the Super Admin can correct them.</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Register</button>
+  </form>
+{% endblock %}

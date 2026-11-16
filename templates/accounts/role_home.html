@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{# Placeholder role area. The dashboard interface waits for the agreed design direction. #}
+{% block content %}
+  <h1>{{ user.get_role_display }} area</h1>
+  {% if profile %}
+    <p>SAP ID {{ profile.sap_id }} · {{ profile.batch }} · {{ profile.semester }} · {{ profile.section }}</p>
+  {% endif %}
+  {% if assignments is not None %}
+    <h2>Assigned sections</h2>
+    <ul>
+      {% for assignment in assignments %}
+        <li>{{ assignment.semester }}, {{ assignment.section }}</li>
+      {% empty %}
+        <li>No sections assigned yet.</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  <p>The dashboard will be built once the design direction is agreed.</p>
+{% endblock %}
