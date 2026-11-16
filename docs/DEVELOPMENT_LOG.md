@@ -17,9 +17,66 @@ Rules:
 | Area | Status |
 |---|---|
 | V1 product workflows | Confirmed in `DECISIONS.md`. |
-| Django foundation | Created and tested locally. |
+| Django foundation | Complete and verified locally: custom user model, admin, email normalization, 32 account tests passing on MySQL 8.0.44 and SQLite. |
 | Product features | Not implemented. |
-| Commit and push status of the foundation | Not recorded here. Confirm with `git status` and `git log`, then replace this row. |
+| Commit and push status of the foundation | Not yet committed or pushed. The foundation files are untracked on the local branch `chore/email-normalization`. Update this row after committing. |
+
+---
+
+## 2026-11-16 — Django foundation completed and verified
+
+**Task 01 — Foundation review, admin, requirements and tests**
+
+- Reviewed the existing foundation. The custom `accounts.User` model (email login, no username field, roles Student, Batch Advisor and Super Admin), its initial migration and `AUTH_USER_MODEL = "accounts.User"` were consistent with each other and with `DECISIONS.md`. CR/GR are not roles in the model, consistent with DEC-016.
+- Registered the custom User model in the Django admin (`accounts/admin.py`). Because the model has no username field, the admin uses creation and change forms based on email. The list shows email, name, role, active, staff and date joined; filters cover role, active, staff and superuser; search covers email, first name and last name. Accounts can be created without a usable password.
+- Added `requirements.txt` with the exact packages installed in the project environment: Django, mysqlclient and python-dotenv, plus their dependencies asgiref, sqlparse and tzdata.
+- Added 19 initial tests for `PortalUserManager`, email-based user creation, superuser creation, role defaults and the User admin.
+
+**Task 02 — Full lowercase email normalization**
+
+- Rule: every email address is normalized to lowercase in full, with surrounding whitespace stripped, before account creation, validation and lookup. Example: `Ali.Khan@Student.UOL.edu.pk` becomes `ali.khan@student.uol.edu.pk`. Django's default lowercases only the domain.
+- Implemented once, in `PortalUserManager.normalize_email()`. It applies to:
+  - account creation through `create_user()` and `create_superuser()`;
+  - model validation, because Django's `AbstractUser.clean()` calls the manager's `normalize_email()`;
+  - the admin add and change forms, which normalize the email before the uniqueness check;
+  - synchronous authentication lookups, through a `get_by_natural_key()` override;
+  - asynchronous authentication lookups, through an `aget_by_natural_key()` override. A code review found that Django 5.2's async lookup does not call the synchronous method, so it needed its own override.
+- `create_user()` now checks for an empty email after normalization, so an address made only of whitespace is rejected.
+- Email format validation and uniqueness checks are unchanged. No model fields, roles, permissions or migrations changed.
+- The rule is enforced in the application and does not depend on MySQL's case-insensitive collation.
+- Tests: removed the one test that asserted the old domain-only behaviour and added 14, bringing the total to 32. They cover uppercase and mixed-case addresses through the manager, model validation, the admin add and change forms, and the sync and async lookups. A check that removed the async override confirmed that the async tests fail without it.
+
+**Task 03 — MySQL test database**
+
+- Django's tests need a separate test database, `test_uol_student_affairs`. The application user `uol_app` previously had privileges only on `uol_student_affairs`, so the test database could not be created.
+- The owner, acting as MySQL administrator, granted `uol_app` these privileges on `test_uol_student_affairs` only: SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, INDEX and REFERENCES. The database name in the grant is escaped (`test\_uol\_student\_affairs`) so that `_` is not treated as a wildcard.
+- Verified with `SHOW GRANTS`: `uol_app` has no global privileges beyond `USAGE`, and its existing privileges on `uol_student_affairs` were left as they were.
+- The test database exists with `utf8mb4` / `utf8mb4_0900_ai_ci`, the same as the development database.
+- Tests are run with `manage.py test accounts --keepdb`, which reuses the test database. Do not use `--parallel`, which would need further databases that this grant does not cover.
+
+**MySQL collation test correction**
+
+- The first MySQL run passed 31 of 32 tests. `test_add_user_lowercases_mixed_case_email` failed because it used a database filter to assert that no row matched the mixed-case address. Under the case-insensitive collation `utf8mb4_0900_ai_ci`, that filter also matches the correctly stored lowercase row.
+- Corrected the test to select the newly created user without filtering by email and to compare the stored email exactly in Python. No application code changed.
+
+**Verified (2026-11-16)**
+
+- Account tests on MySQL 8.0.44: 32 of 32 passed.
+- Account tests on SQLite (in-memory, using a temporary settings file kept outside the repository): 32 of 32 passed.
+- `manage.py check`: no issues.
+- `manage.py makemigrations --check --dry-run`: no changes detected.
+- `manage.py migrate --check`: all migrations applied to the development database.
+
+**Not done**
+
+- Nothing committed or pushed yet.
+- No authentication pages or Google OAuth (O3), and no product features.
+
+**Notes for later work**
+
+- Future code that queries users by email directly, such as the Google OAuth callback, must normalize the email first or use `get_by_natural_key()`/`aget_by_natural_key()` (O2, O3).
+- Consistency between the `role` field and `is_staff`/`is_superuser` is to be settled with the Super Admin bootstrap (O26).
+- The manager does not validate email format. Model validation and the admin forms do.
 
 ---
 
