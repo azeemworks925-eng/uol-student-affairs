@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from django.db import IntegrityError
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -34,7 +35,12 @@ def student_register(request):
 
     form = StudentRegistrationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        register_student(request.user, **form.cleaned_data)
+        try:
+            register_student(request.user, **form.cleaned_data)
+        except IntegrityError:
+            # A concurrent submission registered first; the one-profile-per-user constraint
+            # kept the data consistent, so the student is already registered.
+            pass
         return redirect("home")
     return render(request, "accounts/register.html", {"form": form})
 

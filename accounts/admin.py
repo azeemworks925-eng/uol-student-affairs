@@ -26,6 +26,17 @@ class PortalUserForm(forms.ModelForm):
         model = User
         fields = ("email", "full_name", "role", "is_active")
 
+    def clean(self):
+        cleaned = super().clean()
+        user = self.instance
+        if user.pk and user.is_super_admin and "is_active" in self.fields and not cleaned.get("is_active", True):
+            others_active = User.objects.filter(role=User.Role.SUPER_ADMIN, is_active=True).exclude(pk=user.pk)
+            if not others_active.exists():
+                # Otherwise no one could manage the portal, and bootstrap_super_admin refuses
+                # while any Super Admin account exists.
+                self.add_error("is_active", "The last active Super Admin cannot be deactivated.")
+        return cleaned
+
 
 class AdvisorAssignmentInline(admin.TabularInline):
     model = AdvisorAssignment
