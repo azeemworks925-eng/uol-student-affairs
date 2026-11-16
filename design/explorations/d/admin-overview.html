@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<!-- DEVELOPMENT ONLY. Design D proposal, not a product screen. Not served by Django. Fictional sample data.
-     Analytics limited to DEC-281: category share, distribution by section, resolved versus unresolved. -->
+<!-- DEVELOPMENT ONLY. Design D proposal (revision 2), not a product screen. Not served by Django.
+     Fictional sample data. Analytics limited to DEC-281. Specification: docs/design/DESIGN_PLAN.md, section 6.
+     Sample totals: 100 complaints = 58 resolved + 42 not resolved (33 still being handled + 9 rejected). -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -13,93 +14,94 @@
 <link rel="stylesheet" href="d.css">
 <style>
   body { font-size: 14px; }
-  .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 100vh; }
-  .page { max-width: 1240px; width: 100%; margin: 0 auto; padding: 20px 48px 64px; }
-  .top { display: flex; justify-content: flex-end; align-items: center; gap: 8px; height: 44px; }
-  .top .field { width: 300px; }
+  .app { display: grid; grid-template-columns: var(--sidebar-w) minmax(0, 1fr); min-height: 100vh; }
+  .page { max-width: 1240px; width: 100%; margin: 0 auto; padding: clamp(14px, 2.6vh, 22px) clamp(24px, 3.5vw, 48px) 56px; }
 
-  .masthead { padding: 24px 0 40px; border-bottom: 1px solid var(--ink); }
-  .masthead .display { font-size: 58px; margin: 14px 0 16px; max-width: 18ch; }
-  .masthead .lede { max-width: 58ch; }
+  .masthead { padding-bottom: var(--gap-section); border-bottom: 1px solid var(--ink); }
+  .masthead .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .masthead .tools { display: flex; align-items: center; gap: 8px; }
+  .masthead .tools .field { width: clamp(220px, 22vw, 300px); height: 38px; }
+  .period { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .period .tbd { font: 500 12px/1 var(--ui); color: var(--muted); border: 1px dashed var(--border-strong); border-radius: 6px; padding: 5px 8px; }
+  .masthead .display { font-size: var(--display-l); margin: clamp(10px, 2vh, 16px) 0 clamp(8px, 1.6vh, 12px); max-width: 22ch; }
+  .masthead .lede { font-size: clamp(15px, 1.3vw, 18px); max-width: 64ch; }
 
-  .chapter { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 48px; padding: 40px 0; border-bottom: 1px solid var(--border); }
-  .chapter .no { font-family: var(--display); font-weight: var(--display-weight); font-size: 15px; color: var(--muted); letter-spacing: .02em; }
-  .chapter .label { font: 600 12px/16px var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 6px 0 14px; }
-  .chapter .side { display: flex; flex-direction: column; gap: 14px; }
-  .chapter .side .link { margin-top: 6px; }
-  .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; }
-  .pair .chapter { grid-template-columns: 1fr; gap: 20px; padding-right: 40px; }
-  .pair .chapter + .chapter { padding: 40px 0 40px 40px; border-left: 1px solid var(--border); }
+  .chapter { padding: var(--gap-section) 0; border-bottom: 1px solid var(--border); }
+  .chapter .no { font-family: var(--display); font-weight: var(--display-weight); font-size: 15px; color: var(--muted); }
+  .chapter .label { font: 600 12px/16px var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 4px 0 10px; }
+  .takeaway { font-size: clamp(17px, 1.5vw, 20px); }
 
-  /* 01 Distribution by section: cohort map in academic order */
-  .map { display: grid; grid-template-columns: 150px repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .map .colh { font: 600 11px/16px var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0 4px 2px; }
+  /* 01: side text + map, side by side only when the content area is wide enough. */
+  .c1-wrap { container-type: inline-size; }
+  .c1 { display: grid; grid-template-columns: 1fr; gap: 20px; }
+  @container (min-width: 860px) { .c1 { grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); gap: 40px; } }
+  .c1 .side { display: flex; flex-direction: column; gap: 12px; }
+
+  .map { display: grid; grid-template-columns: minmax(96px, 150px) repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .map .colh { font: 600 11px/16px var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0 4px; }
   .map .rowh { align-self: center; line-height: 1.3; }
   .map .rowh b { display: block; font-size: 14px; }
   .map .rowh span { font-size: 12px; color: var(--muted); }
-  .cell { position: relative; display: flex; flex-direction: column; justify-content: space-between; min-height: 84px; padding: 12px 14px; border-radius: 12px; border: 1px solid transparent; transition: transform .15s var(--ease), box-shadow .15s var(--ease); }
+  .cell { display: flex; flex-direction: column; justify-content: space-between; gap: 6px; min-height: clamp(60px, 10vh, 80px); padding: 10px 12px; border-radius: 12px; border: 1px solid transparent; }
+  a.cell { transition: transform .15s var(--ease), box-shadow .15s var(--ease); }
   a.cell:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(22, 32, 28, .12); }
-  .cell .c { font: 600 28px/1 var(--ui); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-  .cell .of { font-size: 12px; }
-  .cell.l0 { background: var(--surface); border-color: var(--border); color: var(--muted); }
+  .cell .c { font: 600 clamp(20px, 3.4vh, 26px)/1 var(--ui); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .cell .nr { font-size: 12px; }
+  /* Shading by number of complaints: mixed from ink and surface (all levels pass 4.5:1). */
+  .cell.l0 { background: var(--surface); border-color: var(--border-control); }
   .cell.l1 { background: color-mix(in srgb, var(--ink) 7%, var(--surface)); }
   .cell.l2 { background: color-mix(in srgb, var(--ink) 14%, var(--surface)); }
   .cell.l3 { background: color-mix(in srgb, var(--ink) 70%, var(--surface)); color: #fff; }
   .cell.l4 { background: var(--ink); color: #fff; }
-  .cell.l1 .of, .cell.l2 .of { color: var(--muted); }
-  .cell.l3 .of, .cell.l4 .of { color: rgba(255, 255, 255, .85); }
-  .cell.none { background: transparent; border: 1px dashed var(--border); }
+  .cell.l0 .nr, .cell.l1 .nr, .cell.l2 .nr { color: var(--muted); }
+  .cell.l3 .nr, .cell.l4 .nr { color: rgba(255, 255, 255, .85); }
+  /* Not a real section: hatched, no number. */
+  .cell.none { background: repeating-linear-gradient(135deg, transparent 0 6px, var(--subtle) 6px 8px); border: 1px dashed var(--border); color: var(--muted); font-size: 12px; justify-content: center; }
+  /* Real section, breakdown withheld for privacy (proposed rule, O25). */
+  .cell.hidden { background: var(--surface); border: 1px dashed var(--border-control); color: var(--muted); font-size: 12px; }
+  .cell.hidden b { color: var(--ink); font-size: 13px; }
   .scale { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
-  .scale i { width: 22px; height: 12px; border-radius: 3px; display: inline-block; }
+  .scale i { width: 20px; height: 12px; border-radius: 3px; display: inline-block; }
+  .scale span.step { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 
-  /* 02 Category share */
-  .stackbar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; gap: 2px; margin: 4px 0 18px; }
-  .stackbar span:nth-child(1) { background: var(--ink); }
-  .stackbar span:nth-child(2) { background: color-mix(in srgb, var(--ink) 55%, var(--surface)); }
-  .stackbar span:nth-child(3) { background: color-mix(in srgb, var(--ink) 30%, var(--surface)); }
-  .stackbar span:nth-child(4) { background: color-mix(in srgb, var(--ink) 14%, var(--surface)); }
+  .pair-wrap { container-type: inline-size; }
+  .pair { display: grid; grid-template-columns: 1fr; }
+  @container (min-width: 820px) { .pair { grid-template-columns: 1fr 1fr; } .pair .chapter + .chapter { border-left: 1px solid var(--border); padding-left: 40px; } .pair .chapter:first-child { padding-right: 40px; } }
+
+  .stackbar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 2px; margin: 4px 0 14px; }
+  .stackbar span:nth-child(1), .cats li:nth-child(1) i { background: var(--ink); }
+  .stackbar span:nth-child(2), .cats li:nth-child(2) i { background: color-mix(in srgb, var(--ink) 55%, var(--surface)); }
+  .stackbar span:nth-child(3), .cats li:nth-child(3) i { background: color-mix(in srgb, var(--ink) 30%, var(--surface)); }
+  .stackbar span:nth-child(4), .cats li:nth-child(4) i { background: color-mix(in srgb, var(--ink) 14%, var(--surface)); }
   .cats { list-style: none; margin: 0; padding: 0; }
-  .cats li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto 48px; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); font-size: 14px; }
+  .cats li { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto 44px; gap: 12px; align-items: center; padding: clamp(6px, 1.2vh, 9px) 0; border-top: 1px solid var(--border); }
   .cats li i { width: 10px; height: 10px; border-radius: 3px; }
-  .cats li:nth-child(1) i { background: var(--ink); } .cats li:nth-child(2) i { background: color-mix(in srgb, var(--ink) 55%, var(--surface)); } .cats li:nth-child(3) i { background: color-mix(in srgb, var(--ink) 30%, var(--surface)); } .cats li:nth-child(4) i { background: color-mix(in srgb, var(--ink) 14%, var(--surface)); }
   .cats .n { color: var(--muted); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
   .cats .p { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
 
-  /* 03 Resolved vs unresolved */
-  .split { display: grid; grid-template-columns: 64fr 36fr; gap: 4px; margin-top: 4px; }
-  .split .part { padding-top: 14px; border-top: 4px solid var(--border-strong); }
+  .split { display: grid; grid-template-columns: 58fr 42fr; gap: 4px; margin-top: 4px; }
+  .split .part { padding-top: 12px; border-top: 4px solid var(--border-strong); }
   .split .part.ok { border-top-color: var(--ok); }
-  .split .big { font-family: var(--display); font-weight: var(--display-weight); font-size: 52px; line-height: 1; color: var(--ink-heading); font-variant-numeric: tabular-nums; }
+  .split .big { font-family: var(--display); font-weight: var(--display-weight); font-size: clamp(36px, 7vh, 52px); line-height: 1; color: var(--ink-heading); font-variant-numeric: tabular-nums; }
   .split .lbl { font-size: 13px; color: var(--muted); margin-top: 6px; }
-  .foot { font-size: 12px; color: var(--muted); margin-top: 16px; }
+  .split .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .foot { font-size: 12px; color: var(--muted); margin-top: 12px; }
 
-  .goto { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 28px; }
-  .goto .small { margin-right: 4px; }
+  .goto { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 24px; }
 
-  @media (max-width: 1180px) {
-    .page { padding: 16px 32px 56px; }
-    .chapter { grid-template-columns: 1fr; gap: 20px; }
-    .masthead .display { font-size: 48px; }
-  }
   @media (max-width: 767px) {
     .app { display: block; }
     .page { padding: 0 16px 32px; }
-    .top { display: none; }
-    .masthead { padding: 24px 0 28px; }
-    .masthead .display { font-size: 36px; margin: 10px 0 12px; }
-    .lede { font-size: 16px; }
-    .chapter { padding: 28px 0; }
-    .takeaway { font-size: 18px; }
-    .map { grid-template-columns: 64px repeat(3, minmax(0, 1fr)); gap: 6px; }
-    .map .rowh b { font-size: 13px; }
-    .map .rowh span { display: none; }
-    .cell { min-height: 60px; padding: 8px 10px; border-radius: 10px; }
-    .cell .c { font-size: 20px; }
-    .cell .of { font-size: 11px; }
-    .pair { grid-template-columns: 1fr; }
-    .pair .chapter { padding-right: 0; }
-    .pair .chapter + .chapter { padding: 28px 0; border-left: 0; }
-    .split .big { font-size: 40px; }
+    .desk-only { display: none !important; }
+    .masthead { padding-top: 18px; }
+    .masthead .display { font-size: 2rem; }
+    .map { grid-template-columns: 70px repeat(3, minmax(0, 1fr)); gap: 6px; }
+    .map .rowh b { font-size: 12px; }
+    .map .rowh span { font-size: 11px; }
+    .cell { min-height: 58px; padding: 8px; border-radius: 10px; }
+    .cell .c { font-size: 18px; }
+    .cell .nr, .cell.none, .cell.hidden { font-size: 10px; }
+    .cell.hidden b { font-size: 11px; }
   }
 </style>
 </head>
@@ -109,7 +111,6 @@
   <symbol id="file" viewBox="0 0 24 24"><path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3.5V8h4.5M8.5 12.5h7M8.5 16h5"/></symbol>
   <symbol id="hand" viewBox="0 0 24 24"><path d="M8 12V6.8a1.4 1.4 0 0 1 2.8 0V11M10.8 10.5V5.6a1.4 1.4 0 0 1 2.8 0V11M13.6 10.8V6.8a1.4 1.4 0 0 1 2.8 0v6.4c0 4-2.4 6.8-6 6.8-2.4 0-3.8-1.1-5-3.2l-1.6-2.9a1.3 1.3 0 0 1 2.2-1.4L8 14.5"/></symbol>
   <symbol id="cal" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></symbol>
-  <symbol id="chart" viewBox="0 0 24 24"><path d="M4.5 19.5h15M7.5 16v-4M12 16V8M16.5 16v-6"/></symbol>
   <symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></symbol>
   <symbol id="users" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19c.7-3 2.8-4.6 5.5-4.6s4.8 1.6 5.5 4.6"/><path d="M15.5 6.2a3.1 3.1 0 0 1 0 5.6M17 14.6c1.8.5 3 1.9 3.5 4.4"/></symbol>
   <symbol id="badge" viewBox="0 0 24 24"><circle cx="12" cy="9" r="4.5"/><path d="M8.5 13l-1.5 7 5-2.5 5 2.5-1.5-7"/></symbol>
@@ -130,7 +131,6 @@
       <li><a href="#"><svg class="i"><use href="#file"/></svg>Complaints</a></li>
       <li><a href="#"><svg class="i"><use href="#hand"/></svg>Collective Issues</a></li>
       <li><a href="#"><svg class="i"><use href="#cal"/></svg>Calendar</a></li>
-      <li><a href="#"><svg class="i"><use href="#chart"/></svg>Statistics</a></li>
     </ul>
     <div class="nav-group">People</div>
     <ul class="nav">
@@ -143,7 +143,7 @@
       <li><a href="#"><svg class="i"><use href="#layers"/></svg>Academic Structure</a></li>
       <li><a href="#"><svg class="i"><use href="#tags"/></svg>Complaint Categories</a></li>
     </ul>
-    <div class="me"><span class="avatar">NR</span><div>Dr. Nadia Rehman<br><span class="muted">Super Admin</span></div></div>
+    <a class="me" href="#" aria-label="Account menu"><span class="avatar">NR</span><div>Dr. Nadia Rehman<br><span class="muted">Super Admin</span></div></a>
   </aside>
 
   <div>
@@ -154,72 +154,72 @@
     </header>
 
     <main class="page">
-      <div class="top"><label class="field"><svg class="i"><use href="#search"/></svg>Search reference or student name</label><a class="iconbtn" href="#" aria-label="Notifications"><svg class="i"><use href="#bell"/></svg></a></div>
-
-      <!-- Masthead: the department-wide statement -->
       <header class="masthead">
-        <span class="eyebrow">Software Engineering · current semester</span>
-        <h1 class="display">33 complaints are still unresolved.</h1>
-        <p class="lede">58 have been resolved. <em>Below: where the unresolved complaints are, what they are about, and how much has been resolved.</em></p>
+        <div class="top">
+          <span class="period"><span class="eyebrow">Software Engineering</span><span class="tbd" title="One explicit reporting period for all three analytics is still to be defined">Reporting period: to be defined · sample data</span></span>
+          <span class="tools desk-only"><label class="field"><svg class="i"><use href="#search"/></svg>Search reference or student name</label><a class="iconbtn" href="#" aria-label="Notifications"><svg class="i"><use href="#bell"/></svg></a></span>
+        </div>
+        <h1 class="display">58 of 100 complaints are resolved.</h1>
+        <p class="lede">42 are not resolved: <em>33 are still being handled and 9 were rejected with a reason given to the student.</em></p>
       </header>
 
       <!-- 01 Distribution by section -->
       <section class="chapter" aria-labelledby="c1">
-        <div class="side">
-          <div><span class="no">01</span><p class="label" id="c1">Distribution by section</p></div>
-          <p class="takeaway">Fall 2024 · Semester 4 holds 15 of the 33 unresolved complaints. <em>Section B alone has 9.</em></p>
-          <div class="scale"><span>Unresolved</span><i style="background:color-mix(in srgb,var(--ink) 7%,var(--surface))"></i>1–2<i style="background:color-mix(in srgb,var(--ink) 14%,var(--surface))"></i>3–4<i style="background:color-mix(in srgb,var(--ink) 70%,var(--surface))"></i>5–6<i style="background:var(--ink)"></i>7+</div>
-          <p class="small muted">Each section shows its unresolved complaints and, below, all of its complaints this semester. Select a section to open its records.</p>
-        </div>
-        <div class="map" role="table" aria-label="Unresolved complaints by section, in academic order">
-          <span></span><span class="colh">Section A</span><span class="colh">Section B</span><span class="colh">Section C</span>
-          <span class="rowh"><b>Semester 1</b><span>Fall 2025 batch</span></span>
-          <a class="cell l1" href="#" aria-label="Fall 2025, Semester 1, Section A: 1 unresolved of 4"><span class="c">1</span><span class="of">of 4</span></a>
-          <a class="cell l1" href="#" aria-label="Fall 2025, Semester 1, Section B: 2 unresolved of 5"><span class="c">2</span><span class="of">of 5</span></a>
-          <span class="cell none" aria-label="No Section C"></span>
-          <span class="rowh"><b>Semester 2</b><span>Spring 2025 batch</span></span>
-          <a class="cell l2" href="#"><span class="c">3</span><span class="of">of 9</span></a>
-          <a class="cell l0" href="#"><span class="c">0</span><span class="of">of 5</span></a>
-          <a class="cell l2" href="#"><span class="c">4</span><span class="of">of 7</span></a>
-          <span class="rowh"><b>Semester 4</b><span>Fall 2024 batch</span></span>
-          <a class="cell l3" href="#"><span class="c">6</span><span class="of">of 18</span></a>
-          <a class="cell l4" href="#"><span class="c">9</span><span class="of">of 19</span></a>
-          <span class="cell none"></span>
-          <span class="rowh"><b>Semester 6</b><span>Fall 2023 batch</span></span>
-          <a class="cell l1" href="#"><span class="c">2</span><span class="of">of 7</span></a>
-          <a class="cell l3" href="#"><span class="c">5</span><span class="of">of 11</span></a>
-          <a class="cell l1" href="#"><span class="c">1</span><span class="of">of 6</span></a>
-        </div>
+        <div class="c1-wrap"><div class="c1">
+          <div class="side">
+            <div><span class="no">01</span><p class="label" id="c1">Distribution by section</p></div>
+            <p class="takeaway">Fall 2024 · Semester 4 · Section B has 21 of the 100 complaints. <em>11 of them are not resolved.</em></p>
+            <div class="scale"><span>Complaints</span><span class="step"><i style="background:color-mix(in srgb,var(--ink) 7%,var(--surface))"></i>1–5</span><span class="step"><i style="background:color-mix(in srgb,var(--ink) 14%,var(--surface))"></i>6–10</span><span class="step"><i style="background:color-mix(in srgb,var(--ink) 70%,var(--surface))"></i>11–15</span><span class="step"><i style="background:var(--ink)"></i>16+</span></div>
+            <p class="small muted">Each cell is one exact cohort: batch, semester and section. Select a cell to open its complaints. Hatched: the section does not exist.</p>
+          </div>
+          <div class="map" role="table" aria-label="Complaints by section, in academic order">
+            <span></span><span class="colh">Section A</span><span class="colh">Section B</span><span class="colh">Section C</span>
+            <span class="rowh"><b>Semester 1</b><span>Fall 2025 batch</span></span>
+            <a class="cell l1" href="#" aria-label="Fall 2025, Semester 1, Section A: 4 complaints, 1 not resolved"><span class="c">4</span><span class="nr">1 not resolved</span></a>
+            <span class="cell hidden" aria-label="Fall 2025, Semester 1, Section B: breakdown hidden, fewer than 5 students"><b>Hidden</b><span>Fewer than 5 students</span></span>
+            <span class="cell none" aria-label="Fall 2025, Semester 1 has no Section C">No Section C</span>
+            <span class="rowh"><b>Semester 2</b><span>Spring 2025 batch</span></span>
+            <a class="cell l3" href="#" aria-label="Spring 2025, Semester 2, Section A: 15 complaints, 4 not resolved"><span class="c">15</span><span class="nr">4 not resolved</span></a>
+            <a class="cell l0" href="#" aria-label="Spring 2025, Semester 2, Section B: no complaints"><span class="c">0</span><span class="nr">No complaints</span></a>
+            <a class="cell l2" href="#" aria-label="Spring 2025, Semester 2, Section C: 8 complaints, 5 not resolved"><span class="c">8</span><span class="nr">5 not resolved</span></a>
+            <span class="rowh"><b>Semester 4</b><span>Fall 2024 batch</span></span>
+            <a class="cell l4" href="#" aria-label="Fall 2024, Semester 4, Section A: 20 complaints, 8 not resolved"><span class="c">20</span><span class="nr">8 not resolved</span></a>
+            <a class="cell l4" href="#" aria-label="Fall 2024, Semester 4, Section B: 21 complaints, 11 not resolved"><span class="c">21</span><span class="nr">11 not resolved</span></a>
+            <span class="cell none" aria-label="Fall 2024, Semester 4 has no Section C">No Section C</span>
+            <span class="rowh"><b>Semester 6</b><span>Fall 2023 batch</span></span>
+            <a class="cell l2" href="#" aria-label="Fall 2023, Semester 6, Section A: 7 complaints, 2 not resolved"><span class="c">7</span><span class="nr">2 not resolved</span></a>
+            <a class="cell l3" href="#" aria-label="Fall 2023, Semester 6, Section B: 13 complaints, 7 not resolved"><span class="c">13</span><span class="nr">7 not resolved</span></a>
+            <a class="cell l2" href="#" aria-label="Fall 2023, Semester 6, Section C: 6 complaints, 1 not resolved"><span class="c">6</span><span class="nr">1 not resolved</span></a>
+          </div>
+        </div></div>
       </section>
 
-      <div class="pair">
+      <div class="pair-wrap"><div class="pair">
         <!-- 02 Category share -->
         <section class="chapter" aria-labelledby="c2">
-          <div><span class="no">02</span><p class="label" id="c2">Category share</p><p class="takeaway">Academic complaints are almost half of all complaints. <em>Personal/Wellbeing is 14%.</em></p></div>
-          <div>
-            <div class="stackbar" aria-hidden="true"><span style="width:46%"></span><span style="width:31%"></span><span style="width:14%"></span><span style="width:9%"></span></div>
-            <ul class="cats">
-              <li><i></i><span>Academic</span><span class="n">42</span><span class="p">46%</span></li>
-              <li><i></i><span>Non-academic</span><span class="n">28</span><span class="p">31%</span></li>
-              <li><i></i><span>Personal/Wellbeing</span><span class="n">13</span><span class="p">14%</span></li>
-              <li><i></i><span>Other</span><span class="n">8</span><span class="p">9%</span></li>
-            </ul>
-            <a class="link" href="#" style="margin-top:14px">Open complaints by category <svg class="i" style="width:16px;height:16px"><use href="#arrow"/></svg></a>
-          </div>
+          <span class="no">02</span><p class="label" id="c2">Category share</p>
+          <p class="takeaway">Academic complaints are almost half of all complaints. <em>Personal/Wellbeing is 14%.</em></p>
+          <div class="stackbar" aria-hidden="true" style="margin-top:14px"><span style="width:46%"></span><span style="width:31%"></span><span style="width:14%"></span><span style="width:9%"></span></div>
+          <ul class="cats">
+            <li><i></i><span>Academic</span><span class="n">46</span><span class="p">46%</span></li>
+            <li><i></i><span>Non-academic</span><span class="n">31</span><span class="p">31%</span></li>
+            <li><i></i><span>Personal/Wellbeing</span><span class="n">14</span><span class="p">14%</span></li>
+            <li><i></i><span>Other</span><span class="n">9</span><span class="p">9%</span></li>
+          </ul>
+          <a class="link" href="#" style="margin-top:12px">Open complaints by category <svg class="i" style="width:16px;height:16px"><use href="#arrow"/></svg></a>
         </section>
-        <!-- 03 Resolved vs unresolved -->
+        <!-- 03 Resolved vs not resolved -->
         <section class="chapter" aria-labelledby="c3">
-          <div><span class="no">03</span><p class="label" id="c3">Resolved vs unresolved</p><p class="takeaway">Almost two in three complaints are resolved.</p></div>
-          <div>
-            <div class="split">
-              <div class="part ok"><div class="big">58</div><div class="lbl">Resolved · 64%</div></div>
-              <div class="part"><div class="big">33</div><div class="lbl">Unresolved · 36%</div></div>
-            </div>
-            <a class="link" href="#" style="margin-top:20px">Open unresolved complaints <svg class="i" style="width:16px;height:16px"><use href="#arrow"/></svg></a>
-            <p class="foot">Rejected complaints are not counted here; how they should count is still to be decided.</p>
+          <span class="no">03</span><p class="label" id="c3">Resolved vs not resolved</p>
+          <p class="takeaway">More than half of all complaints are resolved.</p>
+          <div class="split" style="margin-top:14px">
+            <div class="part ok"><div class="big">58</div><div class="lbl">Resolved · 58%</div></div>
+            <div class="part"><div class="big">42</div><div class="lbl">Not resolved · 42%</div><div class="sub">33 being handled · 9 rejected</div></div>
           </div>
+          <a class="link" href="#" style="margin-top:14px">Open complaints that are being handled <svg class="i" style="width:16px;height:16px"><use href="#arrow"/></svg></a>
+          <p class="foot">Proposed rule, awaiting confirmation: Resolved = Resolved; not resolved = Received + Under Review + Rejected. Rejected complaints are closed with a reason; they are not awaiting action.</p>
         </section>
-      </div>
+      </div></div>
 
       <nav class="goto" aria-label="Go to"><span class="small muted">Go to</span><a class="btn sm" href="#">Complaints</a><a class="btn sm" href="#">Collective issues</a><a class="btn sm" href="#">Calendar</a><a class="btn sm" href="#">Students</a><a class="btn sm" href="#">Batch Advisors</a></nav>
     </main>

@@ -25,6 +25,17 @@
 
   --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px; --s8: 64px;
   --ease: cubic-bezier(.2, .7, .2, 1);
+
+  /* Fluid display sizes, bounded by viewport width AND height (laptop-first, revision 2).
+     Reference laptop: HP EliteBook 840 G8, 1920x1080 at 150% Windows scaling = 1280x720
+     logical px; Opera at 100% zoom leaves a viewport of about 1280x590. The rem minimums
+     respect the browser's text size and zoom. */
+  --display-xl: clamp(2.375rem, min(4.4vw, 7.4vh), 4rem);    /* student welcome   44px at 1280x590 */
+  --display-l: clamp(2rem, min(3.4vw, 6.2vh), 3.25rem);      /* admin masthead    37px at 1280x590 */
+  --display-m: clamp(1.5rem, min(2.4vw, 4.6vh), 2.5rem);     /* case/section title 27px at 1280x590 */
+  --display-s: clamp(1.25rem, min(1.8vw, 3.6vh), 1.625rem);  /* list headline     21px at 1280x590 */
+  --gap-section: clamp(20px, 4.5vh, 48px);
+  --sidebar-w: clamp(224px, 17vw, 248px);
 }
 html[data-type="fraunces"] { --display: "Fraunces", "Iowan Old Style", Georgia, serif; --display-track: -0.02em; --display-weight: 500; }
 html[data-type="sans"] { --display: "Inter", system-ui, sans-serif; --display-track: -0.035em; --display-weight: 600; }
@@ -114,7 +125,7 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .history .quote { margin-top: 8px; padding: 12px 14px; border-left: 2px solid var(--border-strong); background: var(--surface); border-radius: 0 10px 10px 0; font-size: 15px; line-height: 1.6; max-width: 62ch; }
 
 /* ---------- Navigation: ink active treatment (approved) ---------- */
-.wordmark { display: flex; align-items: baseline; gap: 6px; padding: 4px 12px 24px; }
+.wordmark { display: flex; align-items: baseline; gap: 6px; padding: 4px 12px clamp(14px, 3vh, 24px); }
 .wordmark small { font: 600 10px/1 var(--ui); letter-spacing: .1em; color: var(--muted); }
 .wordmark span { font-family: var(--display); font-weight: var(--display-weight); letter-spacing: var(--display-track); font-size: 21px; line-height: 1; color: var(--ink-heading); }
 .nav { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -126,7 +137,9 @@ svg.i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor;
 .nav a[aria-current="page"] svg { color: var(--ink); }
 .nav a[aria-current="page"]::before { content: ""; position: absolute; left: -12px; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--ink); }
 .nav a .count { margin-left: auto; }
-.sidebar { position: sticky; top: 0; height: 100vh; padding: 24px 12px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+.sidebar { position: sticky; top: 0; height: 100vh; padding: clamp(16px, 3vh, 24px) 12px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+.nav-group { padding-top: clamp(12px, 2.4vh, 20px); }
+@media (max-height: 640px) { .nav a { height: 36px; } }
 .sidebar .me { margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 12px; border-top: 1px solid var(--border); font-size: 13px; line-height: 1.35; }
 .rail { position: sticky; top: 0; height: 100vh; width: 72px; padding: 20px 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .rail .mark { font-family: var(--display); font-weight: var(--display-weight); font-size: 22px; color: var(--ink-heading); margin-bottom: 18px; }
