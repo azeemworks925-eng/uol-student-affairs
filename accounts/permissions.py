@@ -42,7 +42,7 @@ COHORT_FIELDS = ("batch_id", "semester_id", "section_id")
 def _assignment_filter(user, prefix=""):
     """
     Q object matching records in any cohort assigned to the advisor. A cohort is the
-    exact batch + semester + section combination; all three must match.
+    exact batch + semester + section combination; all three must match (DEC-205).
     """
     cohorts = AdvisorAssignment.objects.filter(advisor=user).values_list(*COHORT_FIELDS)
     query = Q(pk__in=[])  # Matches nothing when there are no assignments.
@@ -54,7 +54,7 @@ def _assignment_filter(user, prefix=""):
 def can_access_cohort(user, batch, semester, section):
     """
     Whether the user may see data for this exact batch + semester + section cohort
-    (DEC-015, DEC-229).
+    (DEC-205; see also DEC-015, DEC-229).
     """
     if not (user.is_authenticated and user.is_active):
         return False

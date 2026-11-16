@@ -164,7 +164,7 @@ class StudentProfile(models.Model):
 class AdvisorAssignment(models.Model):
     """
     Assigns a Batch Advisor to one cohort: the exact batch + semester + section combination
-    (DEC-013, DEC-204, DEC-015; owner decision 2026-11-16).
+    (DEC-205; see also DEC-013, DEC-015, DEC-204).
 
     Several advisors may share a cohort, and one advisor may hold several cohorts.
     Assignments are changed by adding or removing rows.

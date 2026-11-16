@@ -1,6 +1,6 @@
 """
 Scope Batch Advisor assignments to the exact batch + semester + section cohort
-(owner decision, 2026-11-16).
+(DEC-205).
 
 Existing assignments cannot be given a batch automatically: guessing would grant an
 advisor access to the wrong students. If any exist, the migration stops as its first
