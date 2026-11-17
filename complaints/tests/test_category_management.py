@@ -78,6 +78,74 @@ class ModelGuardTests(TestCase):
         loaded.refresh_from_db()
         self.assertEqual((loaded.name, loaded.category), ("Renamed", self.unused))
 
+    def assert_parent_refused(self, operation):
+        with self.assertRaises(ProtectedRecordError), transaction.atomic():
+            operation()
+        self.sub.refresh_from_db()
+        self.assertEqual(self.sub.category_id, self.unused.pk)
+
+    def test_queryset_update_cannot_change_the_parent(self):
+        self.assert_parent_refused(lambda: ComplaintSubcategory.objects.filter(pk=self.sub.pk).update(category=self.other))
+        self.assert_parent_refused(lambda: ComplaintSubcategory.objects.filter(pk=self.sub.pk).update(category_id=self.other.pk))
+        self.assert_parent_refused(lambda: self.unused.subcategories.update(category=self.other))
+        # Even combined with an allowed field, nothing is written.
+        self.assert_parent_refused(lambda: ComplaintSubcategory.objects.filter(pk=self.sub.pk).update(name="X", category=self.other))
+        self.assertEqual(self.sub.name, "Unused sub")
+
+    def test_bulk_update_cannot_change_the_parent(self):
+        loaded = ComplaintSubcategory.objects.get(pk=self.sub.pk)
+        loaded.category = self.other
+        self.assert_parent_refused(lambda: ComplaintSubcategory.objects.bulk_update([loaded], ["category"]))
+        self.assert_parent_refused(lambda: ComplaintSubcategory.objects.bulk_update([loaded], ["name", "category_id"]))
+
+    def test_reverse_related_manager_cannot_reassign_an_existing_subcategory(self):
+        loaded = ComplaintSubcategory.objects.get(pk=self.sub.pk)
+        self.assert_parent_refused(lambda: self.other.subcategories.add(loaded))
+        self.assert_parent_refused(lambda: self.other.subcategories.add(loaded, bulk=False))
+        self.assert_parent_refused(lambda: self.other.subcategories.set([loaded]))
+        self.assert_parent_refused(lambda: self.other.subcategories.set([loaded], bulk=False))
+        self.assertFalse(hasattr(self.other.subcategories, "remove"))  # non-null FK: no remove()/clear()
+
+    def test_upsert_cannot_change_the_parent(self):
+        overwrite = ComplaintSubcategory(pk=self.sub.pk, category=self.other, name=self.sub.name, position=0)
+        self.assert_parent_refused(lambda: ComplaintSubcategory.objects.bulk_create(
+            [overwrite], update_conflicts=True, unique_fields=["id"], update_fields=["category"]))
+        self.assert_parent_refused(lambda: ComplaintSubcategory.objects.update_or_create(
+            pk=self.sub.pk, defaults={"category": self.other}))
+
+    def test_non_parent_updates_and_legitimate_creation_still_work(self):
+        self.assertEqual(ComplaintSubcategory.objects.filter(pk=self.sub.pk).update(name="Renamed", position=7, is_active=False), 1)
+        self.assertEqual(self.unused.subcategories.update(position=8), 1)
+        loaded = ComplaintSubcategory.objects.get(pk=self.sub.pk)
+        loaded.name = "Again"
+        self.assertEqual(ComplaintSubcategory.objects.bulk_update([loaded], ["name", "position"]), 1)
+        # Adding a subcategory that already belongs here, and creating new ones, are allowed.
+        self.unused.subcategories.add(loaded)
+        self.unused.subcategories.set([loaded])
+        created = self.unused.subcategories.create(name="Created via manager")
+        self.other.subcategories.add(ComplaintSubcategory(name="Added unsaved", category=self.other), bulk=False)
+        ComplaintSubcategory.objects.bulk_create([ComplaintSubcategory(category=self.other, name="Bulk created")])
+        loaded.refresh_from_db()
+        self.assertEqual((loaded.name, loaded.position, loaded.is_active, loaded.category_id), ("Again", 8, False, self.unused.pk))
+        self.assertEqual(created.category, self.unused)
+        self.assertTrue(self.other.subcategories.filter(name__in=["Added unsaved", "Bulk created"]).count() == 2)
+        self.assertEqual(list(ComplaintSubcategory.objects.active().filter(pk=self.sub.pk)), [])
+
+    def test_historical_complaints_keep_their_category_and_subcategory(self):
+        student = make_student(academics=make_academics())
+        complaint = submit(student, self.unused, subcategory=self.sub)
+        for operation in (
+            lambda: ComplaintSubcategory.objects.filter(pk=self.sub.pk).update(category=self.other),
+            lambda: self.other.subcategories.add(ComplaintSubcategory.objects.get(pk=self.sub.pk)),
+            lambda: self.other.subcategories.set([ComplaintSubcategory.objects.get(pk=self.sub.pk)]),
+        ):
+            with self.assertRaises(ProtectedRecordError), transaction.atomic():
+                operation()
+        complaint.refresh_from_db()
+        self.assertEqual((complaint.category_id, complaint.subcategory_id), (self.unused.pk, self.sub.pk))
+        self.assertEqual(complaint.subcategory.category_id, complaint.category_id)
+        complaint.full_clean()  # Complaint.clean(): the subcategory still belongs to the category
+
     def test_referenced_category_is_still_protected_by_its_foreign_keys(self):
         student = make_student(academics=make_academics())
         complaint = submit(student, self.unused, subcategory=self.sub)

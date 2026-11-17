@@ -74,8 +74,20 @@ Rules:
   - disabling the service permission check fails the permission test for every operation and actor;
   - disabling the last-active rule fails both last-active tests;
   - removing the `add_error()` marking fails the service-error assertion.
+- **Review follow-up: subcategory parent bypasses.**
+  - **Found:** `ComplaintSubcategory.save()` guarded only instance saves. A probe on a test database moved a subcategory to another category through seven paths:
+    - `update(category=…)` and `update(category_id=…)`, including through `category.subcategories.update()`;
+    - `bulk_update([...], ["category"])`;
+    - `other.subcategories.add(sub)` and `.set([sub])`, which in bulk mode update through the base manager;
+    - an upserting `bulk_create(update_conflicts=True, update_fields=["category"])`.
+  - **Fixed:**
+    - `SubcategoryQuerySet` refuses `update()` / `bulk_update()` naming `category` or `category_id`, and upserts that update `category`. Other fields, and inserts, are unaffected.
+    - A guarded reverse descriptor on `ComplaintCategory.subcategories` refuses `add()` / `set()` when they would move an existing subcategory of another category. It is used instead of `Meta.base_manager_name`, which would need a migration.
+    - **No migration.**
+  - **Tests:** 6 new model tests covering each path, plus non-parent updates and legitimate creation still working, and historical complaints keeping their category and subcategory. Against the previous model, the 5 bypass tests fail.
 - Results:
-  - 392/392 on MySQL 8.0.44 in two consecutive `--keepdb` runs; the 44 Stage 2 tests pass on MySQL and SQLite.
+  - **After the follow-up:** 398/398 on MySQL 8.0.44 in two consecutive `--keepdb` runs; 398 on SQLite with the same 2 MySQL-only skips; the 50 Stage 2 tests pass on MySQL.
+  - **Before the follow-up:** 392/392 on MySQL 8.0.44 in two consecutive `--keepdb` runs; the 44 Stage 2 tests passed on MySQL and SQLite.
   - 392 on SQLite with 2 skipped (MySQL-only: `test_only_one_stale_status_change_succeeds`, `test_concurrent_submissions_get_distinct_references`).
   - `check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0. `compileall`: exit 0. `git diff --check`: clean.
 - Browser: headless Chrome at 100% zoom, 8 category-page states × 6 viewports (1280×590, 1232×590, 1100×590, 1600×740, 1440×800, 360px) = 48/48 clean. The states were: the index, an active category, a long-named category, an inactive category, the last active category, a create error, a subcategory error and keyboard focus.

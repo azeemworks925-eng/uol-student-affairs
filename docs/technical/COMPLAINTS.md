@@ -226,7 +226,12 @@ All rules are in the services. Every service re-checks that the actor is an acti
 - **No hard deletion** (models):
   - `ComplaintCategory.delete()`, `ComplaintSubcategory.delete()` and queryset `delete()` raise `ProtectedRecordError`, even for unreferenced rows;
   - `update()` and `.active()` are unchanged, and `PROTECT` foreign keys still apply.
-- **A subcategory's parent is fixed:** `ComplaintSubcategory.save()` compares the parent with the stored row and refuses a change.
+- **A subcategory's parent is fixed**, on every ordinary ORM path; each raises `ProtectedRecordError`:
+  - instance `save()`, compared with the stored row (this also covers `update_or_create` and `add(bulk=False)`);
+  - `SubcategoryQuerySet.update()` / `bulk_update()` naming `category` or `category_id`, and an upserting `bulk_create()` with `category` in `update_fields`;
+  - the reverse manager `category.subcategories.add()` / `set()`. In bulk mode these update through the model's base manager and would bypass both of the above, so a guarded reverse descriptor refuses them for subcategories of another category.
+
+  The descriptor is used instead of `Meta.base_manager_name`, which would need a migration. Updates to other fields (`name`, `position`, `is_active`) and inserts are unaffected. Raw SQL and Django's private APIs stay outside what the ORM can protect.
 
 ### Security
 
