@@ -1,6 +1,6 @@
 # Complaints — technical notes
 
-**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md (merged in PR #12). Part 4 Stage 1 (Super Admin complaint workspace and owner assignment) is merged through PR #14. Part 4 Stage 2 (category and subcategory management, section 6) is merged through PR #15. Part 4 Stage 3 (in-app notifications, section 7) is merged through PR #16 (`d857d27`). Stages 4–5 (academic term and analytics, final acceptance) are not implemented.
+**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md (merged in PR #12). Part 4 Stage 1 (Super Admin complaint workspace and owner assignment) is merged through PR #14. Part 4 Stage 2 (category and subcategory management, section 6) is merged through PR #15. Part 4 Stage 3 (in-app notifications, section 7) is merged through PR #16 (`d857d27`). Part 4 Stage 4a (academic terms and the Super Admin term filter, section 8) is on branch `feat/academic-term`, awaiting review. Stage 4b (analytics) and Stage 5 (final acceptance) are not implemented.
 **Decisions:** DEC-030, DEC-031, DEC-220 to DEC-230, and DEC-310 to DEC-315 in docs/decisions/DECISIONS.md. Complaint-specific portions of O27, O28 and O33 are resolved; see the decision register for remaining open items.
 
 ## 1. Backend (`complaints/`)
@@ -121,7 +121,7 @@ Part 4 covers the department-wide Super Admin complaint workspace with manual ow
 
 Cancellation requests remain record-only (DEC-311). There is no response-required classification or “Waiting for you” queue (DEC-312). Student-facing owner identities and owner-change events remain hidden. Student Voice, meetings and collective issues are not implemented by this complaints part; the notification foundation is designed to support their already-approved events when those modules are built.
 
-The specification was merged in PR #12. Stage 1 is described in section 5, Stage 2 in section 6 and Stage 3 in section 7; Stages 4–5 are not implemented.
+The specification was merged in PR #12. Stage 1 is described in section 5, Stage 2 in section 6, Stage 3 in section 7 and Stage 4a (under review) in section 8; Stage 4b and Stage 5 are not implemented.
 
 ## 5. Super Admin complaint workspace and owner assignment (Part 4 Stage 1)
 
@@ -276,3 +276,20 @@ So a rolled-back action leaves no notification, and a failed notification rolls 
 
 - The student home's "Your latest updates" (DEC-303) still awaits seen/unseen tracking. Notification read state is separate, and Stage 3 does not change the student home.
 - There is no retention or clean-up of old notifications.
+
+## 8. Academic-term filter on the Super Admin list (Part 4 Stage 4a)
+
+Academic terms, the current-term services and the reporting window are described in `docs/technical/ACADEMIC_TERMS.md`. This section covers only the complaint list.
+
+- **Filter:** the Super Admin list has an "Academic term" filter: "Any term" (the default) or each term, listed newest first, with its exact dates. The current term is marked ", current".
+  - A chosen term keeps complaints **submitted** within its reporting window: `created_at >= start 00:00 Asia/Karachi` and `< the day after the end date at 00:00 Asia/Karachi`. The window comes from `academics.models.term_window`, the only place it is calculated.
+  - It combines with search, cohort, status, category, owner and sort.
+  - It only narrows `visible_complaints(user)`; access rules are unchanged.
+- **Invalid values:** a malformed or unknown `term` value, or the ID of a term that does not exist, is ignored like any other invalid filter. The list is then unfiltered, with no chip.
+- **Chip:** when a term is applied, a neutral chip above the rows reads "Submitted in <term> <start> – <end>".
+  - **Remove:** its "Remove" link (accessible name "Remove the academic term filter (<term>)") clears only the term and keeps the other filters and sort.
+  - **Clear filters:** this also clears the term.
+  - The chip never uses a status colour.
+- **List state:** `term` is part of the Super Admin list state (`SUPER_ADMIN_LIST_PARAMS`), so it is kept across pagination, case links, Back and POST redirects.
+- **Batch Advisor list unchanged:** it still uses `LIST_PARAMS` and `FILTER_PARAMS`. It has no term field; a forged `term` parameter is neither applied nor carried in links or redirects, and its SQL queries are identical with or without one. Student pages don't read `term`.
+- **No migration** in the complaints app: the filter uses the existing `created_at` column.

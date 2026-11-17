@@ -21,9 +21,55 @@ Rules:
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O30 and O34; O25 is resolved by DEC-315. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
-| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`); Stage 3 (in-app notifications) through PR #16 (`d857d27`). Stage 4 (academic term and analytics) and Stage 5 (final acceptance) are not implemented. |
+| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`); Stage 3 (in-app notifications) through PR #16 (`d857d27`). Stage 4a (academic terms and the Super Admin term filter) on branch `feat/academic-term`, awaiting review. Stage 4b (analytics) and Stage 5 (final acceptance) are not implemented. |
 | Other product features | Student Voice, meetings, collective issues and the Super Admin analytics are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
+
+---
+
+## 2026-11-17 — Complaints Part 4 Stage 4a: academic terms (awaiting review)
+
+Branch `feat/academic-term`, created from `main` at `290250a`. This entry records the work and its local verification. **It is not merged.** Technical notes: `docs/technical/ACADEMIC_TERMS.md` and `COMPLAINTS.md` section 8.
+
+- **Model:** `academics.AcademicTerm`, with a name, start and end dates and a current flag (`TRUE` or `NULL`).
+  - **One current term:** a plain unique index on the nullable flag allows at most one current term on both MySQL and SQLite. A check constraint allows only `NULL` or `TRUE`. The check is written as an explicit `IN (TRUE)` comparison: SQLite compiled the first version to a bare truthiness test, which accepted `2` beside `1` (two current terms). Browser testing on SQLite found this and it was fixed before commit; a regression test covers it.
+  - **Dates:** a second check requires `end_date >= start_date`.
+  - **Names:** duplicates are refused ignoring case and accents.
+  - **Never deleted;** the ORM refuses writes to the current flag outside the services.
+- **Migration** `academics/0002_academicterm`:
+  - additive and reversible;
+  - a test reverses and re-applies it on both databases;
+  - **not applied** to the owner's development database.
+- **Services:** `set_current_term`, `clear_current_term(expected=...)` and `current_term`.
+  - Every term row is locked in primary-key order, and the current term is re-read under the locks.
+  - The old term is cleared before the new one is set.
+  - An `IntegrityError` is converted after the atomic block rolls back.
+- **Reporting window:** `term_window()`, from the start date 00:00 Asia/Karachi (inclusive) to the day after the end date at 00:00 (exclusive). Validation keeps dates between 1900 and 9998 so the boundaries stay representable in UTC.
+- **Admin:** term management under Academic Structure, with no deletion and a read-only current flag. The "Make current term" action requires exactly one term. The "Clear current term" action requires the current term alone and refuses if another Super Admin changed it in the meantime. Integrity errors are shown as messages, not server errors.
+- **Complaint list:**
+  - The Super Admin list gains an "Academic term" filter with a chip showing the name and exact dates; the chip's "Remove" link clears only the term.
+  - `term` is carried in the Super Admin list state only.
+  - The Batch Advisor list ignores a forged `term`, and its queries are unchanged.
+  - Student pages are unchanged.
+- **Not in this stage:** analytics, suppression or Overview changes. Those are Stage 4b, whose privacy plan is reviewed separately. The allauth W036 warning is untouched.
+- **Mutation checks** (each change made temporarily, then restored), all caught by the tests:
+  - an inclusive end boundary;
+  - a missing term filter;
+  - the term carried in Batch Advisor links;
+  - the row lock removed;
+  - the stored-row guard skipped for new instances.
+- **Verification** (local runs; the repository has no hosted CI):
+  - **Focused tests on MySQL 8.0.44:** academics 63/63; term filter 21/21.
+  - **Full suite on MySQL:** 546/546 in two consecutive `--keepdb` runs.
+  - **SQLite:** 546 with 10 MySQL-only skips (the 5 new term concurrency tests and 5 existing ones). Focused: 84, with 5 skips.
+  - **Checks:** `check`: no issues. `makemigrations --check --dry-run`: no changes. `compileall` and `git diff --check`: clean.
+  - **`migrate --check`:** exits 1, because `academics.0002_academicterm` is unapplied on the development database, as instructed.
+- **Browser acceptance** (headless Chrome; 7 states × 6 viewports: 1280×590, 1232×590, 1100×590, 1600×740, 1440×800 and 360px):
+  - No horizontal overflow, clipping or covered content.
+  - Visible 2px focus on the chip's Remove link and on the term select.
+  - The Remove target is at least 44px tall at 360px.
+  - **Fix made during testing:** the chip first sat below the open filter panel, under the fold at 1280×590. It was moved above the panel.
+  - **Pre-existing:** the only small targets at 360px are the skip link and the wordmark.
 
 ---
 
