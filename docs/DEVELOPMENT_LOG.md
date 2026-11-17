@@ -95,6 +95,22 @@ Rules:
 - Tests: 16 new tests in `complaints/tests/test_immutability.py` run each real operation and check that the database is unchanged. Two existing tests were updated to the new mechanism with the same assertions: the duplicate-reference test now collides through `save()`, and complaint deletion now expects `ProtectedRecordError`. Run against the previous models, 12 of the 16 new tests fail; the other 4 cover paths that were already protected.
 - Results: 232/232 on MySQL 8.0.44 in two consecutive `--keepdb` runs, and 232 on SQLite with 1 skipped. `check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0, with only the known allauth W036 warning.
 
+**Review follow-up: detached instances (2026-11-17)**
+
+- Found: the instance guards trusted in-memory state. A newly constructed object given an existing primary key has `_state.adding=True` and none of the description captured on load, so `save()` updated the stored row. Reproduced on a test database:
+  - `ComplaintEvent(pk=existing, ..., created_at=...).save()` rewrote an event's kind and message;
+  - `ComplaintEvent(pk=existing, message=...).save(update_fields=["message"])` rewrote a message;
+  - `Complaint(pk=existing, ...).save()` and `Complaint(pk=existing, description=...).save(update_fields=["description"])` replaced the original description.
+
+  A bare detached event save was stopped only incidentally, by the NOT NULL check on `created_at`.
+- Fixed:
+  - `ComplaintEvent.save()` refuses `update_fields` and any primary key that already exists, and always inserts (`force_insert=True`), so it can never update a row. A duplicate key racing in between fails in the database.
+  - `Complaint.save()` compares the description with the stored row whenever the save could write it, instead of relying on the value captured on load (the `from_db` hook was removed). The services save with `update_fields` that exclude `description`, so they make no extra query.
+  - No migration was needed.
+- Scope: the `Complaint` guard protects the original description only, as specified. A detached `save()` can still change other complaint fields; status and owner changes are meant to go through `complaints.services`. Raw SQL and Django's private APIs remain outside what the ORM can protect.
+- Tests: 4 new tests in `complaints/tests/test_immutability.py` check that the database is unchanged after each refused attempt. Run against the previous models (`b344091`), the 3 detached-instance tests fail; the fourth (saving with an unchanged description is allowed) passes on both, as intended. No test was removed or skipped.
+- Results: 236/236 on MySQL 8.0.44 in two consecutive `--keepdb` runs, and 236 on SQLite with 1 skipped (the MySQL-only concurrency test). `check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0.
+
 **Limitations from open decisions**
 
 - O27: no responsible owner is assigned automatically; only the Super Admin sets it. Every Batch Advisor of the cohort can act on a complaint until O27 decides whether actions are limited to the owner.

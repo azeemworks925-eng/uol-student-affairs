@@ -78,6 +78,19 @@ class EventHistoryTests(ImmutabilityTestCase):
     def test_instance_delete_is_refused(self):
         self.assert_refused(self.events.last().delete)
 
+    def test_detached_instance_with_an_existing_pk_cannot_overwrite_history(self):
+        # A newly constructed object has _state.adding=True; Django would UPDATE the row.
+        existing = self.events.first()
+        forged = ComplaintEvent(
+            pk=existing.pk, complaint=existing.complaint, actor=existing.actor,
+            kind=Kind.FURTHER_INFORMATION, message="Edited history", created_at=existing.created_at,
+        )
+        self.assert_refused(forged.save)
+
+    def test_detached_partial_save_cannot_overwrite_history(self):
+        existing = self.events.first()
+        self.assert_refused(lambda: ComplaintEvent(pk=existing.pk, message="Edited").save(update_fields=["message"]))
+
     def test_refusals_are_validation_errors_for_existing_callers(self):
         self.assertTrue(issubclass(ProtectedRecordError, ValidationError))
 
@@ -118,6 +131,23 @@ class ComplaintRecordTests(ImmutabilityTestCase):
         complaint = Complaint.objects.get(pk=self.complaint.pk)
         complaint.description = "replaced"
         self.assert_refused(complaint.save)
+
+    def test_detached_instance_with_an_existing_pk_cannot_replace_the_description(self):
+        stored = Complaint.objects.get(pk=self.complaint.pk)
+        forged = Complaint(
+            pk=stored.pk, reference=stored.reference, student=stored.student, batch=stored.batch,
+            semester=stored.semester, section=stored.section, category=stored.category, title=stored.title,
+            status=stored.status, created_at=stored.created_at, description="Replaced description",
+        )
+        self.assert_refused(forged.save)
+        self.assert_refused(lambda: Complaint(pk=stored.pk, description="Replaced").save(update_fields=["description"]))
+
+    def test_saving_with_an_unchanged_description_is_allowed(self):
+        # The guard targets the description only; the services' saves are unaffected.
+        complaint = Complaint.objects.get(pk=self.complaint.pk)
+        complaint.title = complaint.title
+        complaint.save()
+        self.assertEqual(Complaint.objects.get(pk=complaint.pk).description, self.complaint.description)
 
 
 class LegitimateWorkflowTests(ImmutabilityTestCase):

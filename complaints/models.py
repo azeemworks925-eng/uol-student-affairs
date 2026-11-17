@@ -194,22 +194,21 @@ class Complaint(models.Model):
     def __str__(self):
         return self.reference or f"Complaint #{self.pk}"
 
-    @classmethod
-    def from_db(cls, db, field_names, values):
-        instance = super().from_db(db, field_names, values)
-        instance._stored_description = instance.__dict__.get("description")
-        return instance
-
     def clean(self):
         if self.subcategory_id and self.subcategory.category_id != self.category_id:
             raise ValidationError({"subcategory": "This subcategory does not belong to the chosen category."})
 
     def save(self, *args, **kwargs):
-        stored = getattr(self, "_stored_description", None)
-        if self.pk and stored is not None and self.description != stored:
-            raise ProtectedRecordError("A complaint's original description cannot be changed (DEC-223).")
+        # Compare with the stored row, not with in-memory state: a newly constructed instance
+        # given an existing primary key would otherwise overwrite the original (DEC-223).
+        # The services always pass update_fields without "description", so they skip the query.
+        update_fields = kwargs.get("update_fields")
+        writes_description = update_fields is None or "description" in update_fields
+        if self.pk is not None and writes_description and not kwargs.get("force_insert"):
+            stored = Complaint._base_manager.filter(pk=self.pk).values_list("description", flat=True).first()
+            if stored is not None and stored != self.description:
+                raise ProtectedRecordError("A complaint's original description cannot be changed (DEC-223).")
         super().save(*args, **kwargs)
-        self._stored_description = self.description
 
     def delete(self, *args, **kwargs):
         raise ProtectedRecordError("Complaints cannot be deleted (DEC-224).")
@@ -276,8 +275,15 @@ class ComplaintEvent(models.Model):
         return f"{self.complaint}: {self.get_kind_display()}"
 
     def save(self, *args, **kwargs):
-        if not self._state.adding:
+        # History is insert-only. _state.adding alone is not enough: a newly constructed
+        # instance given an existing primary key also has adding=True, and Django would
+        # UPDATE that row. So refuse partial saves and existing primary keys, and always
+        # INSERT (a duplicate key racing in between then fails in the database).
+        if not self._state.adding or kwargs.get("update_fields") is not None or (
+            self.pk is not None and ComplaintEvent._base_manager.filter(pk=self.pk).exists()
+        ):
             raise ProtectedRecordError("Complaint history cannot be changed.")
+        kwargs["force_insert"] = True
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
