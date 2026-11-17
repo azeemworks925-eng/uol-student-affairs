@@ -169,7 +169,7 @@ Other exclusions are stated where they belong: anonymous complaints (DEC-030), p
 
 ### 1.13 Design system and key pages
 
-Confirmed by the owner on 2026-11-16. Details in `docs/design/DESIGN_PLAN.md`.
+Confirmed by the owner on 2026-11-16. Details in `docs/design/DESIGN_PLAN.md`, the written specification of Design D (the design-phase HTML prototypes were not kept in the repository).
 
 | ID | Decision |
 |---|---|

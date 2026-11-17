@@ -1,8 +1,9 @@
 # UOL Student Affairs — Design Plan
 
-**Status:** Design D is the approved visual reference for production implementation (owner, 2026-11-16).
-**Visual reference:** `design/explorations/d/` (responsive screens) and `design/explorations/*-d.html` (notes). These are references, not production code.
-**Decisions:** recorded in `DECISIONS.md` (DEC-300 to DEC-308; open items O25 and O30 to O34). If this plan and `DECISIONS.md` disagree, `DECISIONS.md` wins.
+**Status:** Design D is the approved visual reference for production implementation (owner, 2026-11-16; DEC-302).
+**This document is the written production specification of Design D.** The HTML prototypes used during the design phase were not kept in the repository and are not a reference; where a detail is not written here, it is decided during implementation within these rules.
+**Implemented so far:** the application shell, role navigation, Student Dashboard and the Batch Advisor and Super Admin overviews, and the sign-in pages (PR #6). Production tokens and components live in `static/css/app.css` and `templates/`.
+**Decisions:** recorded in `docs/decisions/DECISIONS.md` (DEC-300 to DEC-308; open items O25 and O30 to O34). If this plan and `DECISIONS.md` disagree, `DECISIONS.md` wins.
 
 Labels used below: **Approved** (owner decision), **Recommendation** (default for implementation unless the owner says otherwise), **Open** (needs an owner decision before the related feature is final).
 
@@ -20,14 +21,16 @@ Labels used below: **Approved** (owner decision), **Recommendation** (default fo
 6. Staff get workspaces, not dashboards.
 7. Private by default, calm in tone.
 
-**Palette (DEC-301).** Forest Light and Forest Dark are approved; their values and the four status tones are fixed. Light values: accent `#176B52`, on-accent `#FFFFFF`, canvas `#F5F7F5`, surface `#FFFFFF`, subtle `#EDF2EE`, border `#DCE8E0`, strong border `#B8D8C7`, control border `#7A8A82`, text `#16201C`, heading `#253B32`, muted `#55635C`, disabled `#8B978F`. Status: Received `#E8F0FE`/`#1B4AA8`, Under Review `#FDF1D7`/`#8A5300`, Resolved `#E6F4DF`/`#2F6B1E`, Rejected `#FBEAE8`/`#9F2D22`. Dark values as in the research report.
+**Palette (DEC-301).** Forest Light and Forest Dark are approved; their values and the four status tones are fixed. Light values: accent `#176B52`, on-accent `#FFFFFF`, canvas `#F5F7F5`, surface `#FFFFFF`, subtle `#EDF2EE`, border `#DCE8E0`, strong border `#B8D8C7`, control border `#7A8A82`, text `#16201C`, heading `#253B32`, muted `#55635C`, disabled `#8B978F`. Status: Received `#E8F0FE`/`#1B4AA8`, Under Review `#FDF1D7`/`#8A5300`, Resolved `#E6F4DF`/`#2F6B1E`, Rejected `#FBEAE8`/`#9F2D22`.
+
+Dark values, as given in the Frontend Design Research Report (kept outside the repository) and rendered in the palette comparison during the design phase: accent `#5CC9A3`, on-accent `#0F1513`, canvas `#0F1513`, surface `#161E1B`, raised and subtle surface `#1E2925`, border `#2C3A34`, strong border `#3D5047`, control border about `#6F8279` (the report's approximate value, to be verified for contrast when Dark is implemented), text `#E6EEEA`, muted `#9DB0A7`, disabled `#5F6F67`. Status (dark): Received `#16233F`/`#9DBBFF`, Under Review `#33270F`/`#F2C56B`, Resolved `#1B2C14`/`#9AD27F`, Rejected `#3A1A17`/`#F2A198`. The report gives no separate dark heading colour. Forest Dark is approved but not yet implemented; whether a System theme option is offered is open (O34).
 
 - Active navigation uses an **ink indicator bar and font weight**, never the Forest tint (the tint is nearly identical to the Resolved badge in Forest Light).
 - Derived states (hover, map shades) are mixed from these tokens; no new colour values. Every text pair must reach 4.5:1 (3:1 for large text and control boundaries).
 
 ## 2. Typography and components
 
-- **Recommendation (O30 open):** Newsreader for display moments (greetings, headline sentences, case titles, large numerals) and Inter for all interface text; system monospace for reference IDs, SAP IDs and cohorts. Self-host the variable woff2 files with `font-display: swap`; fallbacks Iowan Old Style / Palatino / Georgia and system-ui.
+- **Recommendation (O30 open; used by the PR #6 implementation pending the owner's final decision):** Newsreader for display moments (greetings, headline sentences, case titles, large numerals) and Inter for all interface text; system monospace for reference IDs, SAP IDs and cohorts. Self-host the variable woff2 files with `font-display: swap`; fallbacks Iowan Old Style / Palatino / Georgia and system-ui.
 - Display sizes are fluid and bounded by viewport width **and height** with `clamp()` and rem minimums (see section 6).
 - Shared components: ink-active navigation (sidebar, icon rail, mobile header, bottom navigation), cohort chip, monospace reference, status pill with dot and label, status journey, immutable history list, compact list rows, buttons (one Forest primary per view), form fields with visible labels and inline errors.
 
