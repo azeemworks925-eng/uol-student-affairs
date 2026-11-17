@@ -1,7 +1,7 @@
 # UOL Student Affairs — Decision Register
 
 **Purpose:** The authoritative record of what has been decided, what has been replaced, and what is still open.
-**Last reconciled:** 2026-11-16
+**Last reconciled:** 2026-11-17
 **Canonical location:** This file in the GitHub repository. If any other document or copy disagrees with this file, this file wins.
 
 ## How to read this file
@@ -78,6 +78,7 @@ Rules for every collaborator (human or AI):
 | DEC-226 | There are no complaint priority levels, no three priority queues and no 15-day overdue indicator. |
 | DEC-227 | Complaints are routed to BAs based on section assignments. All BAs assigned to a section can see its complaints, but one designated BA is the responsible owner of each individual complaint. |
 | DEC-228 | The Super Admin can open, review, reassign, take over and respond to any complaint. |
+| DEC-310 | A Super Admin manually designates the responsible owner of a complaint. Eligible owners are active Batch Advisors assigned to the complaint's exact batch + semester + section, or an active Super Admin taking it over. There is no automatic assignment. An unassigned complaint remains unassigned. Owner designation is for accountability; all advisors assigned to that exact cohort retain their existing visibility and action permissions. |
 | DEC-229 | Students see only their own complaints. BAs see only complaints from their assigned sections. |
 | DEC-230 | There is no special complaint-routing hierarchy for complaints against administrators or the Super Admin in V1. |
 
@@ -125,6 +126,7 @@ Rules for every collaborator (human or AI):
 |---|---|
 | DEC-070 (revised) | Notifications are in-app only. There are no email notifications in V1. |
 | DEC-270 | Notification events include: complaint status changes and advisor responses; official answers to Student Voice questions; meeting confirmation, rescheduling and cancellation; and new CR/GR issues in the student's section. Notifications link to the relevant record. |
+| DEC-311 | A student's complaint cancellation request is recorded only. It does not change status, cancel or delete the complaint, or trigger an approval/decline workflow. |
 
 ### 1.9 Analytics and dashboards
 
@@ -133,6 +135,10 @@ Rules for every collaborator (human or AI):
 | DEC-090 (revised) | Analytics must be useful, not decorative. Aggregate reporting must not expose individual student identities; no individual student names appear in aggregate charts. |
 | DEC-280 | BAs see statistics for their assigned sections. The Super Admin sees department-wide statistics. |
 | DEC-281 | Useful analytics include complaint categories and percentages, section-wise complaint distribution, and resolved versus unresolved complaints. |
+| DEC-312 | No complaint event is given a response-required classification or a "Waiting for you" queue. Workspaces show factual statuses and recorded history only; they do not imply urgency through an unapproved queue. |
+| DEC-313 | For complaint analytics, Resolved means status Resolved. Not resolved means Received + Under Review + Rejected. Rejected complaints must be separately identified and never described as awaiting action. |
+| DEC-314 | All three Super Admin complaint analytics use one explicitly named academic-term reporting window, based on complaint submission date. The term name and exact start/end dates are displayed. Missing current-term configuration produces a setup state, not an implicit all-time report. |
+| DEC-315 | Aggregate analytics suppress cohort-level breakdowns for cohorts with fewer than five active students. Complementary suppression must prevent hidden values being derived from displayed totals or other cells; when this cannot be guaranteed, suppress the affected total or aggregate. Analytics never expose individual student identities. |
 | DEC-282 | Student dashboard: (1) Your Actions: pending complaint updates, unanswered questions, meeting requests. (2) Section Updates: active CR/GR issues awaiting student support. (3) Quick Access: Submit Complaint, Student Voice and My Meetings. |
 | DEC-283 | BA dashboard: compact overview, actionable complaint inbox, search and filters, complaint details, CR/GR issues, meeting calendar and useful section statistics. The section filter defaults to All Assigned Sections. |
 | DEC-284 | Super Admin dashboard: overview, students, Batch Advisors, CR/GR management, configuration, calendar and department-wide oversight. |
@@ -271,7 +277,7 @@ These do not change what the product does. They are resolved during design and i
 | O21 | Deployment, hosting, backups and recovery. |
 | O19 | Whether and how to move to MySQL 8.4 in future, without touching the existing 8.0.44 installation (DEC-102). |
 | O23 | Project licence. |
-| O25 | Privacy thresholds for aggregate analytics where small groups could reveal identities. Proposed: suppress a cohort's breakdown below 5 active students, with complementary suppression so hidden values cannot be derived from totals. |
+| O25 | Resolved by DEC-315. |
 
 ### 5.2 Workflow details not covered by the confirmed decisions
 
@@ -279,9 +285,9 @@ These are gaps found while reconciling, not reopened decisions. Each needs a sho
 
 | ID | Open item |
 |---|---|
-| O27 | In a section with several BAs: how the responsible BA for a complaint is designated (DEC-227), and which BA is the "relevant" or "assigned" BA for collective issues, Student Voice and meeting requests. |
-| O28 | How a complaint cancellation request (DEC-224) is acted on and recorded, given that the statuses are Received, Under Review, Resolved and Rejected (DEC-221). |
+| O27 | Complaint owner designation is resolved by DEC-310. Which BA is relevant/assigned for collective issues, Student Voice and meeting requests remains open for those modules. |
+| O28 | Resolved by DEC-311: cancellation requests are record-only, with no status change or approval/decline workflow. |
 | O29 | Meeting status names, and whether a student can cancel or ask to reschedule a meeting that has been confirmed. |
-| O31 | Resolved vs not resolved classification. Recommended: Resolved = Resolved; not resolved = Received + Under Review + Rejected, with rejected complaints never described as awaiting action. |
-| O32 | One reporting window for the Super Admin analytics. Recommended: the academic term, with start and end dates stored in Academic Structure, applied to all three analytics and always stated on screen. |
-| O33 | Which complaint events require an advisor response (the proposed "Waiting for you" group) and which are informational updates. |
+| O31 | Resolved by DEC-313. |
+| O32 | Resolved by DEC-314. |
+| O33 | Resolved by DEC-312: no response-required classification or "Waiting for you" queue is added. |
