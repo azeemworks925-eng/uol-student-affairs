@@ -1,0 +1,7 @@
+{# Up/Down reordering (POST). Disabled at either end, where a move would change nothing. #}
+<div class="sa-cat-move" role="group" aria-label="Order of {{ label }}">
+  <form method="post" action="{{ action }}">{% csrf_token %}<input type="hidden" name="direction" value="up">
+    <button type="submit" class="btn btn-sa-secondary btn-sm" aria-label="Move {{ label }} up"{% if first %} disabled{% endif %}>Up</button></form>
+  <form method="post" action="{{ action }}">{% csrf_token %}<input type="hidden" name="direction" value="down">
+    <button type="submit" class="btn btn-sa-secondary btn-sm" aria-label="Move {{ label }} down"{% if last %} disabled{% endif %}>Down</button></form>
+</div>

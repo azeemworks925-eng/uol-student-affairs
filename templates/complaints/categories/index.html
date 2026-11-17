@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% load static %}
+{# Complaint category management (Complaints Part 4 Stage 2). No delete control by design. #}
+{% block title %}Complaint categories · UOL Student Affairs{% endblock %}
+{% block content %}
+<header class="sa-page-head sa-page-head--split">
+  <div>
+    <span class="sa-eyebrow">Configuration</span>
+    <h1 class="sa-display">Complaint categories</h1>
+    <p class="sa-lede">{{ total }} categor{{ total|pluralize:"y,ies" }}, {{ active_total }} active. <span class="soft">Students choose from active categories when they submit a complaint, in this order.</span></p>
+  </div>
+</header>
+
+<section class="sa-panel sa-cat-add" aria-labelledby="add-category-title">
+  <h2 class="sa-h2" id="add-category-title">Add a category</h2>
+  <form method="post" action="{% url 'super_admin_category_create' %}" class="sa-inline-form" novalidate data-once-submit>
+    {% csrf_token %}
+    {% include "includes/form_field.html" with field=create_form.name wrapper_class="sa-inline-field" %}
+    <button type="submit" class="btn btn-sa-primary" data-submit-label="Adding…">Add category</button>
+  </form>
+</section>
+
+<section class="sa-section" aria-labelledby="categories-title">
+  <div class="sa-section-head"><h2 class="sa-h2" id="categories-title">Categories</h2><span class="sa-small sa-muted">In the order students see them</span></div>
+  {% if categories %}
+  <ol class="sa-cat-list">
+    {% for category in categories %}
+    <li class="sa-cat-row" id="category-{{ category.pk }}">
+      <div class="sa-cat-main">
+        <a class="sa-cat-name" href="{% url 'super_admin_category_detail' category.pk %}">{{ category.name }}</a>
+        {% include "complaints/categories/_state.html" with active=category.is_active %}
+        <span class="sa-cat-meta">{{ category.subcategory_count }} subcategor{{ category.subcategory_count|pluralize:"y,ies" }} · {{ category.complaint_count }} complaint{{ category.complaint_count|pluralize }}</span>
+      </div>
+      <div class="sa-cat-actions">
+        {% url 'super_admin_category_move' category.pk as move_url %}
+        {% include "complaints/categories/_move.html" with action=move_url label=category.name first=forloop.first last=forloop.last %}
+        <a class="btn btn-sa-secondary btn-sm" href="{% url 'super_admin_category_detail' category.pk %}" aria-label="Open {{ category.name }}">Open</a>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <div class="sa-empty">
+    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-tags"/></svg>
+    <div><p class="title">There are no categories yet.</p><p class="sa-muted sa-small">Add one above. Students need at least one active category to submit a complaint.</p></div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

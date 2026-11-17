@@ -11,5 +11,6 @@ urlpatterns = [
     path("student/complaints/", include("complaints.urls")),
     path("advisor/complaints/", include("complaints.advisor_urls")),
     path("super-admin/complaints/", include("complaints.admin_urls")),
+    path("super-admin/complaint-categories/", include("complaints.category_urls")),
     path("", include("accounts.urls")),
 ]
