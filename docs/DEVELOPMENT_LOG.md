@@ -21,9 +21,29 @@ Rules:
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O30 and O34; O25 is resolved by DEC-315. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
-| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`). Stage 3 (in-app notifications) on branch `feat/notification-foundation`, awaiting review. Stages 4–5 not started. |
+| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`); Stage 3 (in-app notifications) through PR #16 (`d857d27`). Stage 4 (academic term and analytics) and Stage 5 (final acceptance) are not implemented. |
 | Other product features | Student Voice, meetings, collective issues and the Super Admin analytics are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
+
+---
+
+## 2026-11-17 — Complaints Part 4 Stage 3 merged (PR #16)
+
+- PR #16 (in-app notification foundation and complaint producers) was squash-merged into `main` on 2026-11-17 at 15:19 Asia/Karachi (10:19 UTC) as merge commit `d857d276f94c38bc081e7b86bf9a3205ddc16dee`. Its final PR head was `fd046a1`.
+- **Final change before merge:** the review's source-validation correction. `notify()` accepts only a persisted source record: a Django model instance of the type's declared model, not marked as new, with a pk and database alias, whose row exists on that alias. It has regression tests for:
+  - an unsaved source with an unused explicit pk, and one with the pk of an existing row;
+  - a stale source whose row was removed with raw SQL;
+  - a normal persisted source;
+  - `None` and non-model objects, an unsaved instance carrying an alias, a forged instance with no alias;
+  - the alias used by the existence check.
+
+  The details are in the Stage 3 entry below.
+- **Final verification reported by Claude Code (local runs, not hosted CI; the repository has no CI workflow):**
+  - 462/462 tests on MySQL 8.0.44 in two consecutive `--keepdb` runs;
+  - 462 on SQLite with 5 MySQL-only skips;
+  - the 64 focused notification tests passed on MySQL, and 61 ran successfully on SQLite with 3 MySQL-only skips.
+- **After the merge,** the owner applied `notifications.0001_initial` to the local development database, confirmed it with `showmigrations notifications` (`[X] 0001_initial`), and ran `migrate --check` successfully, with no unapplied migrations.
+- **Status:** Stage 3 is complete. Stage 4 (academic-term configuration and privacy-safe complaint analytics on the Super Admin Overview) is not implemented. Its implementation plan is being prepared for review.
 
 ---
 
