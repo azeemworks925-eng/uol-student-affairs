@@ -175,7 +175,8 @@ class ComplaintListFilterForm(forms.Form):
     filter can only ever narrow the user's visible complaints (DEC-205).
 
     Batch Advisors (Part 3) get an extra "Open" status. The Super Admin (Part 4 Stage 1)
-    gets the spec's exact status list and an owner filter (pass `owners`)."""
+    gets the spec's exact status list and an owner filter (pass `owners`), and in Stage 4a an
+    academic-term filter (pass `terms`)."""
 
     SORTS = [("activity", "Latest activity"), ("newest", "Newest submitted")]
     OPEN = "open"
@@ -187,7 +188,8 @@ class ComplaintListFilterForm(forms.Form):
     category = forms.ChoiceField(label="Category", required=False)
     sort = forms.ChoiceField(label="Sort by", required=False, choices=SORTS)
 
-    def __init__(self, data, *, cohorts, categories, owners=None, include_open=True, all_cohorts_label="All assigned cohorts"):
+    def __init__(self, data, *, cohorts, categories, owners=None, terms=None, include_open=True,
+                 all_cohorts_label="All assigned cohorts"):
         super().__init__(data)
         self.fields["cohort"].choices = [("", all_cohorts_label)] + cohorts
         self.fields["status"].choices = (
@@ -199,6 +201,14 @@ class ComplaintListFilterForm(forms.Form):
                 label="Responsible owner", required=False,
                 choices=[("", "Any owner"), (self.UNASSIGNED, "Unassigned")]
                 + [(str(user.pk), f"{user.get_full_name()} ({user.get_role_display()})") for user in owners],
+            )
+        if terms is not None:
+            # Super Admin only (Part 4 Stage 4a): complaints submitted within an academic term.
+            self.fields["term"] = forms.ChoiceField(
+                label="Academic term", required=False,
+                choices=[("", "Any term")] + [
+                    (str(t.pk), f"{t.name} ({t.dates_label}){', current' if t.is_current else ''}") for t in terms
+                ],
             )
         # Staff filters mark inactive categories (Part 4 Stage 2); students never see this label.
         self.fields["category"].choices = [("", "All categories")] + [

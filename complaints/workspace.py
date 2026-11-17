@@ -28,7 +28,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from accounts.models import AdvisorAssignment, StudentProfile, User
-from academics.models import Batch, Section, Semester
+from academics.models import AcademicTerm, Batch, Section, Semester
 
 from . import services
 from .forms import AdvisorResponseForm, ComplaintListFilterForm, ResponsibleOwnerForm, StatusUpdateForm
@@ -39,6 +39,10 @@ from .presentation import staff_timeline, status_journey, status_tone
 PAGE_SIZE = 20
 LIST_PARAMS = ("q", "cohort", "status", "category", "owner", "sort", "page")
 FILTER_PARAMS = ("q", "cohort", "status", "category", "owner")
+# The Super Admin list also filters by academic term (Part 4 Stage 4a). The Batch Advisor list
+# keeps the tuples above, so a `term` parameter is neither applied nor carried there.
+SUPER_ADMIN_LIST_PARAMS = ("q", "cohort", "status", "category", "owner", "term", "sort", "page")
+SUPER_ADMIN_FILTER_PARAMS = (*FILTER_PARAMS, "term")
 Status = Complaint.Status
 Kind = ComplaintEvent.Kind
 OPEN_STATUSES = (Status.RECEIVED, Status.UNDER_REVIEW)
@@ -50,6 +54,14 @@ class Workspace:
 
     url_prefix: str  # URL names: <prefix>s, <prefix>_detail, <prefix>_respond, <prefix>_status, <prefix>_owner
     department_wide: bool  # Super Admin: every cohort, owner filter and panel, owner history
+
+    @property
+    def list_params(self):
+        return SUPER_ADMIN_LIST_PARAMS if self.department_wide else LIST_PARAMS
+
+    @property
+    def filter_params(self):
+        return SUPER_ADMIN_FILTER_PARAMS if self.department_wide else FILTER_PARAMS
 
     def url(self, name, *args):
         return reverse(f"{self.url_prefix}{name}", args=args)
@@ -101,9 +113,10 @@ def department_cohorts():
     ])
 
 
-def list_state(params, *, without=()):
-    """The list's query string (search, filters, sort, page) to carry between list and case."""
-    return urlencode([(key, params[key]) for key in LIST_PARAMS if key not in without and params.get(key)])
+def list_state(params, *, without=(), keys=LIST_PARAMS):
+    """The list's query string (search, filters, sort, page) to carry between list and case.
+    `keys` is the workspace's own parameter list (Workspace.list_params)."""
+    return urlencode([(key, params[key]) for key in keys if key not in without and params.get(key)])
 
 
 def _headline(visible, workspace):
@@ -121,8 +134,12 @@ def _headline(visible, workspace):
     return f"{subject} {open_total} open {noun}: {' and '.join(parts)}."
 
 
-def _filtered(visible, filters, workspace):
+def _filtered(visible, filters, workspace, term=None):
     complaints = visible
+    if term is not None:
+        # Submission date within the term's reporting window (academics.models.term_window).
+        start, end = term.window()
+        complaints = complaints.filter(created_at__gte=start, created_at__lt=end)
     q = filters.value("q")
     if q:
         search = (
@@ -214,12 +231,15 @@ def render_workspace(request, workspace, reference=None, status=200, **forms):
         User.objects.filter(pk__in=visible.exclude(responsible=None).values("responsible_id")).order_by("full_name", "email")
         if workspace.department_wide else None
     )
+    terms = list(AcademicTerm.objects.all()) if workspace.department_wide else None
     filters = ComplaintListFilterForm(
-        request.GET, cohorts=cohorts, categories=categories, owners=owners,
+        request.GET, cohorts=cohorts, categories=categories, owners=owners, terms=terms,
         include_open=not workspace.department_wide,
         all_cohorts_label="All cohorts" if workspace.department_wide else "All assigned cohorts",
     )
-    page = Paginator(_filtered(visible, filters, workspace), PAGE_SIZE).get_page(request.GET.get("page"))
+    # Only an existing term chosen from the form's choices filters; anything else is ignored.
+    selected_term = next((t for t in terms if str(t.pk) == filters.value("term")), None) if terms else None
+    page = Paginator(_filtered(visible, filters, workspace, selected_term), PAGE_SIZE).get_page(request.GET.get("page"))
     for item in page:
         item.tone = status_tone(item.status)
 
@@ -229,20 +249,25 @@ def render_workspace(request, workspace, reference=None, status=200, **forms):
         batch_id, semester_id, section_id = (int(part) for part in selected_cohort.split("."))
         if not visible.filter(batch_id=batch_id, semester_id=semester_id, section_id=section_id).exists():
             empty_cohort_label = dict(cohorts)[selected_cohort]
-    state = list_state(request.GET)
+    keys = workspace.list_params
+    state = list_state(request.GET, keys=keys)
     context = {
         "workspace": workspace,
         "urls": workspace.url_names,
         "filters": filters,
         "show_cohort_filter": len(cohorts) > 1 or (workspace.department_wide and bool(cohorts)),
-        "has_filters": any(filters.value(name) for name in FILTER_PARAMS),
+        "has_filters": any(filters.value(name) for name in workspace.filter_params),
+        "selected_term": selected_term,
+        "term_clear_url": workspace.url("s") + (
+            f"?{without_term}" if (without_term := list_state(request.GET, without=("term", "page"), keys=keys)) else ""
+        ),
         "page": page,
         "headline": _headline(visible, workspace),
         "has_assignments": bool(cohorts) or workspace.department_wide,
         "cohort_labels": [] if workspace.department_wide else [label for _, label in cohorts],
         "empty_cohort_label": empty_cohort_label,
         "list_state": state,
-        "list_state_without_page": list_state(request.GET, without=("page",)),
+        "list_state_without_page": list_state(request.GET, without=("page",), keys=keys),
         "list_url": workspace.url("s") + (f"?{state}" if state else ""),
         "selected_reference": reference,
     }
@@ -252,7 +277,7 @@ def render_workspace(request, workspace, reference=None, status=200, **forms):
 
 
 def _case_url(workspace, complaint, request):
-    state = list_state(request.GET)
+    state = list_state(request.GET, keys=workspace.list_params)
     return workspace.url("_detail", complaint.reference) + (f"?{state}" if state else "")
 
 
