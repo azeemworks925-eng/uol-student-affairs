@@ -328,6 +328,12 @@ a.sa-quick-item:hover { border-color: var(--sa-border-control); }
 .sa-ws-filter-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding-top: 4px; }
 .sa-ws-filter-grid .form-label { font-size: 13px; margin-bottom: 4px; }
 .sa-ws-filter-actions { display: flex; gap: 8px; padding-top: 10px; }
+/* Active academic-term filter (Super Admin, Part 4 Stage 4a): neutral, never a status colour. */
+.sa-filter-chip { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; margin: 10px 0 0; padding: 6px 6px 6px 12px; border: 1px solid var(--sa-border-control); border-radius: 8px; background: var(--sa-surface); font-size: 14px; color: var(--sa-ink); }
+.sa-filter-chip > span { min-width: 0; overflow-wrap: anywhere; }
+.sa-filter-chip-remove { display: inline-flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 6px; font-weight: 500; color: var(--sa-accent); }
+.sa-filter-chip-remove:hover { background: var(--sa-subtle); }
+@media (max-width: 767.98px) { .sa-filter-chip-remove { min-height: 44px; } }
 .sa-ws-rows { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--sa-border); }
 .sa-ws-rows li { border-bottom: 1px solid var(--sa-border); }
 .sa-ws-row { position: relative; display: grid; gap: 4px; padding: 12px 10px; color: var(--sa-ink); text-decoration: none !important; border-radius: 8px; }

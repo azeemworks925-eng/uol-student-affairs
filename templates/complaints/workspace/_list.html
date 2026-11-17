@@ -18,12 +18,19 @@
     <button type="submit" class="btn btn-sa-secondary">Search</button>
   </div>
   <p class="sa-small sa-muted mt-1 mb-0" id="ws-search-hint">By reference, {% if workspace.department_wide %}title, {% endif %}student name or SAP ID.</p>
+  {% if selected_term %}
+  <p class="sa-filter-chip">
+    <span><span class="visually-hidden">Filtered to complaints </span>Submitted in <strong>{{ selected_term.name }}</strong> <span class="sa-nowrap">{{ selected_term.dates_label }}</span></span>
+    <a class="sa-filter-chip-remove" href="{{ term_clear_url }}" aria-label="Remove the academic term filter ({{ selected_term.name }})">Remove</a>
+  </p>
+  {% endif %}
   <details class="sa-ws-filters"{% if has_filters %} open{% endif %}>
     <summary>Filters and sort</summary>
     <div class="sa-ws-filter-grid">
       {% if show_cohort_filter %}<div><label class="form-label" for="{{ filters.cohort.id_for_label }}">Cohort</label>{{ filters.cohort }}</div>{% endif %}
       <div><label class="form-label" for="{{ filters.status.id_for_label }}">Status</label>{{ filters.status }}</div>
       <div><label class="form-label" for="{{ filters.category.id_for_label }}">Category</label>{{ filters.category }}</div>
+      {% if filters.term %}<div><label class="form-label" for="{{ filters.term.id_for_label }}">Academic term</label>{{ filters.term }}</div>{% endif %}
       {% if filters.owner %}<div><label class="form-label" for="{{ filters.owner.id_for_label }}">Responsible owner</label>{{ filters.owner }}</div>{% endif %}
       <div><label class="form-label" for="{{ filters.sort.id_for_label }}">Sort by</label>{{ filters.sort }}</div>
     </div>
