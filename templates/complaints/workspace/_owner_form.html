@@ -1,0 +1,8 @@
+{# Manual assignment, reassignment or take-over by a Super Admin (DEC-310). Nothing is assigned automatically. #}
+<p class="sa-small sa-muted">{% if owner %}Currently <b>{{ owner_label }}</b>.{% else %}This complaint is <b>unassigned</b>. Opening it does not assign it.{% endif %} The owner is accountable for the complaint; every Batch Advisor of this cohort keeps the same access. Students never see the owner.</p>
+<form method="post" action="{% url urls.owner complaint.reference %}{% if list_state %}?{{ list_state }}{% endif %}" novalidate data-once-submit>
+  {% csrf_token %}
+  {% if error_panel == "owner" %}<div class="sa-message sa-message--error mb-3" role="alert" tabindex="-1" data-error-focus>The owner was not changed. {% if owner_form.non_field_errors %}{{ owner_form.non_field_errors|join:" " }}{% else %}Check the field below.{% endif %}</div>{% endif %}
+  {% include "includes/form_field.html" with field=owner_form.owner %}
+  <button type="submit" class="btn btn-sa-primary" data-submit-label="Saving…">{% if owner %}Change owner{% else %}Assign owner{% endif %}</button>
+</form>

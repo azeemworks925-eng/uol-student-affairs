@@ -11,7 +11,7 @@ from django import forms
 from accounts.forms import AccessibleErrorsMixin
 
 from .models import TEXT_LIMIT, Complaint, ComplaintCategory, ComplaintSubcategory
-from .services import NOTE_REQUIRED, STAFF_TRANSITIONS
+from .services import NOTE_REQUIRED, STAFF_TRANSITIONS, eligible_advisors
 
 TITLE_LIMIT = Complaint._meta.get_field("title").max_length
 
@@ -172,10 +172,14 @@ class StatusUpdateForm(AccessibleErrorsMixin, forms.Form):
 
 class ComplaintListFilterForm(forms.Form):
     """The workspace list's search, filters and sort (GET). Invalid values are ignored, so a
-    filter can only ever narrow the advisor's visible complaints (DEC-205)."""
+    filter can only ever narrow the user's visible complaints (DEC-205).
+
+    Batch Advisors (Part 3) get an extra "Open" status. The Super Admin (Part 4 Stage 1)
+    gets the spec's exact status list and an owner filter (pass `owners`)."""
 
     SORTS = [("activity", "Latest activity"), ("newest", "Newest submitted")]
     OPEN = "open"
+    UNASSIGNED = "unassigned"
 
     q = forms.CharField(label="Search", required=False, max_length=100, strip=True, widget=forms.SearchInput)
     cohort = forms.ChoiceField(label="Cohort", required=False)
@@ -183,12 +187,19 @@ class ComplaintListFilterForm(forms.Form):
     category = forms.ChoiceField(label="Category", required=False)
     sort = forms.ChoiceField(label="Sort by", required=False, choices=SORTS)
 
-    def __init__(self, data, *, cohorts, categories):
+    def __init__(self, data, *, cohorts, categories, owners=None, include_open=True, all_cohorts_label="All assigned cohorts"):
         super().__init__(data)
-        self.fields["cohort"].choices = [("", "All assigned cohorts")] + cohorts
+        self.fields["cohort"].choices = [("", all_cohorts_label)] + cohorts
         self.fields["status"].choices = (
-            [("", "All"), (self.OPEN, "Open")] + list(Complaint.Status.choices)
+            [("", "All")] + ([(self.OPEN, "Open")] if include_open else []) + list(Complaint.Status.choices)
         )
+        if owners is not None:
+            # Current owners (eligible advisors or Super Admins who took over) and Unassigned.
+            self.fields["owner"] = forms.ChoiceField(
+                label="Responsible owner", required=False,
+                choices=[("", "Any owner"), (self.UNASSIGNED, "Unassigned")]
+                + [(str(user.pk), f"{user.get_full_name()} ({user.get_role_display()})") for user in owners],
+            )
         self.fields["category"].choices = [("", "All categories")] + [(str(c.pk), c.name) for c in categories]
         for name, field in self.fields.items():
             field.widget.attrs.setdefault("class", "form-control" if name == "q" else "form-select")
@@ -199,3 +210,27 @@ class ComplaintListFilterForm(forms.Form):
         if not hasattr(self, "cleaned_data"):
             self.is_valid()
         return self.cleaned_data.get(name) or ""
+
+
+class ResponsibleOwnerForm(AccessibleErrorsMixin, forms.Form):
+    """Super Admin assigns, reassigns or takes over (DEC-310). Choices: active Batch Advisors
+    of the exact cohort, and taking it over yourself. services.assign_responsible re-checks."""
+
+    owner = forms.ChoiceField(
+        label="Responsible owner",
+        error_messages={"required": "Choose the responsible owner.", "invalid_choice": "Choose one of the people offered."},
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+
+    def __init__(self, *args, complaint, actor, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.people = {str(user.pk): user for user in eligible_advisors(complaint)}
+        choices = [("", "Choose a person")] + [
+            (pk, f"{user.get_full_name()} (Batch Advisor)") for pk, user in self.people.items()
+        ]
+        self.people[str(actor.pk)] = actor
+        choices.append((str(actor.pk), f"Take it over yourself ({actor.get_full_name()})"))
+        self.fields["owner"].choices = choices
+
+    def clean_owner(self):
+        return self.people[self.cleaned_data["owner"]]

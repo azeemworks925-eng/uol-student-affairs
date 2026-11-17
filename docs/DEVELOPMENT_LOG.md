@@ -21,9 +21,56 @@ Rules:
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O30 and O34; O25 is resolved by DEC-315. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
-| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification is on branch docs/complaints-part4-spec, awaiting review; implementation has not started. |
+| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`). Part 4 Stage 1 (Super Admin workspace and owner assignment, Issue #13) on branch `feat/super-admin-complaints-workspace`, awaiting review. Stages 2–5 not started. |
 | Other product features | Student Voice, meetings, collective issues and the Super Admin analytics are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
+
+---
+
+## 2026-11-17 — Complaints Part 4 Stage 1: Super Admin workspace and owner assignment
+
+**Context**
+
+- Issue #13; branch `feat/super-admin-complaints-workspace` from `main` at `4348b15` (Part 4 specification, PR #12). Stage 1 only: no categories, notifications, analytics or academic terms.
+- **No migrations.** `Complaint.responsible`, the `RESPONSIBLE_CHANGED` event and `services.assign_responsible` already existed from Part 1.
+
+**What was done**
+
+- A department-wide Super Admin complaints workspace at `/super-admin/complaints/`, with Respond, Update status and owner actions. Details are in `docs/technical/COMPLAINTS.md` section 5.
+- **List:**
+  - search by reference, title, student name or SAP ID;
+  - exact-cohort (every known cohort), status (the spec's list, All by default), category (including inactive) and owner (Any, Unassigned, current owners) filters;
+  - a factual sort, pagination, and the list state kept across links and redirects;
+  - three distinct empty states: no complaints, no matches and an empty selected cohort.
+- **Case:** the Part 3 case pane, plus the responsible owner in the context, staff history including owner changes, and an owner panel. The panel offers the active Batch Advisors of the exact cohort or "Take it over yourself"; choosing the current owner is a no-op with a message.
+- **Owner eligibility:** the rule is now one function, `services.is_eligible_owner`, used by `assign_responsible` (behaviour unchanged). `services.eligible_advisors` feeds the form.
+- **Shared engine:** the Part 3 workspace was generalised into `complaints/workspace.py` (a `Workspace` configuration per role) with thin `advisor_views.py` and `admin_views.py`. Templates moved to `templates/complaints/workspace/`. Batch Advisor behaviour is unchanged, and all Part 3 tests pass without modification.
+- The Super Admin "Complaints" navigation item links to the workspace.
+
+**Interpretations to confirm (consistent with both the spec and Issue #13)**
+
+- **Batch Advisor history:** owner-change history appears in the **Super Admin** workspace only. The spec says BAs "may" see it; the issue says existing BA behaviour stays intact. Enabling it for BAs is a one-line change.
+- **Take-over:** the owner form offers eligible BAs and taking it over yourself (DEC-310 "a Super Admin taking it over"), not assignment to another Super Admin. The service still accepts any active Super Admin, as before.
+- **Status filter:** All, Received, Under Review, Resolved and Rejected, as listed in spec section 3.1. The BA workspace keeps its additional "Open" option.
+
+**Verification**
+
+- Tests: 34 new tests in `complaints/tests/test_super_admin_workspace.py`, covering:
+  - access by role and state, POST-only actions and unknown references;
+  - navigation, department-wide listing, rows, search including title and SAP ID;
+  - exact cohort filter and choices, forged values, the empty cohort and empty department;
+  - status, inactive-category and owner filters; sort, pagination and list state;
+  - full staff history with owner changes, unassigned state, Super Admin respond/status, stale status and untouched originals;
+  - eligible choices, one event per real change, the same-owner no-op, reassign and take-over;
+  - wrong-cohort, student, inactive and other-Super-Admin rejection, and the service-level rejection;
+  - the no-longer-eligible label, non-owner advisors keeping their actions, owners gaining nothing outside their cohort, and BA and student views unchanged;
+  - no queue or priority language.
+- **Mutation check:** forcing owner changes into every staff history fails both the new BA-unchanged test and the existing Part 3 history test.
+- Results:
+  - 348/348 on MySQL 8.0.44 in two consecutive `--keepdb` runs; the 34 Stage 1 tests pass on MySQL and SQLite.
+  - 348 on SQLite with 2 skipped (MySQL-only: `test_only_one_stale_status_change_succeeds`, `test_concurrent_submissions_get_distinct_references`).
+  - `check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0. `compileall`: exit 0. `git diff --check`: clean.
+- Browser: headless Chrome at 100% zoom, 8 Super Admin states × 6 viewports (1280×590, 1232×590, 1100×590, 1600×740, 1440×800, 360px) = 48/48 clean. The states were: the list, filtered list, empty cohort, owned case, unassigned case, closed case, owner error and owner-select focus. The checks covered overflow, clipped or covered content, fonts, outside requests, touch targets and focus. The 10 Part 3 Batch Advisor states, re-run after the template move: 60/60 clean.
 
 ---
 
