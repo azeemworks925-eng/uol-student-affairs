@@ -1,6 +1,6 @@
 # In-app notifications — technical notes
 
-**Status:** Foundation and the two complaint producers (Complaints Part 4 Stage 3) are on branch `feat/notification-foundation`, awaiting review.
+**Status:** Complete. The foundation and the two complaint producers (Complaints Part 4 Stage 3) were merged into `main` through PR #16 (merge commit `d857d276f94c38bc081e7b86bf9a3205ddc16dee`). Migration `notifications.0001_initial` has been applied to the owner's local development database.
 **Decisions:** DEC-070 (in-app only), DEC-270 (events), DEC-301 (quiet colour), DEC-304 (notifications in the student phone header). Specification: `COMPLAINTS_PART4_SPEC.md` section 5.
 
 There is no email, push, SMS, external messaging, broadcast, recipient picker or extra OAuth scope, and no Celery, Redis, WebSockets or separate API.

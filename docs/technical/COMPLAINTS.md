@@ -1,6 +1,6 @@
 # Complaints — technical notes
 
-**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md (merged in PR #12). Part 4 Stage 1 (Super Admin complaint workspace and owner assignment) is merged through PR #14. Part 4 Stage 2 (category and subcategory management, section 6) is merged through PR #15. Part 4 Stage 3 (in-app notifications, section 7) is on branch `feat/notification-foundation`, awaiting review. Stages 4–5 (analytics, final acceptance) have not started.
+**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md (merged in PR #12). Part 4 Stage 1 (Super Admin complaint workspace and owner assignment) is merged through PR #14. Part 4 Stage 2 (category and subcategory management, section 6) is merged through PR #15. Part 4 Stage 3 (in-app notifications, section 7) is merged through PR #16 (`d857d27`). Stages 4–5 (academic term and analytics, final acceptance) are not implemented.
 **Decisions:** DEC-030, DEC-031, DEC-220 to DEC-230, and DEC-310 to DEC-315 in docs/decisions/DECISIONS.md. Complaint-specific portions of O27, O28 and O33 are resolved; see the decision register for remaining open items.
 
 ## 1. Backend (`complaints/`)
@@ -121,7 +121,7 @@ Part 4 covers the department-wide Super Admin complaint workspace with manual ow
 
 Cancellation requests remain record-only (DEC-311). There is no response-required classification or “Waiting for you” queue (DEC-312). Student-facing owner identities and owner-change events remain hidden. Student Voice, meetings and collective issues are not implemented by this complaints part; the notification foundation is designed to support their already-approved events when those modules are built.
 
-The specification was merged in PR #12. Stage 1 is described in section 5, Stage 2 in section 6 and Stage 3 in section 7; Stages 4–5 have not started.
+The specification was merged in PR #12. Stage 1 is described in section 5, Stage 2 in section 6 and Stage 3 in section 7; Stages 4–5 are not implemented.
 
 ## 5. Super Admin complaint workspace and owner assignment (Part 4 Stage 1)
 
