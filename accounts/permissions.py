@@ -39,10 +39,11 @@ super_admin_required = role_required(User.Role.SUPER_ADMIN)
 COHORT_FIELDS = ("batch_id", "semester_id", "section_id")
 
 
-def _assignment_filter(user, prefix=""):
+def assigned_cohort_filter(user, prefix=""):
     """
     Q object matching records in any cohort assigned to the advisor. A cohort is the
     exact batch + semester + section combination; all three must match (DEC-205).
+    `prefix` reaches the cohort fields through a relation, for example "profile__".
     """
     cohorts = AdvisorAssignment.objects.filter(advisor=user).values_list(*COHORT_FIELDS)
     query = Q(pk__in=[])  # Matches nothing when there are no assignments.
@@ -80,7 +81,7 @@ def visible_student_profiles(user):
     if user.is_super_admin:
         return profiles
     if user.is_batch_advisor:
-        return profiles.filter(_assignment_filter(user))
+        return profiles.filter(assigned_cohort_filter(user))
     if user.is_student:
         return profiles.filter(user=user)
     return profiles.none()
