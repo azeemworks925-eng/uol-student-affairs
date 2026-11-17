@@ -1,6 +1,6 @@
 # Complaints — technical notes
 
-**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md (merged in PR #12). Part 4 Stage 1 (Super Admin complaint workspace and owner assignment, Issue #13) is on branch `feat/super-admin-complaints-workspace`, awaiting review. Stages 2–5 (categories, notifications, analytics, final acceptance) have not started.
+**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md (merged in PR #12). Part 4 Stage 1 (Super Admin complaint workspace and owner assignment) is merged through PR #14. Part 4 Stage 2 (category and subcategory management, section 6) is on branch `feat/complaint-category-management`, awaiting review. Stages 3–5 (notifications, analytics, final acceptance) have not started.
 **Decisions:** DEC-030, DEC-031, DEC-220 to DEC-230, and DEC-310 to DEC-315 in docs/decisions/DECISIONS.md. Complaint-specific portions of O27, O28 and O33 are resolved; see the decision register for remaining open items.
 
 ## 1. Backend (`complaints/`)
@@ -121,7 +121,7 @@ Part 4 covers the department-wide Super Admin complaint workspace with manual ow
 
 Cancellation requests remain record-only (DEC-311). There is no response-required classification or “Waiting for you” queue (DEC-312). Student-facing owner identities and owner-change events remain hidden. Student Voice, meetings and collective issues are not implemented by this complaints part; the notification foundation is designed to support their already-approved events when those modules are built.
 
-The specification was merged in PR #12. Stage 1 is described in section 5; Stages 2–5 have not started.
+The specification was merged in PR #12. Stage 1 is described in section 5 and Stage 2 in section 6; Stages 3–5 have not started.
 
 ## 5. Super Admin complaint workspace and owner assignment (Part 4 Stage 1)
 
@@ -174,3 +174,72 @@ Students never see the owner, owner-change events or owner controls: the student
 ### Layout
 
 The same three-pane responsive layout as Part 3, beside the Super Admin sidebar. On phones the sticky action bar adds an "Owner" shortcut.
+
+## 6. Category and subcategory management (Part 4 Stage 2)
+
+Specification: COMPLAINTS_PART4_SPEC.md section 4, with the owner's decisions recorded below. **No migrations.**
+
+### Routes
+
+All under `/super-admin/complaint-categories/`. This is a separate prefix, because the workspace route `/super-admin/complaints/<reference>/` would capture `categories/`.
+
+| Route | Name | Method |
+|---|---|---|
+| `/` | `super_admin_categories` | GET: index |
+| `new/` | `super_admin_category_create` | POST |
+| `<pk>/` | `super_admin_category_detail` | GET: category page |
+| `<pk>/rename/`, `active/`, `move/` | `super_admin_category_rename`, `…_active`, `…_move` | POST |
+| `<pk>/subcategories/new/` | `super_admin_subcategory_create` | POST |
+| `<pk>/subcategories/<sub_pk>/rename/`, `active/`, `move/` | `super_admin_subcategory_rename`, `…_active`, `…_move` | POST |
+
+Code: `complaints/category_services.py`, `category_views.py`, `category_urls.py`, the name forms in `forms.py`, and `templates/complaints/categories/`.
+
+### Pages
+
+- **Index:** the number of categories and how many are active; an add form; the ordered list with an Active/Inactive label (a neutral style, never a complaint status colour), subcategory and complaint counts, Up/Down (disabled at either end) and Open.
+- **Category page:**
+  - rename;
+  - activate or deactivate, with an explanation of the effect, and for the last active category a note instead of the button;
+  - its subcategories, each with rename, activate/deactivate and Up/Down, and an add form.
+- **Never present:** a delete control, a parent-editing control or a position field.
+
+### Rules
+
+All rules are in the services. Every service re-checks that the actor is an active Super Admin.
+
+- **Names:**
+  - trimmed, with internal whitespace collapsed; empty names refused; at most 80 characters;
+  - category names unique overall, subcategory names unique within their parent, **including inactive records**;
+  - duplicates compared without case or accents, matching MySQL's `utf8mb4_0900_ai_ci`, so behaviour is the same on SQLite;
+  - a duplicate only the database catches (`IntegrityError`) becomes the same field error.
+- **Order:**
+  - new records go last;
+  - Up/Down locks the siblings (`select_for_update`) and renumbers them 1..n before swapping, so tied positions can't block a move;
+  - moving past either end changes nothing.
+- **Activation:**
+  - Deactivating a category doesn't change its subcategories' flags. While the category is inactive, none of its subcategories are offered to students or accepted by `submit_complaint`, whatever their own flag.
+  - The **last active category cannot be deactivated**; every active row is locked during the check.
+  - A subcategory may be created under an inactive category.
+- **History:**
+  - Renaming or deactivating never touches complaints. They keep their foreign keys, and **historical complaints show the current name**; there are no name snapshots.
+  - There is no audit history of category changes in this stage.
+- **No hard deletion** (models):
+  - `ComplaintCategory.delete()`, `ComplaintSubcategory.delete()` and queryset `delete()` raise `ProtectedRecordError`, even for unreferenced rows;
+  - `update()` and `.active()` are unchanged, and `PROTECT` foreign keys still apply.
+- **A subcategory's parent is fixed:** `ComplaintSubcategory.save()` compares the parent with the stored row and refuses a change.
+
+### Security
+
+- Every route is `super_admin_required`.
+- Every change is POST and CSRF-protected, with Post/Redirect/Get.
+- Lookups use `get_object_or_404`. Subcategories are looked up through their parent, so a forged category/subcategory pairing returns 404.
+- Field errors re-render the page with HTTP 400 and linked, focused messages. Rule refusals become a message, and malformed values change nothing.
+- These models are not registered in Django admin.
+
+### Staff labels
+
+Staff case details (Batch Advisor and Super Admin), staff category filters and Super Admin list rows show "(inactive)" after an inactive category or subcategory. Student pages show the current name with no marker.
+
+### Navigation
+
+The Super Admin "Complaint Categories" item (Configuration) links to the index and stays current on every category page. This also adds it to the Overview's Manage links.
