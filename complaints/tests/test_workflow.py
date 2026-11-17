@@ -4,7 +4,7 @@ from django.db.models import ProtectedError
 from django.test import TestCase
 
 from complaints import services
-from complaints.models import Complaint, ComplaintCategory, ComplaintEvent
+from complaints.models import Complaint, ComplaintCategory, ComplaintEvent, ProtectedRecordError
 from complaints.permissions import visible_complaints
 
 from .helpers import (
@@ -152,10 +152,10 @@ class StudentActionTests(WorkflowTestCase):
             event.delete()
 
     def test_complaints_cannot_be_deleted(self):
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(ProtectedRecordError):
             self.complaint.delete()
-        # Even a bulk delete is stopped by the protected history.
-        with self.assertRaises(ProtectedError), transaction.atomic():
+        # Bulk deletes are refused too (see test_immutability for every bulk path).
+        with self.assertRaises(ProtectedRecordError), transaction.atomic():
             Complaint.objects.filter(pk=self.complaint.pk).delete()
         self.assertTrue(Complaint.objects.filter(pk=self.complaint.pk).exists())
 

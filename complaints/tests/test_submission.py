@@ -75,8 +75,10 @@ class SubmissionTests(TestCase):
     def test_database_rejects_a_duplicate_reference(self):
         first = submit(self.student, self.categories["academic"])
         second = submit(self.student, self.categories["academic"])
+        # Bulk updates are refused (test_immutability), so collide through an instance save.
+        second.reference = first.reference
         with self.assertRaises(IntegrityError), transaction.atomic():
-            Complaint.objects.filter(pk=second.pk).update(reference=first.reference)
+            second.save(update_fields=["reference"])
 
     def test_required_fields(self):
         for field in ("title", "description"):

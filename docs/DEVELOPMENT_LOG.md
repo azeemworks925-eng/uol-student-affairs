@@ -78,6 +78,23 @@ Rules:
 - Results: 216/216 on MySQL 8.0.44 (`manage.py test --keepdb`) and 216 on SQLite with 1 skipped (the concurrency test needs row locking, which SQLite lacks).
 - `manage.py check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0, with only the known allauth W036 warning.
 
+**Review follow-up: bulk ORM operations (2026-11-17)**
+
+- Found: the instance-level `save()`/`delete()` guards did not cover Django's bulk paths. A probe on a test database confirmed that these went through:
+  - `QuerySet.update()`, including through `complaint.events`;
+  - `bulk_update()`;
+  - `QuerySet.delete()`;
+  - an upserting `bulk_create(update_conflicts=True)`.
+
+  Together they could rewrite or delete history, change a complaint's status or description, or delete a complaint that had no events yet.
+- Fixed: `Complaint` and `ComplaintEvent` now use a `ProtectedQuerySet` that refuses `update()`, `bulk_update()`, `delete()` and upserting `bulk_create()`, raising `ProtectedRecordError` (a `ValidationError`).
+  - Plain inserts still work.
+  - The services are unaffected because `Model.save()` updates rows through Django's internal `_update()`.
+  - No migration was needed.
+- Scope: this covers the application's ordinary ORM paths. It does not stop raw SQL, direct database access or Django's private `_base_manager` / `_update()` APIs.
+- Tests: 16 new tests in `complaints/tests/test_immutability.py` run each real operation and check that the database is unchanged. Two existing tests were updated to the new mechanism with the same assertions: the duplicate-reference test now collides through `save()`, and complaint deletion now expects `ProtectedRecordError`. Run against the previous models, 12 of the 16 new tests fail; the other 4 cover paths that were already protected.
+- Results: 232/232 on MySQL 8.0.44 in two consecutive `--keepdb` runs, and 232 on SQLite with 1 skipped. `check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0, with only the known allauth W036 warning.
+
 **Limitations from open decisions**
 
 - O27: no responsible owner is assigned automatically; only the Super Admin sets it. Every Batch Advisor of the cohort can act on a complaint until O27 decides whether actions are limited to the owner.

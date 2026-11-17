@@ -8,6 +8,10 @@ immutable ComplaintEvent, so the original description and the full history are n
 categories are deactivated rather than deleted (DEC-210).
 
 State changes go through complaints.services; access is decided by complaints.permissions.
+
+Protection covers Django's ordinary ORM paths: instance save()/delete() and the bulk
+QuerySet operations (update, bulk_update, delete and upserting bulk_create). It does not, and
+cannot, stop raw SQL or direct database access.
 """
 
 from django.conf import settings
@@ -20,6 +24,53 @@ from academics.models import ActiveQuerySet
 
 # TextField max_length is not checked by full_clean(), so the limit is also a validator.
 TEXT_LIMIT = 5000
+
+
+class ProtectedRecordError(ValidationError):
+    """An attempt to change or delete a complaint record outside the complaint services."""
+
+
+class ProtectedQuerySet(models.QuerySet):
+    """
+    Refuses the bulk operations that skip Model.save() and Model.delete().
+
+    Inserts (create, bulk_create without upsert) are allowed. Legitimate changes go through
+    complaints.services, which save individual instances: Model.save() updates the row with
+    Django's internal QuerySet._update(), not update(), so it is not affected.
+    """
+
+    def update(self, **kwargs):
+        raise ProtectedRecordError(
+            f"{self.model._meta.verbose_name_plural.capitalize()} cannot be bulk-updated. "
+            "Use complaints.services."
+        )
+
+    update.alters_data = True
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        raise ProtectedRecordError(f"{self.model._meta.verbose_name_plural.capitalize()} cannot be bulk-updated.")
+
+    bulk_update.alters_data = True
+
+    def delete(self):
+        raise ProtectedRecordError(f"{self.model._meta.verbose_name_plural.capitalize()} cannot be deleted.")
+
+    delete.alters_data = True
+    delete.queryset_only = True
+
+    def bulk_create(self, objs, batch_size=None, ignore_conflicts=False, update_conflicts=False,
+                    update_fields=None, unique_fields=None):
+        if update_conflicts:
+            # An upsert would overwrite existing rows.
+            raise ProtectedRecordError(
+                f"{self.model._meta.verbose_name_plural.capitalize()} cannot be overwritten by bulk_create."
+            )
+        return super().bulk_create(
+            objs, batch_size=batch_size, ignore_conflicts=ignore_conflicts,
+            update_conflicts=update_conflicts, update_fields=update_fields, unique_fields=unique_fields,
+        )
+
+    bulk_create.alters_data = True
 
 
 class ComplaintCategory(models.Model):
@@ -124,6 +175,8 @@ class Complaint(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    objects = ProtectedQuerySet.as_manager()
+
     class Meta:
         ordering = ["-created_at", "-id"]
         indexes = [
@@ -154,12 +207,12 @@ class Complaint(models.Model):
     def save(self, *args, **kwargs):
         stored = getattr(self, "_stored_description", None)
         if self.pk and stored is not None and self.description != stored:
-            raise ValidationError("A complaint's original description cannot be changed (DEC-223).")
+            raise ProtectedRecordError("A complaint's original description cannot be changed (DEC-223).")
         super().save(*args, **kwargs)
         self._stored_description = self.description
 
     def delete(self, *args, **kwargs):
-        raise ValidationError("Complaints cannot be deleted (DEC-224).")
+        raise ProtectedRecordError("Complaints cannot be deleted (DEC-224).")
 
     @property
     def cohort(self):
@@ -182,6 +235,8 @@ class ComplaintEvent(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True, related_name="+"
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = ProtectedQuerySet.as_manager()
 
     class Meta:
         ordering = ["created_at", "id"]
@@ -222,8 +277,8 @@ class ComplaintEvent(models.Model):
 
     def save(self, *args, **kwargs):
         if not self._state.adding:
-            raise ValidationError("Complaint history cannot be changed.")
+            raise ProtectedRecordError("Complaint history cannot be changed.")
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        raise ValidationError("Complaint history cannot be deleted.")
+        raise ProtectedRecordError("Complaint history cannot be deleted.")
