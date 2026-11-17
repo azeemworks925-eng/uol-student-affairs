@@ -243,14 +243,14 @@ Kept for traceability. These items appeared as NEEDS CONFIRMATION (Q) or OPEN (O
 | O6 | Collective issue visibility and support | DEC-241, DEC-243 |
 | O7 | Student Voice visibility and answers | DEC-051, DEC-252, DEC-253, DEC-254 |
 | O8 | The "did not solve" mechanism | DEC-222, DEC-223 |
-| O9 | Complaint ownership with several advisors | DEC-227, DEC-228. How the owner is designated remains open as O27. |
+| O9 | Complaint ownership with several advisors | DEC-227, DEC-228, DEC-310. Complaint owner designation is settled; BA routing for collective issues, Student Voice and meetings remains open. |
 | O10 | Complaints about a student's own BA | Out of scope. DEC-231 |
 | O11 | Calendar scope | DEC-061, DEC-261 |
 | O12 | Complaint categories and statuses | DEC-220, DEC-221 |
 | O13 | Statuses for collective issues and Student Voice | Collective issues: DEC-244. No status workflow has been specified for Student Voice. |
 | O14 | Meeting rules | DEC-060, DEC-260. Remaining details are open as O29. |
 | O15 | Notification events | DEC-270 |
-| O16 | Analytics | DEC-090, DEC-280, DEC-281. Privacy thresholds remain open as O25. |
+| O16 | Analytics | DEC-090, DEC-280, DEC-281, DEC-313 to DEC-315. Small-cohort privacy, classification and reporting window are settled. |
 | O17 | Role and permission matrix | Settled at the product level by DEC-015, DEC-228, DEC-229, DEC-240, DEC-245, DEC-246, DEC-253, DEC-261 and DEC-262. |
 | O24 | What the early prototype was | Not a blocker. A minor gap in the historical record only. |
 
