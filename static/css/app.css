@@ -427,7 +427,7 @@ a.sa-cat-name:hover { color: var(--sa-accent); }
 .sa-rail .sa-notify-icon { margin-top: auto; }
 .sa-rail .sa-notify-icon + .sa-account { margin-top: 8px; }
 .sa-mobilebar-actions { display: flex; align-items: center; gap: 4px; }
-.sa-notify-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--sa-border); }
+.sa-notify-list { list-style: none; margin: 0; padding: 0; }
 .sa-notify-list li { border-bottom: 1px solid var(--sa-border); }
 .sa-notify-list form { margin: 0; }
 .sa-notify-item { display: flex; gap: 12px; align-items: flex-start; width: 100%; min-height: 44px; padding: 14px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--sa-ink); text-align: left; }
