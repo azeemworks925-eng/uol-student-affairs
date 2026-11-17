@@ -19,12 +19,14 @@
         <span class="sa-rail-link" role="link" aria-disabled="true" title="{{ item.label }} (not available yet)" aria-label="{{ item.label }}, not available yet"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></span>
       {% endif %}
     {% endfor %}
+    {% include "includes/notifications_link.html" with variant="rail" %}
     <div class="sa-account">{% include "includes/account_menu.html" with dropup=True button_class="sa-account-btn justify-content-center p-1" %}</div>
   </nav>
   {% else %}
   <aside class="sa-sidebar" aria-label="Sidebar">
     <a class="sa-wordmark" href="{% url 'home' %}"><small>UOL</small><span>Student Affairs</span></a>
     {% include "includes/nav_groups.html" %}
+    {% include "includes/notifications_link.html" with variant="sidebar" %}
     <div class="sa-account">{% include "includes/account_menu.html" with dropup=True show_name=True %}</div>
   </aside>
   {% endif %}
@@ -35,7 +37,10 @@
         <button class="sa-iconbtn" type="button" data-bs-toggle="offcanvas" data-bs-target="#sa-drawer" aria-controls="sa-drawer" aria-label="Open navigation"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
       {% endif %}
       <a class="sa-wordmark" href="{% url 'home' %}"><small>UOL</small><span>Student Affairs</span></a>
-      {% include "includes/account_menu.html" with button_class="sa-iconbtn" menu_class="dropdown-menu-end" %}
+      <div class="sa-mobilebar-actions">
+        {% include "includes/notifications_link.html" with variant="mobile" %}
+        {% include "includes/account_menu.html" with button_class="sa-iconbtn" menu_class="dropdown-menu-end" %}
+      </div>
     </header>
 
     <main id="main" class="sa-page{% block page_class %}{% endblock %}" tabindex="-1">

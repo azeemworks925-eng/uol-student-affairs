@@ -1,0 +1,19 @@
+{% comment %}
+  Header entry point for the signed-in user's notifications (Part 4 Stage 3). Not part of the
+  role navigation, so the student's four destinations (DEC-304) and the Overview links stay as
+  they are. variant: "sidebar" (labelled row), "rail" or "mobile" (icon buttons).
+  The unread count is a neutral ink badge, never a status colour (DEC-301).
+{% endcomment %}
+{% if sa_notifications %}{% with n=sa_notifications.count current=request.resolver_match.url_name %}
+{% if variant == "sidebar" %}
+<a class="sa-nav-link sa-notify-row" href="{% url 'notifications' %}" aria-label="{{ sa_notifications.label }}"{% if current == "notifications" %} aria-current="page"{% endif %}>
+  <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg>Notifications
+  {% if n %}<span class="sa-badge" aria-hidden="true">{{ sa_notifications.display }}</span>{% endif %}
+</a>
+{% else %}
+<a class="{% if variant == 'rail' %}sa-rail-link{% else %}sa-iconbtn{% endif %} sa-notify-icon" href="{% url 'notifications' %}" title="Notifications" aria-label="{{ sa_notifications.label }}"{% if current == "notifications" %} aria-current="page"{% endif %}>
+  <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg>
+  {% if n %}<span class="sa-badge sa-badge--dot" aria-hidden="true">{{ sa_notifications.display }}</span>{% endif %}
+</a>
+{% endif %}
+{% endwith %}{% endif %}

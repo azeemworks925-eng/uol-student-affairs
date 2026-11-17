@@ -1,6 +1,6 @@
 # Complaints — technical notes
 
-**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md (merged in PR #12). Part 4 Stage 1 (Super Admin complaint workspace and owner assignment) is merged through PR #14. Part 4 Stage 2 (category and subcategory management, section 6) is on branch `feat/complaint-category-management`, awaiting review. Stages 3–5 (notifications, analytics, final acceptance) have not started.
+**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md (merged in PR #12). Part 4 Stage 1 (Super Admin complaint workspace and owner assignment) is merged through PR #14. Part 4 Stage 2 (category and subcategory management, section 6) is merged through PR #15. Part 4 Stage 3 (in-app notifications, section 7) is on branch `feat/notification-foundation`, awaiting review. Stages 4–5 (analytics, final acceptance) have not started.
 **Decisions:** DEC-030, DEC-031, DEC-220 to DEC-230, and DEC-310 to DEC-315 in docs/decisions/DECISIONS.md. Complaint-specific portions of O27, O28 and O33 are resolved; see the decision register for remaining open items.
 
 ## 1. Backend (`complaints/`)
@@ -121,7 +121,7 @@ Part 4 covers the department-wide Super Admin complaint workspace with manual ow
 
 Cancellation requests remain record-only (DEC-311). There is no response-required classification or “Waiting for you” queue (DEC-312). Student-facing owner identities and owner-change events remain hidden. Student Voice, meetings and collective issues are not implemented by this complaints part; the notification foundation is designed to support their already-approved events when those modules are built.
 
-The specification was merged in PR #12. Stage 1 is described in section 5 and Stage 2 in section 6; Stages 3–5 have not started.
+The specification was merged in PR #12. Stage 1 is described in section 5, Stage 2 in section 6 and Stage 3 in section 7; Stages 4–5 have not started.
 
 ## 5. Super Admin complaint workspace and owner assignment (Part 4 Stage 1)
 
@@ -248,3 +248,31 @@ Staff case details (Batch Advisor and Super Admin), staff category filters and S
 ### Navigation
 
 The Super Admin "Complaint Categories" item (Configuration) links to the index and stays current on every category page. This also adds it to the Overview's Manage links.
+
+## 7. Complaint notifications (Part 4 Stage 3)
+
+Specification: COMPLAINTS_PART4_SPEC.md section 5.2; DEC-270. The shared foundation (model, registry, services, pages, header) is described in `docs/technical/NOTIFICATIONS.md`. **Migrations:** only `notifications/0001_initial`; no complaint migration.
+
+### Producers
+
+`complaints/notifications.notify_student(event)` runs inside the existing atomic transactions:
+- `services.change_status()` captures the `ComplaintEvent` returned by `_record()` and passes that exact event.
+- `services.respond()` passes the event it returns.
+
+So a rolled-back action leaves no notification, and a failed notification rolls the action back.
+
+| Event | Recipient | Title | Body | Destination |
+|---|---|---|---|---|
+| A Batch Advisor or Super Admin changes the status (`STATUS_CHANGED`) | The student who submitted the complaint | "<reference> is now <status>" | The complaint's own title. **Never** the resolution note or rejection reason. | `student_complaint_detail` |
+| A Batch Advisor or Super Admin responds (`RESPONSE`) | The same student | "New response on <reference>" | "<role>: " plus the staff text, truncated to 140 characters | `student_complaint_detail` |
+
+- **Exactly one per event:** each qualifying event creates one notification (the unique constraint makes repeated calls harmless).
+- **Never the actor:** the person who acted is never notified (a guard; only staff can perform these actions).
+- **Only these two events notify.** Submission, further information, "Still not resolved", cancellation requests and owner changes notify nobody.
+- **Only the student receives them:** no Batch Advisor (including others sharing the cohort), Super Admin or other student.
+- **Response attribution is by role only** ("Batch Advisor" or "Super Admin"), matching the student history; no account name or email is added. Text the staff member wrote, including any names in it, is kept as written; the full response stays on the complaint page.
+
+### Known limitations
+
+- The student home's "Your latest updates" (DEC-303) still awaits seen/unseen tracking. Notification read state is separate, and Stage 3 does not change the student home.
+- There is no retention or clean-up of old notifications.

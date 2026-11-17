@@ -416,4 +416,28 @@ a.sa-cat-name:hover { color: var(--sa-accent); }
   .sa-cat-actions { width: 100%; }
 }
 
+/* ---------- Notifications (Part 4 Stage 3) ---------- */
+/* Unread count: a neutral ink badge, never a status colour or the Forest tint (DEC-301). */
+.sa-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--sa-ink); color: var(--sa-surface); font: 600 11px/1 var(--sa-ui); }
+.sa-notify-row { margin-top: auto; }
+.sa-notify-row .sa-badge { margin-left: auto; }
+.sa-sidebar .sa-notify-row + .sa-account { margin-top: 8px; }
+.sa-notify-icon { position: relative; }
+.sa-notify-icon .sa-badge--dot { position: absolute; top: 4px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; font-size: 10px; box-shadow: 0 0 0 2px var(--sa-surface); }
+.sa-rail .sa-notify-icon { margin-top: auto; }
+.sa-rail .sa-notify-icon + .sa-account { margin-top: 8px; }
+.sa-mobilebar-actions { display: flex; align-items: center; gap: 4px; }
+.sa-notify-list { list-style: none; margin: 0; padding: 0; }
+.sa-notify-list li { border-bottom: 1px solid var(--sa-border); }
+.sa-notify-list form { margin: 0; }
+.sa-notify-item { display: flex; gap: 12px; align-items: flex-start; width: 100%; min-height: 44px; padding: 14px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--sa-ink); text-align: left; }
+.sa-notify-item:hover { background: var(--sa-surface); }
+.sa-notify-dot { flex: none; width: 8px; height: 8px; margin-top: 7px; border-radius: 50%; background: transparent; }
+.sa-notify-item.is-unread .sa-notify-dot { background: var(--sa-ink); }
+.sa-notify-text { display: grid; gap: 3px; min-width: 0; }
+.sa-notify-title { font: 500 15px/1.35 var(--sa-ui); overflow-wrap: anywhere; }
+.sa-notify-item.is-unread .sa-notify-title { font-weight: 600; }
+.sa-notify-body { font-size: 14px; color: var(--sa-muted); overflow-wrap: anywhere; }
+.sa-notify-time { font-size: 13px; color: var(--sa-muted); }
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }

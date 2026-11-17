@@ -1,0 +1,51 @@
+{% extends "layouts/app.html" %}
+{# The signed-in user's notifications (Part 4 Stage 3). Viewing does not mark anything read; opening one does. #}
+{% block title %}Notifications · UOL Student Affairs{% endblock %}
+{% block content %}
+<div class="sa-narrow">
+  <header class="sa-page-head sa-page-head--split">
+    <div>
+      <span class="sa-eyebrow">Notifications</span>
+      <h1 class="sa-display">{% if unread %}You have {{ unread }} unread notification{{ unread|pluralize }}.{% else %}No unread notifications.{% endif %}</h1>
+    </div>
+    {% if unread %}
+    <form method="post" action="{% url 'notifications_mark_all_read' %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sa-secondary">Mark all as read</button>
+    </form>
+    {% endif %}
+  </header>
+
+  {% if page.object_list %}
+  <ol class="sa-notify-list">
+    {% for notification in page %}
+    <li>
+      <form method="post" action="{% url 'notification_open' notification.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="sa-notify-item{% if not notification.is_read %} is-unread{% endif %}">
+          <span class="sa-notify-dot" aria-hidden="true"></span>
+          <span class="sa-notify-text">
+            <span class="sa-notify-title">{% if not notification.is_read %}<span class="visually-hidden">Unread: </span>{% endif %}{{ notification.title }}</span>
+            {% if notification.body %}<span class="sa-notify-body">{{ notification.body }}</span>{% endif %}
+            <time class="sa-notify-time" datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|date:"j M Y, H:i" }}</time>
+          </span>
+        </button>
+      </form>
+    </li>
+    {% endfor %}
+  </ol>
+  {% if page.has_other_pages %}
+  <nav class="sa-pagination" aria-label="Notification pages">
+    {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="?page={{ page.previous_page_number }}">Newer</a>{% endif %}
+    <span class="sa-small sa-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="?page={{ page.next_page_number }}">Older</a>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+  <div class="sa-empty">
+    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg>
+    <div><p class="title">No notifications yet.</p><p class="sa-muted sa-small">{% if user.is_student %}Updates to your complaints, such as a new status or a response, will appear here.{% else %}Notifications for your account will appear here.{% endif %}</p></div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

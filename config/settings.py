@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "accounts",
     "academics",
     "complaints",
+    "notifications",
 ]
 
 MIDDLEWARE = [
@@ -62,6 +63,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "accounts.navigation.navigation",
+                "notifications.context_processors.notifications",
             ],
         },
     },

@@ -21,9 +21,101 @@ Rules:
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O30 and O34; O25 is resolved by DEC-315. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
-| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`). Stage 2 (category management) on branch `feat/complaint-category-management`, awaiting review. Stages 3–5 not started. |
+| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`). Stage 3 (in-app notifications) on branch `feat/notification-foundation`, awaiting review. Stages 4–5 not started. |
 | Other product features | Student Voice, meetings, collective issues and the Super Admin analytics are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
+
+---
+
+## 2026-11-17 — Complaints Part 4 Stage 3: in-app notifications
+
+**Context**
+
+- Branch `feat/notification-foundation` from `main` at `b30d29d` (Stage 2 merged, PR #15). Implements COMPLAINTS_PART4_SPEC.md section 5 with the reviewed plan and its refinements:
+  - write-once notifications on every ORM path;
+  - producers allowed for inactive recipients, while user-facing access requires an active user;
+  - role-only attribution in response previews;
+  - a registry that declares each type's source model and destinations;
+  - `change_status()` passing its exact `ComplaintEvent`.
+- No product decision changed; no documentation drift was found.
+
+**What was done**
+
+- **New `notifications` app** (`docs/technical/NOTIFICATIONS.md`):
+  - **Model:** `Notification` with the unique key (recipient, source_type, source_id), plus unread and recent indexes.
+  - **Write-once content:** `update()` and `bulk_update()` accept only `read_at`; upserts are refused; instance `save()` only inserts or updates `read_at`; a newly built object with an existing primary key is refused.
+  - **Registry:** source model and allowed destinations per type.
+  - **`notify()`:** validated, deduplicated with `get_or_create`, and run inside the caller's transaction.
+  - **User-facing services:** scoped to the active user.
+  - **Pages:** `/notifications/` (list), POST `open` (marks read, then a 303 redirect to a registry-built destination) and POST `read-all`.
+  - **Header entry point for every role:** a sidebar row, a rail bell and a phone-header bell, with an ink badge and a lazy count. It sits outside the role navigation.
+- **Complaint producers** (`complaints/notifications.py`, `COMPLAINTS.md` section 7): `change_status()` and `respond()` notify the submitting student inside the same transaction, using that exact event. Status notifications carry the new status (never the note or reason); responses carry a role-only, truncated preview. No other event, and no other recipient.
+- **Migration:** `notifications/0001_initial` only (reversible). No complaint migration.
+
+**Verification**
+
+- **Tests:** 56 new tests.
+  - **`notifications/tests/test_foundation.py` (23):**
+    - every protection path;
+    - the database constraint;
+    - `notify` validation (type, source model, saved source, destination) and deduplication;
+    - inactive recipients receive notifications and keep them after reactivation;
+    - user scoping, and tampered destinations;
+    - migration reversal on both databases;
+    - MySQL concurrency: duplicate `notify`, concurrent `mark_read`.
+  - **`complaints/tests/test_notifications.py` (15):**
+    - one notification per status change and response;
+    - no notes or reasons in status notifications;
+    - role-only attribution, with no account identity added and staff-written names kept;
+    - exclusions, single recipient, the actor guard and idempotence;
+    - rollback both ways, and the workspace flow;
+    - the MySQL stale-status race giving exactly one notification.
+  - **`notifications/tests/test_views.py` (18):**
+    - anonymous, inactive and per-role access, and the registration redirect;
+    - 405 on GET, CSRF, and cross-user 404s identical to missing ones;
+    - open/read and the 303 redirect; tampered destinations (raw SQL); no access granted to the linked record;
+    - the list, marking all read, empty states and pagination;
+    - the header label, badge cap and `aria-current`, and the entry point absent from the bottom bar and Overview links;
+    - the lazy context processor.
+- **Mutation checks:**
+  - removing the producer call from `change_status`, or attributing responses by name, fails the producer tests;
+  - removing recipient scoping from `mark_read`, or removing the destination allowlist, fails the view and foundation tests.
+- **Results:**
+  - 454/454 on MySQL 8.0.44 in two consecutive `--keepdb` runs; the 56 Stage 3 tests pass on MySQL.
+  - 454 on SQLite with 5 skipped (MySQL-only concurrency tests: `test_only_one_stale_status_change_succeeds`, `test_only_one_notification_for_the_successful_change`, `test_concurrent_submissions_get_distinct_references`, `test_concurrent_mark_read_keeps_one_timestamp`, `test_concurrent_notify_for_one_source_creates_one_row`).
+  - `check`: no issues. `makemigrations --check --dry-run`: no changes. `compileall`: exit 0. `git diff --check`: clean.
+  - `migrate --check` against the **development** database exits 1 only because `notifications.0001_initial` is not applied there yet; it is left for the owner's approval. The migration is applied by every test run and reversed and re-applied by `MigrationTests` on MySQL and SQLite.
+- **Browser:** headless Chrome at 100% zoom, 9 notification states × 6 viewports (1280×590, 1232×590, 1100×590, 1600×740, 1440×800, 360px). States: the student home with a few and with 9+ unread, the list mixed, partly read and paged, keyboard focus, the staff empty state, and the advisor and Super Admin homes.
+  - 52/54 clean. The 2 flags are the student home's Quick Access description truncated at 360px, which a render of `origin/main` confirms is pre-existing and unrelated.
+  - Re-checked: student complaint pages 66/66, Batch Advisor workspace 60/60, Super Admin workspace 48/48, category pages 48/48.
+  - Found and fixed: a duplicate hairline above the list.
+
+**Review follow-up: source validation (PR #16 review)**
+
+- **Found:** `notify()` treated a non-NULL pk plus a matching model label as proof that the source was saved. A probe on a test database created notifications for:
+  - an unsaved `ComplaintEvent` with an explicit unused pk;
+  - an unsaved one whose pk matched an existing row;
+  - a saved one whose row had been removed with raw SQL.
+- **Fixed** (`notifications/services._persisted_source_type`): the source must be a Django model instance of the declared model, not marked as new (`_state.adding`), with a pk and a database alias (`_state.db`), and its row must exist on that alias (`_base_manager.using(source._state.db)`). Producers, recipients, attribution, destinations, transactions, immutability and the UI are unchanged. No migration.
+- **Tests:** 8 new tests in `NotifyValidationTests`:
+  - the four requested cases (unused explicit pk, pk of an existing row, stale row removed by raw SQL inside the test transaction, normal persisted source);
+  - `None` and non-model objects;
+  - an unsaved instance that carries an alias;
+  - a forged instance with no alias;
+  - the existence query running on the source's own alias.
+
+  Against the previous implementation, every new test fails except the persisted-source case.
+- **Results after the follow-up:**
+  - 462/462 on MySQL 8.0.44 in two consecutive `--keepdb` runs; 462 on SQLite with the same 5 MySQL-only skips; the 64 focused notification tests pass on MySQL (61 run and 3 skipped on SQLite).
+  - `check`, `makemigrations --check --dry-run`, `compileall` and `git diff --check`: clean.
+  - The development database still has `notifications.0001_initial` unapplied, as agreed.
+
+**Not changed / limitations**
+
+- The student home's "Your latest updates" (DEC-303) still awaits seen/unseen tracking.
+- There is no retention or clean-up of notifications.
+- No other DEC-270 producers yet.
+- Notifications reference their source by model label and pk, not a database foreign key. `notify()` verifies that the source row exists when it creates the notification; complaint events are insert-only and cannot be deleted through the ORM.
 
 ---
 
