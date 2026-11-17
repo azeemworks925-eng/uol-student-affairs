@@ -1,12 +1,27 @@
-{% extends "base.html" %}
+{% extends "layouts/auth.html" %}
+{# One-time student registration (DEC-201, DEC-202). #}
 {% block title %}Complete registration · UOL Student Affairs{% endblock %}
+{% block card_class %} sa-auth-card--wide{% endblock %}
 {% block content %}
-  <h1>Complete your registration</h1>
-  <p>Signed in as {{ user.email }}. Your SAP ID is taken from this address.</p>
-  <p>Check your details carefully: after registration, only the Super Admin can correct them.</p>
-  <form method="post">
+  <span class="sa-eyebrow">One-time registration</span>
+  <h1 class="sa-display">Complete your registration.</h1>
+  <p class="sa-lede">Signed in as <b>{{ user.email }}</b>. {% if sap_id %}<span class="soft">Your SAP ID, <span class="sa-ref sa-ref--inline">{{ sap_id }}</span>, is taken from this address.</span>{% endif %}</p>
+  <form method="post" class="panel" novalidate>
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Register</button>
+    {% if form.non_field_errors %}<div class="invalid-feedback mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    {% for field in form %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<div class="invalid-feedback" id="{{ field.id_for_label }}-error">{{ field.errors|join:" " }}</div>{% endif %}
+        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <p class="form-text mb-3">Department: Software Engineering. Check your details carefully: after registration, only the Super Admin can correct them.</p>
+    <button type="submit" class="btn btn-sa-primary btn-lg w-100">Complete registration</button>
+  </form>
+  <form method="post" action="{% url 'account_logout' %}" class="note mt-3">
+    {% csrf_token %}
+    Not you? <button type="submit" class="btn btn-link align-baseline">Sign out</button>
   </form>
 {% endblock %}

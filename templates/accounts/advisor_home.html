@@ -1,0 +1,24 @@
+{% extends "layouts/app.html" %}
+{# Batch Advisor overview. The complaints workspace (Design D, DEC-305) arrives with the complaints module. #}
+{% block title %}Overview · UOL Student Affairs{% endblock %}
+{% block content %}
+<header class="sa-masthead">
+  <span class="sa-eyebrow">Overview · your cohorts</span>
+  <h1 class="sa-display">{% if assignments %}You advise {{ assignments|length }} cohort{{ assignments|length|pluralize }}.{% else %}No cohorts are assigned to you yet.{% endif %}</h1>
+  <p class="sa-lede">{% if assignments %}Complaints, collective issues, Student Voice and meetings for these cohorts will appear here as each part of the portal opens.{% else %}The Super Admin assigns cohorts. Your work will appear here once you have one.{% endif %}</p>
+</header>
+
+{% if assignments %}
+<section class="sa-section" aria-labelledby="cohorts-title">
+  <div class="sa-section-head"><h2 class="sa-h2" id="cohorts-title">Assigned cohorts</h2></div>
+  <ul class="sa-cohort-list">
+    {% for a in assignments %}
+    <li class="sa-cohort-card">
+      <div class="batch">{{ a.batch }}</div>
+      <div class="sa-muted">{{ a.semester }} · {{ a.section }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

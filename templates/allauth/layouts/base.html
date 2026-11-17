@@ -1,0 +1,3 @@
+{% extends "layouts/auth.html" %}
+{# Any django-allauth page without its own override uses the portal's sign-in layout instead of allauth's unstyled default. #}
+{% block title %}{% block head_title %}{% endblock head_title %} · UOL Student Affairs{% endblock %}

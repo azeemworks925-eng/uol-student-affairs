@@ -1,25 +1,19 @@
-<!DOCTYPE html>
-{# Minimal structural template. Visual design waits for the agreed design direction (DEC-120). #}
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {# resizes-content: the on-screen keyboard shrinks the layout instead of covering it (DESIGN_PLAN.md 5). #}
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
   <title>{% block title %}UOL Student Affairs{% endblock %}</title>
+  <link rel="preload" href="{% static 'fonts/Inter-latin-variable.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{% static 'fonts/Newsreader-latin-variable.woff2' %}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap-5.3.3/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
-<body>
-  <header>
-    <strong>UOL Student Affairs</strong>
-    {% if user.is_authenticated %}
-      <span>{{ user.get_full_name }} ({{ user.get_role_display }})</span>
-      <form method="post" action="{% url 'account_logout' %}">
-        {% csrf_token %}
-        <button type="submit">Sign out</button>
-      </form>
-    {% endif %}
-  </header>
-  {% if messages %}
-    <ul>{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>
-  {% endif %}
-  <main>{% block content %}{% endblock %}</main>
+<body class="{% block body_class %}{% endblock %}">
+  <a class="skip-link" href="#main">Skip to content</a>
+  {% include "includes/icons.html" %}
+  {% block body %}{% endblock %}
+  <script src="{% static 'vendor/bootstrap-5.3.3/bootstrap.bundle.min.js' %}" defer></script>
 </body>
 </html>
