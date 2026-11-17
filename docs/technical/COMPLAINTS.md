@@ -105,7 +105,7 @@ One template serves every state; CSS decides the layout from `sa-workspace--has-
 
 ## 4. Known limitations
 
-- **O27, O28, O33 are open.** No responsible owner is assigned automatically, and the owner is not shown to students or advisors. A cancellation request is recorded only. No event is classified as needing a response, and there is no "Waiting for you" queue.
+- **Owner/cancellation/queue behaviour (DEC-310 to DEC-312).** The product decisions are now settled: Super Admin manually designates the owner; cancellation requests are record-only; and no response-required queue exists. Part 3's current UI still hides owner changes in the advisor timeline and does not expose Super Admin ownership controls; those controls and staff-visible owner history are Part 4 work. Student-facing owner identity/history remains hidden.
 - **Advisor workspace.** It has no seen/unseen tracking, and no notifications for status changes and responses (DEC-270); those are Part 4 or later. The Super Admin cannot use the workspace yet (Part 4).
 - **Cancellation display.** Offering cancellation only for open complaints, and only once, is a presentation choice; the service itself accepts a request in any state.
 - **Student home.** "Your latest updates" (DEC-282, DEC-303) does not yet list complaint activity: it needs seen/unseen tracking, which is not built.
