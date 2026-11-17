@@ -10,7 +10,8 @@
     </div>
     <h1 class="sa-display" id="case-title">{{ complaint.title }}</h1>
     <dl class="sa-facts">
-      <div><dt>Category</dt><dd>{{ complaint.category }}{% if complaint.subcategory %} · {{ complaint.subcategory.name }}{% endif %}</dd></div>
+      {# Staff only: inactive categories and subcategories are marked (Part 4 Stage 2). #}
+      <div><dt>Category</dt><dd>{{ complaint.category }}{% if not complaint.category.is_active %} (inactive){% endif %}{% if complaint.subcategory %} · {{ complaint.subcategory.name }}{% if not complaint.subcategory.is_active %} (inactive){% endif %}{% endif %}</dd></div>
       <div><dt>Submitted</dt><dd>{{ complaint.created_at|date:"j F Y, H:i" }}</dd></div>
     </dl>
     <ol class="sa-journey" aria-label="Where this complaint stands">

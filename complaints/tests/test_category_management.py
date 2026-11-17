@@ -1,17 +1,19 @@
 """Complaint category and subcategory management (Complaints Part 4 Stage 2, spec section 4)."""
 
+import re
 from unittest import mock
 
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import Client, TestCase
+from django.urls import reverse
 
 from complaints import category_services as cs
 from complaints import services
 from complaints.forms import ComplaintSubmissionForm
 from complaints.models import ComplaintCategory, ComplaintSubcategory, ProtectedRecordError
 
-from .helpers import make_academics, make_advisor, make_student, make_super_admin, submit
+from .helpers import cohort, make_academics, make_advisor, make_student, make_super_admin, submit
 
 
 def names(queryset):
@@ -310,3 +312,234 @@ class HistoricalIntegrityServiceTests(ServiceTestCase):
         self.assertEqual((complaint.category.name, complaint.subcategory.name), ("Campus facilities", "Lights"))
         self.assertEqual(list(complaint.events.values_list("pk", "kind", "message")), events)
         self.assertEqual(complaint.status, services.Status.RECEIVED)
+
+
+# ---------- Pages, HTTP and security ----------
+
+INDEX = reverse("super_admin_categories")
+
+
+def detail_url(category):
+    return reverse("super_admin_category_detail", args=[category.pk])
+
+
+class PagesTestCase(ServiceTestCase):
+    def setUp(self):
+        self.category = cs.create_category(self.admin, "Facilities")
+        self.sub = cs.create_subcategory(self.admin, self.category, "Lighting")
+        self.client.force_login(self.admin)
+
+    def mutations(self):
+        c, s = self.category.pk, self.sub.pk
+        return [
+            (reverse("super_admin_category_create"), {"new-name": "X"}),
+            (reverse("super_admin_category_rename", args=[c]), {"category-name": "X"}),
+            (reverse("super_admin_category_active", args=[c]), {"active": "0"}),
+            (reverse("super_admin_category_move", args=[c]), {"direction": "up"}),
+            (reverse("super_admin_subcategory_create", args=[c]), {"new-sub-name": "X"}),
+            (reverse("super_admin_subcategory_rename", args=[c, s]), {f"sub-{s}-name": "X"}),
+            (reverse("super_admin_subcategory_active", args=[c, s]), {"active": "0"}),
+            (reverse("super_admin_subcategory_move", args=[c, s]), {"direction": "up"}),
+        ]
+
+    def unchanged(self):
+        self.category.refresh_from_db()
+        self.sub.refresh_from_db()
+        self.assertEqual((self.category.name, self.category.is_active, self.sub.name, self.sub.is_active),
+                         ("Facilities", True, "Lighting", True))
+        self.assertFalse(ComplaintCategory.objects.filter(name="X").exists())
+
+
+class PageAccessTests(PagesTestCase):
+    def test_anonymous_and_inactive_super_admin_are_sent_to_sign_in(self):
+        inactive = make_super_admin("old@uol.edu.pk")
+        inactive.is_active = False
+        inactive.save()
+        for user in (None, inactive):
+            self.client.logout()
+            if user:
+                self.client.force_login(user)
+            for url in [INDEX, detail_url(self.category)] + [u for u, _ in self.mutations()]:
+                with self.subTest(user=getattr(user, "email", None), url=url):
+                    method = self.client.get if url in (INDEX, detail_url(self.category)) else self.client.post
+                    response = method(url, {})
+                    self.assertEqual(response.status_code, 302)
+                    self.assertTrue(response["Location"].startswith(reverse("account_login")))
+        self.unchanged()
+
+    def test_students_and_batch_advisors_are_refused(self):
+        for user in (make_student(academics=make_academics()), make_advisor()):
+            self.client.force_login(user)
+            self.assertEqual(self.client.get(INDEX).status_code, 403)
+            self.assertEqual(self.client.get(detail_url(self.category)).status_code, 403)
+            for url, data in self.mutations():
+                with self.subTest(user=user.email, url=url):
+                    self.assertEqual(self.client.post(url, data).status_code, 403)
+        self.unchanged()
+
+    def test_mutations_reject_get(self):
+        for url, _ in self.mutations():
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 405)
+        self.unchanged()
+
+    def test_csrf_is_enforced(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.admin)
+        for url, data in self.mutations():
+            with self.subTest(url=url):
+                self.assertEqual(client.post(url, data).status_code, 403)
+        self.unchanged()
+
+    def test_unknown_ids_and_forged_pairings_are_404(self):
+        other = cs.create_category(self.admin, "Transport")
+        self.assertEqual(self.client.get(reverse("super_admin_category_detail", args=[999999])).status_code, 404)
+        for name in ("rename", "active", "move"):
+            with self.subTest(action=name):
+                self.assertEqual(self.client.post(reverse(f"super_admin_category_{name}", args=[999999]), {}).status_code, 404)
+                # The subcategory exists, but not under this category.
+                url = reverse(f"super_admin_subcategory_{name}", args=[other.pk, self.sub.pk])
+                self.assertEqual(self.client.post(url, {f"sub-{self.sub.pk}-name": "X", "active": "0", "direction": "up"}).status_code, 404)
+        self.assertEqual(self.client.post(reverse("super_admin_subcategory_create", args=[999999]), {}).status_code, 404)
+        self.unchanged()
+
+    def test_forged_values_change_nothing(self):
+        for url, data in (
+            (reverse("super_admin_category_active", args=[self.category.pk]), {"active": "maybe"}),
+            (reverse("super_admin_category_move", args=[self.category.pk]), {"direction": "sideways"}),
+            (reverse("super_admin_subcategory_active", args=[self.category.pk, self.sub.pk]), {}),
+        ):
+            with self.subTest(url=url):
+                response = self.client.post(url, data, follow=True)
+                self.assertContains(response, "That change was not understood. Nothing was changed.")
+        self.unchanged()
+
+    def test_there_is_no_delete_route_or_control(self):
+        for path in (f"{detail_url(self.category)}delete/", f"{INDEX}{self.category.pk}/subcategories/{self.sub.pk}/delete/"):
+            self.assertEqual(self.client.post(path).status_code, 404)
+        for url in (INDEX, detail_url(self.category)):
+            self.assertNotIn("delete", self.client.get(url).content.decode().lower())
+
+
+class PageBehaviourTests(PagesTestCase):
+    def test_index_lists_counts_and_order(self):
+        student = make_student(academics=make_academics())
+        submit(student, self.category, subcategory=self.sub)
+        submit(student, self.category)
+        response = self.client.get(INDEX)
+        html = response.content.decode()
+        self.assertContains(response, f"{ComplaintCategory.objects.count()} categories, {ComplaintCategory.objects.active().count()} active.")
+        row = html[html.index(f'id="category-{self.category.pk}"'):]
+        row = row[:row.index("</li>")]
+        self.assertIn("1 subcategory · 2 complaints", row)
+        self.assertIn("Active", row)
+        listed = re.findall(r'class="sa-cat-name" href="[^"]+">([^<]+)</a>', html)
+        self.assertEqual(listed, names(ComplaintCategory.objects.all()))
+        # First "Up" and last "Down" are disabled: those moves would change nothing.
+        self.assertIn(f'aria-label="Move {listed[0]} up" disabled', html)
+        self.assertIn(f'aria-label="Move {listed[-1]} down" disabled', html)
+
+    def test_create_rename_move_and_activation_through_the_pages(self):
+        response = self.client.post(reverse("super_admin_category_create"), {"new-name": "  Campus   transport "})
+        self.assertRedirects(response, INDEX, fetch_redirect_response=False)
+        transport = ComplaintCategory.objects.get(name="Campus transport")
+        self.assertEqual(names(ComplaintCategory.objects.all())[-1], "Campus transport")
+        self.client.post(reverse("super_admin_category_move", args=[transport.pk]), {"direction": "up"})
+        self.assertEqual(names(ComplaintCategory.objects.all())[-2], "Campus transport")
+        self.client.post(reverse("super_admin_category_rename", args=[transport.pk]), {"category-name": "Transport"})
+        self.client.post(reverse("super_admin_category_active", args=[transport.pk]), {"active": "0"})
+        transport.refresh_from_db()
+        self.assertEqual((transport.name, transport.is_active), ("Transport", False))
+        response = self.client.post(reverse("super_admin_subcategory_create", args=[transport.pk]), {"new-sub-name": "Buses"})
+        self.assertRedirects(response, detail_url(transport) + "#subcategories", fetch_redirect_response=False)
+        self.assertTrue(transport.subcategories.filter(name="Buses", is_active=True).exists())
+
+    def test_field_errors_re_render_with_accessible_messages(self):
+        response = self.client.post(reverse("super_admin_category_create"), {"new-name": "   "})
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "Enter a name.", status_code=400)
+        self.assertContains(response, 'aria-describedby="id_new-name-error"', status_code=400)
+        response = self.client.post(reverse("super_admin_category_create"), {"new-name": "FACÍLITIES"})
+        self.assertContains(response, "already exists", status_code=400)
+        response = self.client.post(reverse("super_admin_category_create"), {"new-name": "z" * 81})
+        self.assertContains(response, "at most 80 characters", status_code=400)
+        other = cs.create_subcategory(self.admin, self.category, "Heating")
+        response = self.client.post(reverse("super_admin_subcategory_rename", args=[self.category.pk, other.pk]),
+                                    {f"sub-{other.pk}-name": "lighting"})
+        self.assertContains(response, f'id="id_sub-{other.pk}-name-error"', status_code=400)
+        self.assertContains(response, "already has a subcategory", status_code=400)
+        self.unchanged()
+
+    def test_integrity_error_from_the_database_is_shown_as_a_form_error(self):
+        with mock.patch.object(cs, "_refuse_duplicate"), mock.patch.object(
+            ComplaintCategory, "save", side_effect=IntegrityError("duplicate")
+        ):
+            response = self.client.post(reverse("super_admin_category_create"), {"new-name": "Anything"})
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "already exists", status_code=400)
+
+    def test_last_active_category_has_no_deactivate_button_and_is_refused(self):
+        ComplaintCategory.objects.exclude(pk=self.category.pk).update(is_active=False)
+        page = self.client.get(detail_url(self.category))
+        self.assertContains(page, "This is the only active category.")
+        self.assertNotContains(page, "Deactivate category")
+        response = self.client.post(reverse("super_admin_category_active", args=[self.category.pk]), {"active": "0"}, follow=True)
+        self.assertContains(response, "This is the only active category.")
+        self.category.refresh_from_db()
+        self.assertTrue(self.category.is_active)
+
+    def test_inactive_category_page_explains_availability(self):
+        cs.set_category_active(self.admin, self.category, False)
+        page = self.client.get(detail_url(self.category))
+        self.assertContains(page, "Activate category")
+        self.assertContains(page, "none of its subcategories are available to students")
+
+    def test_navigation_and_overview_link(self):
+        for url in (INDEX, detail_url(self.category)):
+            with self.subTest(url=url):
+                self.assertRegex(self.client.get(url).content.decode(),
+                                 r'<a class="sa-nav-link" href="{}" aria-current="page">'.format(re.escape(INDEX)))
+        overview = self.client.get(reverse("super_admin_home")).content.decode()
+        self.assertIn(f'href="{INDEX}">Complaint Categories</a>', overview)
+        self.assertEqual(self.client.get(INDEX).status_code, 200)
+
+
+class StaffInactiveLabelTests(PagesTestCase):
+    """Staff see "(inactive)"; students see only the current name (Part 4 Stage 2)."""
+
+    def setUp(self):
+        super().setUp()
+        a = make_academics()
+        self.student = make_student(academics=a)
+        self.advisor = make_advisor(cohorts=[cohort(a)])
+        self.complaint = submit(self.student, self.category, subcategory=self.sub)
+        cs.rename_category(self.admin, self.category, "Campus facilities")
+        cs.set_subcategory_active(self.admin, self.sub, False)
+        cs.set_category_active(self.admin, self.category, False)
+
+    def test_staff_case_details_and_filters_mark_inactive_values(self):
+        sa_case = reverse("super_admin_complaint_detail", args=[self.complaint.reference])
+        ba_case = reverse("advisor_complaint_detail", args=[self.complaint.reference])
+        for user, case in ((self.admin, sa_case), (self.advisor, ba_case)):
+            self.client.force_login(user)
+            with self.subTest(user=user.email):
+                response = self.client.get(case)
+                self.assertContains(response, "Campus facilities (inactive) · Lighting (inactive)")
+                labels = [label for _, label in response.context["filters"].fields["category"].choices]
+                self.assertIn("Campus facilities (inactive)", labels)
+
+    def test_filtering_by_an_inactive_category_still_finds_its_complaints(self):
+        response = self.client.get(reverse("super_admin_complaints"), {"category": self.category.pk})
+        self.assertEqual([c.reference for c in response.context["page"].object_list], [self.complaint.reference])
+        self.assertContains(response, "Campus facilities (inactive)")
+
+    def test_students_see_the_current_name_without_the_marker(self):
+        self.client.force_login(self.student)
+        for url in (reverse("student_complaint_detail", args=[self.complaint.reference]), reverse("student_complaints")):
+            with self.subTest(url=url):
+                html = self.client.get(url).content.decode()
+                self.assertIn("Campus facilities", html)
+                self.assertNotIn("(inactive)", html)
+                self.assertNotIn("Facilities ·", html)  # never the old name
+        self.complaint.refresh_from_db()
+        self.assertEqual((self.complaint.category_id, self.complaint.subcategory_id), (self.category.pk, self.sub.pk))
