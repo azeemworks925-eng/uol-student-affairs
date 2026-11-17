@@ -43,6 +43,19 @@ class StudentRegistrationTests(TestCase):
         self.assertEqual(self.student.full_name, "Ali Khan")
         self.assertEqual(self.client.get(reverse("student_home")).status_code, 200)
 
+    def test_entirely_empty_post_shows_required_field_errors(self):
+        response = self.client.post(reverse("student_register"), {})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "accounts/register.html")
+        form = response.context["form"]
+        self.assertTrue(form.is_bound)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(set(form.errors), {"full_name", "batch", "semester", "section"})
+        for field in ("full_name", "batch", "semester", "section"):
+            self.assertContains(response, f'id="id_{field}-error"')
+        self.assertFalse(StudentProfile.objects.exists())
+
     def test_full_name_and_all_academic_fields_are_required(self):
         for field in ("full_name", "batch", "semester", "section"):
             with self.subTest(field=field):
