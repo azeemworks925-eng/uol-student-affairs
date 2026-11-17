@@ -32,7 +32,7 @@ Rules:
 Branch `feat/academic-term`, created from `main` at `290250a`. This entry records the work and its local verification. **It is not merged.** Technical notes: `docs/technical/ACADEMIC_TERMS.md` and `COMPLAINTS.md` section 8.
 
 - **Model:** `academics.AcademicTerm`, with a name, start and end dates and a current flag (`TRUE` or `NULL`).
-  - **One current term:** a plain unique index on the nullable flag allows at most one current term on both MySQL and SQLite. A check constraint allows only `NULL` or `TRUE`. The check is written as an explicit `IN (TRUE)` comparison: SQLite compiled the first version to a bare truthiness test, which accepted `2` beside `1` (two current terms). Browser testing on SQLite found this and it was fixed before commit; a regression test covers it.
+  - **One current term:** a plain unique index on the nullable flag allows at most one current term on both MySQL and SQLite. A check constraint allows only `NULL` or `TRUE`. The check is written as an explicit `IN (TRUE)` comparison: SQLite compiled the first version to a bare truthiness test, which accepted `2` beside `1` (two current terms). The SQLite test run found this and it was fixed before commit; a regression test covers it.
   - **Dates:** a second check requires `end_date >= start_date`.
   - **Names:** duplicates are refused ignoring case and accents.
   - **Never deleted;** the ORM refuses writes to the current flag outside the services.
