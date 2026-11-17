@@ -8,5 +8,6 @@ urlpatterns = [
     path("admin/login/", admin_login_redirect, name="admin_login_redirect"),
     path("admin/", admin.site.urls),
     path("accounts/", include("allauth.urls")),
+    path("student/complaints/", include("complaints.urls")),
     path("", include("accounts.urls")),
 ]

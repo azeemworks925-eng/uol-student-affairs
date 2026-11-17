@@ -21,9 +21,54 @@ Rules:
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O25, O30 to O34. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
-| Complaints | Part 1 (backend foundation: models, services, permissions, tests) on branch `feat/complaints-foundation`, awaiting review. No complaint screens yet. |
+| Complaints | Part 1 (backend) merged into `main` through PR #7 (merge commit `06bbc2a`). Part 2 (student pages) on branch `feat/student-complaints-frontend`, awaiting review. Batch Advisor and Super Admin complaint screens are not built. |
 | Other product features | Student Voice, meetings, collective issues and the Super Admin analytics are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
+
+---
+
+## 2026-11-17 — Complaints Part 2: student pages
+
+**Context**
+
+- Branch `feat/student-complaints-frontend` from `main` at `06bbc2a` (PR #7 merged). Built on the PR #6 shell and the Part 1 services; no model or migration changes.
+- The repository has no `AGENTS.md`; the decision register, design plan and this log were followed. DEC-031 names the student list "My Submissions", so the page uses that name; the navigation item stays "Complaints" (DEC-304).
+
+**What was done**
+
+- Three student pages under `/student/complaints/`: My Submissions (list), Submit a complaint, and Complaint details, plus POST actions for further information, "Still not resolved" and a cancellation request. Routes and behaviour are documented in `docs/technical/COMPLAINTS.md`.
+- **Access:** `student_required` on every view, and `get_visible_complaint` for every complaint, so another student's reference returns the same 404 as an unknown one. Every change goes through `complaints.services`. The form has no student or cohort fields.
+- **Submission:**
+  - Active categories and their active subcategories only, grouped so the list works without JavaScript, with the cross-category check repeated in the form.
+  - A non-blocking duplicate notice built from the student's own open complaints (`possible_duplicates`).
+  - Post/Redirect/Get to the new complaint, a message giving its reference, and the button disabled after the first click.
+- **Details:**
+  - Reference, status, category, submission time, the cohort at submission, the status journey, and the original description shown read-only.
+  - History in plain language, with staff shown by role only and owner changes hidden from students (O27).
+  - Actions: further information is always available; "Still not resolved" appears only when Resolved; a cancellation request is offered for open complaints until one is recorded, and only records it (O28). If the service refuses an action because of the complaint's state, it is explained in a message and nothing changes.
+- **Integration:** the student "Complaints" navigation item and the "Submit a complaint" Quick Access action now link to these pages; Complaints stays marked as current on its sub-pages. `AccessibleErrorsMixin` was extracted from the registration form so both forms share the ARIA error handling.
+- **Styles:** new components in `static/css/app.css` built from the existing tokens: filter chips with the ink selection, hairline list rows, status journey, original-description block, timeline and action panels. `static/js/complaints.js` provides progressive enhancement only.
+
+**Verification**
+
+- Tests: 32 new tests in `complaints/tests/test_student_views.py`, covering:
+  - access by role, anonymous, deactivated and unregistered users;
+  - another student's reference, and POST-only actions;
+  - submission, cohort from the profile, inactive categories, mismatched or unknown subcategories, an entirely empty POST, kept values and ARIA errors, overlong input, and the duplicate notice;
+  - list, filter, pagination and empty states;
+  - details, timeline privacy and the three actions, including refused actions;
+  - navigation integration.
+- Two PR #6 tests that asserted "Complaints" and "Submit a complaint" were not yet links were updated to the new behaviour; Student Voice and Meetings are still checked as unavailable.
+- Review fix: an entirely empty POST to the submission page created an unbound form (an empty `QueryDict` is falsey), so the blank form came back without errors. The form is now bound on every POST, and a regression test covers it.
+- Results: 268/268 on MySQL 8.0.44 in two consecutive `--keepdb` runs, and 268 on SQLite with 1 skipped (the MySQL-only concurrency test). `check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0.
+- Browser: headless Chrome at 100% zoom at 1280×590 (DEC-307), 1232×590, 1100×590, 1600×740, 1440×800 and 360px. 11 page states (empty, filtered and full lists; the form, its errors and the duplicate notice; received, resolved, cancellation-requested, error and keyboard-focus details) × 6 viewports = 66 combinations. All have no horizontal overflow, no clipped or covered content, local fonts, no outside requests, and touch targets of at least 44px on phones.
+  - Found and fixed during the checks: status filter chips scrolling out of view at 360px (now wrap), dates breaking mid-date, a dangling journey connector on small phones, and controls under 44px on phones.
+
+**Limitations**
+
+- O27, O28 and O33 remain open; see `docs/technical/COMPLAINTS.md` section 3.
+- The student home's "Your latest updates" does not yet list complaint activity (needs seen/unseen tracking, DEC-303).
+- Batch Advisor and Super Admin complaint screens, category management, notifications and analytics are Parts 3–4.
 
 ---
 
