@@ -14,9 +14,9 @@ An academic term is the reporting window for the complaint analytics planned for
 | `is_current` | `TRUE` for the current term and `NULL` for every other term. It is never `FALSE`. It isn't a form field (`editable=False`). |
 | `created_at`, `updated_at` | Timestamps. |
 
-**Database constraints** (migration `academics/0002_academicterm`):
+**Database constraints** (migrations `academics/0002_academicterm` and `0003_academicterm_dates_supported`):
 - **Name:** `name` is `UNIQUE`.
-- **Dates:** the check constraint `academic_term_dates_valid` requires `end_date >= start_date`.
+- **Dates:** the check constraint `academic_term_dates_valid` requires `end_date >= start_date`, and `academic_term_dates_supported` (0003) requires `start_date >= 1900-01-01` and `end_date <= 9998-12-31`.
 - **One current term:**
   - `is_current` has a plain `UNIQUE` index. MySQL and SQLite both allow many `NULL`s in a unique index but only one `TRUE`, so **the database itself allows at most one current term**.
   - The check constraint `academic_term_current_true_or_null` allows only `NULL` or `TRUE`, so a `FALSE` (or any other value) can't get around the unique index.
@@ -25,25 +25,42 @@ An academic term is the reporting window for the complaint analytics planned for
   - a second current term;
   - `FALSE`, `0` and `2` in the current flag;
   - reversed dates;
-  - duplicate names.
+  - dates outside 1900–9998;
+  - duplicate names (exact spelling).
 
-**Names.** Validation trims and collapses whitespace. It refuses duplicates while ignoring case and accents, to match MySQL's `utf8mb4_0900_ai_ci` collation, so behaviour is the same on SQLite. Complaint category names work the same way.
+**Names.** Validation (`clean()`, run by the admin form) trims and collapses whitespace. It refuses duplicates while ignoring case and accents, to match MySQL's `utf8mb4_0900_ai_ci` collation, so behaviour is the same on SQLite. Complaint category names work the same way.
 
-**Date range.** Validation also requires dates between 1 Jan 1900 and 31 Dec 9998. This keeps the window's boundaries representable when they are converted to UTC.
+- **Code that skips validation:** the database's own `UNIQUE` index still refuses an exact duplicate on both databases. A variant that differs only in case or accents is refused by MySQL (its collation treats the names as equal) but would be accepted by SQLite, which is used only for tests.
+- **Why no stricter fix:** enforcing the case- and accent-insensitive rule in the database portably would need a stored normalised-name column, a schema change out of proportion to the risk. Terms are created only through the admin, which validates.
+
+**Date range.** Dates must be between 1 Jan 1900 and 31 Dec 9998. This keeps the window's boundaries representable when they are converted to UTC.
+
+- **Validation** reports it as a form error.
+- **The database** (0003) refuses it from any other code path. Before 0003, a term created through the ORM without validation could make the complaint list's `?term=` filter fail with a server error (found in review).
 
 **Overlap.** Terms may overlap, and no constraint stops it, because only the current term is reported.
 
 **Guards** (`TermQuerySet` and `AcademicTerm.save()`/`delete()`, raising `ProtectedTermError`):
 - **Never deleted:** instance and bulk `delete()` are refused, and the admin has no delete permission.
-- **Current flag:** only `academics.services` changes it. The ORM refuses:
-  - `update(is_current=...)` and `bulk_update` with that field;
-  - `bulk_create` of a current term, or an upsert that writes the field;
-  - an instance `save()` whose flag differs from the stored row.
-
-  The `save()` check compares with the stored row, including an unsaved instance built with an existing pk. Other fields save normally.
+- **Current flag:** only `academics.services` writes it, under its row locks.
+  - **Bulk paths:** the ORM refuses `update(is_current=...)` and `bulk_update` with that field, and `bulk_create` of a current term or an upsert that writes the field.
+  - **Ordinary saves never write the column.** Saving an existing term updates every field except `is_current`, so a stale instance cannot overwrite the service's change. Other fields, including `updated_at`, save normally. For example, an admin form loaded before another Super Admin made the term current, or made another term current, saves its edit and leaves the current term as the service set it.
+  - **Explicit attempts are refused** with `ProtectedTermError`:
+    - a `save()` whose `update_fields` names `is_current`;
+    - a `save()` of an instance whose flag was changed in memory, judged against the value the instance was loaded with (or last given by the services or `refresh_from_db()`); assigning a flag that was deferred when loading also counts;
+    - creating a term with any flag other than `NULL`.
+  - **Unsaved instances:** an unsaved instance built with an existing pk is inserted, never used to overwrite that row, so the database refuses it as a duplicate key.
+  - **Why the earlier design was replaced:** it compared the in-memory flag with a fresh read of the row and then wrote every column. Review reproduced two races on MySQL:
+    - **Lost update:** the service committed between that read and the write, which silently left no current term.
+    - **Server error:** an edit of the old current term after a switch raised the guard's error as an HTTP 500 in the admin.
 - **Raw SQL** is outside what the ORM can protect, but the database constraints still apply to it.
 
-**Migration.** `academics/0002_academicterm` only creates this table with its constraints. It is additive, needs no data and is reversible. A test reverses it, then re-applies it and checks the constraints, on MySQL and SQLite. **It has not been applied to the owner's development database.**
+**Migrations.** Neither has been applied to the owner's development database.
+- **`academics/0002_academicterm`** only creates this table with its constraints. It is additive, needs no data and is reversible.
+- **`academics/0003_academicterm_dates_supported`** only adds the date-range check constraint. It is reversible (`DROP CHECK`).
+  - On a database that already held an out-of-range term it would fail rather than change data. Such a term can't be created through the admin.
+  - It was added as a new migration rather than by editing 0002.
+- **Tests** reverse and re-apply each one and check the constraints, on MySQL and SQLite.
 
 ## 2. Reporting window (`academics.models.term_window`)
 
@@ -86,7 +103,8 @@ Removing the row lock makes these tests fail.
 `AcademicTermAdmin` sits in the Django admin `academics` app, next to batches, semesters and sections. Only active Super Admins can open the admin, because the role sets `is_staff`. Other roles, anonymous visitors and inactive accounts are redirected away.
 
 - **List:** name, start date, end date and a "Current term" / "Not current" column. The change form shows the designation read-only, and a posted `is_current` is ignored.
-- **Validation:** reversed dates produce a form error on the end date ("The end date cannot be before the start date."). Duplicate names, ignoring case and accents, produce a form error on the name. If someone else saves a conflicting term at the same moment, the database refuses it; the admin then shows an error message and saves nothing, instead of a server error.
+- **Edits never touch the current designation:** an edit saved after another Super Admin changed the current term keeps both the edit and the new designation. That case was an HTTP 500 or a silently lost current term before the review fix.
+- **Validation:** reversed or unsupported dates produce a form error on that date ("The end date cannot be before the start date."). Duplicate names, ignoring case and accents, produce a form error on the name. If saving still conflicts with a change made at the same moment — a duplicate name caught by the database, or a refused change to the current flag — the admin's transaction rolls back. It then shows an error message saying nothing was changed, instead of a server error. Any other error is not caught.
 - **No deletion:** there is no delete view (403) and no "Delete selected" action.
 - **"Make the selected term the current term":** exactly one term must be selected; otherwise an error is shown and nothing changes. The messages say whether the term became current, replaced another term, or was already current.
 - **"Clear the current term":**

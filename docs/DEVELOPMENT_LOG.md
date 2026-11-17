@@ -71,6 +71,35 @@ Branch `feat/academic-term`, created from `main` at `290250a`. This entry record
   - **Fix made during testing:** the chip first sat below the open filter panel, under the fold at 1280×590. It was moved above the panel.
   - **Pre-existing:** the only small targets at 360px are the skip link and the wordmark.
 
+**Review follow-up: concurrency fixes (PR #18 review of `3ff03e0`)**
+
+- **Lost update (reproduced with two MySQL connections):**
+  - **Cause:** `AcademicTerm.save()` compared the in-memory flag with a fresh read of the row, then wrote every column.
+  - **Effect:** an admin edit whose check ran before another Super Admin's "make current" committed wrote `is_current = NULL` back. Both actions reported success and no term was current.
+  - **Fix:** ordinary saves of an existing term now never write `is_current`; they update every other field. An explicit change to the flag is refused by comparing with the value the instance was loaded with, not a fresh read, so there is no check-then-write window. A forged unsaved instance with an existing pk is inserted (and refused as a duplicate), never used to overwrite the row. The services remain the only writer, under their row locks.
+- **HTTP 500 (reproduced through the admin):**
+  - **Cause:** editing the old current term after a switch raised `ProtectedTermError`, which the admin did not handle.
+  - **Fix:** with the save fix, that edit now saves normally and the new current term is kept. As a safeguard, the admin change form also turns `ProtectedTermError` (as well as `IntegrityError`) into an error message after its transaction rolls back. Other exceptions are not caught.
+- **Unsupported dates:**
+  - **Problem:** the 1900–9998 range was enforced only by validation. A term created through the ORM without validation could make the Super Admin list's `?term=` filter fail with a server error.
+  - **Fix:** new migration `academics/0003_academicterm_dates_supported` adds a database check constraint. It is reversible, and 0002 is unchanged.
+- **Duplicate names differing only in case or accents:** assessed and documented, not changed. Validation (the admin) refuses them; the database refuses exact duplicates on both databases and case or accent variants on MySQL. A portable database rule would need a normalised-name column. See `ACADEMIC_TERMS.md`.
+- **Regression tests (proven to fail on `3ff03e0`):** 11 new tests, run against the old `save()` and admin handler: 6 failures and 5 errors.
+  - **Real two-connection MySQL races:**
+    - an edit paused inside `save()` while the service makes the term current;
+    - an edit loaded before the service makes it current;
+    - an edit of the old current term after a switch, both paused inside `save()` and loaded before;
+    - an edit racing a clear.
+  - **Admin:** a stale form saved after a switch (was HTTP 500), and after the term was made current; a refused flag change reported as a message; unrelated errors still raised.
+  - **Model:** stale saves, explicit flag changes, `update_fields`, deferred loading, and that the `UPDATE` statement never names the flag.
+  - **Dates:** database refusal of unsupported dates, and the widest supported term filtering without error.
+- **Verification after the follow-up** (local runs; no hosted CI):
+  - **Focused on MySQL 8.0.44:** academics 78/78 with 0 skipped, including all 9 `ConcurrencyTests` (5 of them new); term filter 22/22.
+  - **Full suite on MySQL:** 562/562 in two consecutive `--keepdb` runs, 0 skipped.
+  - **SQLite:** 562 run, 548 passed, 14 skipped. The skips are the MySQL-only concurrency tests: 9 academic-term ones and the 5 existing ones.
+  - **Checks:** `check`: no issues. `makemigrations --check --dry-run`: no changes. `compileall` and `git diff --check`: clean.
+  - **Migrations:** 0002 and 0003 remain unapplied on the development database.
+
 ---
 
 ## 2026-11-17 — Complaints Part 4 Stage 3 merged (PR #16)
