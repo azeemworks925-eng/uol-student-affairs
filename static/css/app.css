@@ -392,9 +392,11 @@ a.sa-quick-item:hover { border-color: var(--sa-border-control); }
 /* ---------- Complaint category management (Part 4 Stage 2) ---------- */
 /* Active/Inactive are neutral labels, never complaint status colours (DEC-301). */
 .sa-flag--muted { color: var(--sa-muted); border-style: dashed; border-color: var(--sa-border-strong); }
-.sa-inline-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.sa-inline-form { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; }
 .sa-inline-form .sa-inline-field { flex: 1 1 240px; min-width: 0; margin-bottom: 0 !important; }
 .sa-inline-form > .btn { min-height: 44px; }
+/* Align the button with the input (below the field label), even when an error follows the input. */
+@media (min-width: 576px) { .sa-inline-form > .btn { margin-top: 26px; } }
 .sa-cat-add { margin-bottom: 8px; }
 .sa-cat-add .sa-h2, .sa-panel > .sa-h2 { margin-bottom: 12px; }
 .sa-cat-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0; }
@@ -410,6 +412,7 @@ a.sa-cat-name:hover { color: var(--sa-accent); }
 .sa-cat-move form, .sa-cat-actions form { margin: 0; }
 @media (max-width: 767.98px) {
   .sa-cat-actions .btn, .sa-cat-move .btn, .sa-panel form > .btn { min-height: 44px; }
+  a.sa-cat-name { display: inline-flex; align-items: center; min-height: 44px; }
   .sa-cat-actions { width: 100%; }
 }
 

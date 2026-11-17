@@ -5,14 +5,26 @@ from academics.models import Batch, Section, Semester
 
 class AccessibleErrorsMixin:
     """Mark invalid fields for styling and assistive technology. Templates render each
-    field's errors with the id "<field id>-error" referenced here."""
+    field's errors with the id "<field id>-error" referenced here.
+
+    Fields are marked after the form's own validation and also whenever an error is added
+    later with add_error() (for example, a service refusing a duplicate name)."""
 
     def _post_clean(self):
         super()._post_clean()
+        self._mark_invalid_fields()
+
+    def add_error(self, field, error):
+        super().add_error(field, error)
+        self._mark_invalid_fields()
+
+    def _mark_invalid_fields(self):
         for name in self.errors:
             if name in self.fields:
                 attrs = self.fields[name].widget.attrs
-                attrs["class"] = f"{attrs.get('class', '')} is-invalid".strip()
+                classes = attrs.get("class", "").split()
+                if "is-invalid" not in classes:
+                    attrs["class"] = " ".join([*classes, "is-invalid"])
                 attrs["aria-invalid"] = "true"
                 # Keep Django's help-text reference (<id>_helptext) alongside the error.
                 described_by = [f"{self[name].id_for_label}-error"]

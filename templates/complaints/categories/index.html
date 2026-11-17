@@ -11,7 +11,7 @@
   </div>
 </header>
 
-<section class="sa-panel sa-cat-add" aria-labelledby="add-category-title">
+<section class="sa-panel sa-cat-add" aria-labelledby="add-category-title" data-focus-invalid>
   <h2 class="sa-h2" id="add-category-title">Add a category</h2>
   <form method="post" action="{% url 'super_admin_category_create' %}" class="sa-inline-form" novalidate data-once-submit>
     {% csrf_token %}

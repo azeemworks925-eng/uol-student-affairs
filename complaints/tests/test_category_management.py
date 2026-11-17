@@ -461,6 +461,9 @@ class PageBehaviourTests(PagesTestCase):
         self.assertContains(response, 'aria-describedby="id_new-name-error"', status_code=400)
         response = self.client.post(reverse("super_admin_category_create"), {"new-name": "FACÍLITIES"})
         self.assertContains(response, "already exists", status_code=400)
+        # An error raised by the service (not the form) still marks the field for assistive technology.
+        self.assertContains(response, 'aria-invalid="true"', status_code=400)
+        self.assertContains(response, 'aria-describedby="id_new-name-error"', status_code=400)
         response = self.client.post(reverse("super_admin_category_create"), {"new-name": "z" * 81})
         self.assertContains(response, "at most 80 characters", status_code=400)
         other = cs.create_subcategory(self.admin, self.category, "Heating")

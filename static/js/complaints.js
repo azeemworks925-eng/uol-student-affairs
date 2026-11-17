@@ -108,4 +108,12 @@
     errorSummary.scrollIntoView({ block: "center" });
     errorSummary.focus({ preventScroll: true });
   }
+
+  // Category management (Part 4 Stage 2): an invalid field may be far down the page; bring it
+  // into view and focus it (its error is linked with aria-describedby).
+  var firstInvalid = !errorSummary && document.querySelector("[data-focus-invalid] .is-invalid");
+  if (firstInvalid) {
+    firstInvalid.scrollIntoView({ block: "center" });
+    firstInvalid.focus({ preventScroll: true });
+  }
 })();
