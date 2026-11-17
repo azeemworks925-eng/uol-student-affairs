@@ -1,9 +1,10 @@
 """
-How complaints read to the student who submitted them (Complaints Part 2).
+How complaints read to the people who use them (Complaints Parts 2 and 3).
 
-Only recorded events are shown, in order, with plain-language labels. Staff appear by role,
-never by name or account. Changes of responsible owner are internal to staff while O27 is
-open, so they are not part of the student's timeline.
+Only recorded events are shown, with plain-language labels. Students see their history
+oldest first, with staff by role only, never by name or account. Batch Advisors see it newest
+first, with names and roles (P3-7). Changes of responsible owner are not shown to either
+while O27 is open.
 """
 
 from dataclasses import dataclass
@@ -57,41 +58,71 @@ def _staff_role(actor):
     return actor.get_role_display()
 
 
+def _staff_name(actor):
+    return f"{actor.get_full_name()} ({actor.get_role_display()})"
+
+
+def _entry(event, audience):
+    """One history entry. Students see staff by role and "you"; staff see names (Part 3)."""
+    kind, student = event.kind, audience == "student"
+    student_name = "" if student else event.complaint.student.get_full_name()
+    if kind == Kind.SUBMITTED:
+        title = "You submitted this complaint" if student else f"{student_name} submitted this complaint"
+        return TimelineEntry(title, event.created_at, by_student=True, status=Status.RECEIVED)
+    if kind == Kind.STATUS_CHANGED:
+        new = Status(event.to_status)
+        return TimelineEntry(
+            f"Status changed to {new.label}", event.created_at,
+            by=_staff_role(event.actor) if student else _staff_name(event.actor),
+            message=event.message, message_label=MESSAGE_LABELS.get(new, "Note"), status=new,
+        )
+    if kind == Kind.STILL_NOT_RESOLVED:
+        return TimelineEntry(
+            "You said this is still not resolved" if student else f"{student_name} marked this as still not resolved",
+            event.created_at, message=event.message,
+            message_label="Your note" if student else "Student's note",
+            status=Status.UNDER_REVIEW, by_student=True, note="The complaint returned to Under Review.",
+        )
+    if kind == Kind.RESPONSE:
+        return TimelineEntry(
+            f"Response from {_staff_role(event.actor) if student else _staff_name(event.actor)}",
+            event.created_at, message=event.message,
+        )
+    if kind == Kind.FURTHER_INFORMATION:
+        return TimelineEntry(
+            "You added further information" if student else f"Further information from {student_name}",
+            event.created_at, message=event.message, by_student=True,
+        )
+    if kind == Kind.CANCELLATION_REQUESTED:
+        return TimelineEntry(
+            "You asked to cancel this complaint" if student else f"{student_name} asked to cancel this complaint",
+            event.created_at, message=event.message,
+            message_label="Your reason" if student else "Student's reason", by_student=True,
+            note="Your request was recorded. It does not cancel or change the complaint by itself." if student
+            else "Recorded only. The status does not change.",
+        )
+    return None
+
+
+def _timeline(complaint, audience, newest_first):
+    order = ("-created_at", "-id") if newest_first else ("created_at", "id")
+    # Owner changes stay internal while O27 is open: hidden for students and advisors alike.
+    events = (
+        complaint.events.select_related("actor", "complaint__student")
+        .exclude(kind__in=STUDENT_HIDDEN_KINDS)
+        .order_by(*order)
+    )
+    return [entry for entry in (_entry(event, audience) for event in events) if entry]
+
+
 def student_timeline(complaint):
     """The complaint's history as the student sees it, oldest first."""
-    entries = []
-    events = complaint.events.select_related("actor").exclude(kind__in=STUDENT_HIDDEN_KINDS).order_by("created_at", "id")
-    for event in events:
-        kind = event.kind
-        if kind == Kind.SUBMITTED:
-            entries.append(TimelineEntry("You submitted this complaint", event.created_at, by_student=True, status=Status.RECEIVED))
-        elif kind == Kind.STATUS_CHANGED:
-            new = Status(event.to_status)
-            entries.append(TimelineEntry(
-                f"Status changed to {new.label}", event.created_at, by=_staff_role(event.actor),
-                message=event.message, message_label=MESSAGE_LABELS.get(new, "Note"), status=new,
-            ))
-        elif kind == Kind.STILL_NOT_RESOLVED:
-            entries.append(TimelineEntry(
-                "You said this is still not resolved", event.created_at, message=event.message,
-                message_label="Your note", status=Status.UNDER_REVIEW, by_student=True,
-                note="The complaint returned to Under Review.",
-            ))
-        elif kind == Kind.RESPONSE:
-            entries.append(TimelineEntry(
-                f"Response from {_staff_role(event.actor)}", event.created_at, message=event.message,
-            ))
-        elif kind == Kind.FURTHER_INFORMATION:
-            entries.append(TimelineEntry(
-                "You added further information", event.created_at, message=event.message, by_student=True,
-            ))
-        elif kind == Kind.CANCELLATION_REQUESTED:
-            entries.append(TimelineEntry(
-                "You asked to cancel this complaint", event.created_at, message=event.message,
-                message_label="Your reason", by_student=True,
-                note="Your request was recorded. It does not cancel or change the complaint by itself.",
-            ))
-    return entries
+    return _timeline(complaint, "student", newest_first=False)
+
+
+def staff_timeline(complaint):
+    """The complaint's history for a Batch Advisor, newest first (P3-7), with names and roles."""
+    return _timeline(complaint, "staff", newest_first=True)
 
 
 def has_cancellation_request(complaint):

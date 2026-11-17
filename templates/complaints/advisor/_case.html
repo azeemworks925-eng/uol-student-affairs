@@ -1,0 +1,72 @@
+{# The selected case: header, context, original, history (newest first, P3-7), then Respond and Update status (DEC-305). #}
+<div class="sa-ws-case-inner">
+  <a class="sa-back sa-ws-back" href="{{ list_url }}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Complaints</a>
+  {% include "includes/messages.html" %}
+
+  <header class="sa-case-head sa-ws-case-head">
+    <div class="sa-case-ids">
+      <span class="sa-ref">{{ complaint.reference }}</span>
+      {% include "complaints/student/_status.html" with tone=tone label=complaint.get_status_display %}
+    </div>
+    <h1 class="sa-display" id="case-title">{{ complaint.title }}</h1>
+    <dl class="sa-facts">
+      <div><dt>Category</dt><dd>{{ complaint.category }}{% if complaint.subcategory %} · {{ complaint.subcategory.name }}{% endif %}</dd></div>
+      <div><dt>Submitted</dt><dd>{{ complaint.created_at|date:"j F Y, H:i" }}</dd></div>
+    </dl>
+    <ol class="sa-journey" aria-label="Where this complaint stands">
+      {% for step in journey %}<li class="is-{{ step.state }}"{% if step.state == "current" %} aria-current="step"{% endif %}><span class="dot" aria-hidden="true"></span>{{ step.label }}</li>{% endfor %}
+    </ol>
+  </header>
+
+  {% include "complaints/advisor/_context.html" %}
+
+  <div class="sa-ws-case-body">
+    <section class="sa-original" aria-labelledby="original-title">
+      <h2 class="sa-label" id="original-title">Student's original complaint</h2>
+      <div class="sa-prose">{{ complaint.description|linebreaksbr }}</div>
+    </section>
+
+    <section class="sa-section" aria-labelledby="history-title">
+      <div class="sa-section-head"><h2 class="sa-h2" id="history-title">History</h2><span class="sa-small sa-muted">Newest first</span></div>
+      <ol class="sa-timeline">
+        {% for entry in timeline %}
+        <li class="sa-timeline-item{% if entry.by_student %} is-student{% endif %}">
+          <div class="sa-timeline-head">
+            <span class="sa-timeline-title">{{ entry.title }}</span>
+            {% if entry.status %}{% include "complaints/student/_status.html" with tone=entry.tone label=entry.status_label %}{% endif %}
+          </div>
+          <p class="sa-timeline-meta"><time datetime="{{ entry.when|date:'c' }}">{{ entry.when|date:"j M Y, H:i" }}</time>{% if entry.by %} · {{ entry.by }}{% endif %}</p>
+          {% if entry.message %}<div class="sa-timeline-message">{% if entry.message_label %}<span class="sa-label">{{ entry.message_label }}</span>{% endif %}<div class="sa-prose">{{ entry.message|linebreaksbr }}</div></div>{% endif %}
+          {% if entry.note %}<p class="sa-small sa-muted mb-0">{{ entry.note }}</p>{% endif %}
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="sa-ws-panel" id="respond" aria-labelledby="respond-title">
+      <h2 class="sa-h2" id="respond-title">Respond</h2>
+      <form method="post" action="{% url 'advisor_complaint_respond' complaint.reference %}{% if list_state %}?{{ list_state }}{% endif %}" novalidate data-once-submit>
+        {% csrf_token %}
+        {% if error_panel == "response" %}<div class="sa-message sa-message--error mb-3" role="alert" tabindex="-1" data-error-focus>Your response was not sent. {% if response_form.non_field_errors %}{{ response_form.non_field_errors|join:" " }}{% else %}Check the field below.{% endif %}</div>{% endif %}
+        {% include "includes/form_field.html" with field=response_form.message %}
+        <button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">Send response</button>
+      </form>
+    </section>
+
+    <section class="sa-ws-panel" id="update-status" aria-labelledby="status-title">
+      <h2 class="sa-h2" id="status-title">Update status</h2>
+      {% if can_update_status %}
+        {% include "complaints/advisor/_status_form.html" %}
+      {% elif complaint.status == "resolved" %}
+        <p class="mb-0">This complaint is resolved. No further status changes are available to staff; the student can reopen it with “Still not resolved”.</p>
+      {% else %}
+        <p class="mb-0">This complaint is rejected. No further status changes are available.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <nav class="sa-ws-actionbar" aria-label="Case actions">
+    <a class="btn btn-sa-secondary" href="#respond">Respond</a>
+    <a class="btn btn-sa-secondary" href="#update-status">Update status</a>
+  </nav>
+</div>

@@ -39,6 +39,8 @@ STUDENT_COMPLAINT_VIEWS = (
     "student_complaint_request_cancellation",
 )
 
+ADVISOR_COMPLAINT_VIEWS = ("advisor_complaint_detail", "advisor_complaint_respond", "advisor_complaint_status")
+
 # (group heading or None, items)
 NAVIGATION = {
     User.Role.STUDENT: [
@@ -52,7 +54,7 @@ NAVIGATION = {
     User.Role.BATCH_ADVISOR: [
         (None, [
             NavItem("Overview", "grid", "advisor_home"),
-            NavItem("Complaints", "file"),
+            NavItem("Complaints", "file", "advisor_complaints", also_current=ADVISOR_COMPLAINT_VIEWS),
             NavItem("Collective Issues", "hand"),
             NavItem("Student Voice", "voice"),
             NavItem("Meetings", "calendar"),

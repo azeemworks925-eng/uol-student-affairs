@@ -13,9 +13,12 @@
   <div class="sa-section-head"><h2 class="sa-h2" id="cohorts-title">Assigned cohorts</h2></div>
   <ul class="sa-cohort-list">
     {% for a in assignments %}
-    <li class="sa-cohort-card">
-      <div class="batch">{{ a.batch }}</div>
-      <div class="sa-muted">{{ a.semester }} · {{ a.section }}</div>
+    <li>
+      <a class="sa-cohort-card sa-cohort-card--link" href="{{ a.complaints_url }}">
+        <span class="batch">{{ a.batch }}</span>
+        <span class="sa-muted">{{ a.semester }} · {{ a.section }}</span>
+        <span class="sa-small">Complaints<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></span>
+      </a>
     </li>
     {% endfor %}
   </ul>

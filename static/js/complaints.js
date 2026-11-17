@@ -76,3 +76,36 @@
     });
   });
 })();
+
+/*
+  Batch Advisor workspace (Complaints Part 3), progressive enhancement only:
+  - the status note's label follows the chosen status (required for Resolved and Rejected;
+    the form and the service enforce it either way);
+  - after a validation error, focus moves to the error summary of the open panel.
+*/
+(function () {
+  "use strict";
+
+  var statusForm = document.querySelector("form[data-status-form]");
+  var labelsData = document.getElementById("status-note-labels");
+  if (statusForm && labelsData) {
+    var labels = JSON.parse(labelsData.textContent);
+    var note = statusForm.querySelector("textarea[name='note']");
+    var noteLabel = note ? statusForm.querySelector("label[for='" + note.id + "']") : null;
+    var update = function () {
+      var chosen = statusForm.querySelector("input[name='new_status']:checked");
+      var info = chosen ? labels[chosen.value] : null;
+      if (!noteLabel || !info) return;
+      noteLabel.textContent = info.label + (info.required ? " (required)" : " (optional)");
+      note.required = info.required;
+    };
+    statusForm.addEventListener("change", update);
+    update();
+  }
+
+  var errorSummary = document.querySelector("[data-error-focus]");
+  if (errorSummary) {
+    errorSummary.scrollIntoView({ block: "center" });
+    errorSummary.focus({ preventScroll: true });
+  }
+})();

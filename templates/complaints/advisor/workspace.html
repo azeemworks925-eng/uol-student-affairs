@@ -1,0 +1,30 @@
+{% extends "layouts/app.html" %}
+{% load static %}
+{% comment %}
+  Batch Advisor complaints workspace (Complaints Part 3; COMPLAINTS_PART3_SPEC.md).
+  One template for every state: the URL selects a case, CSS decides the layout.
+  Laptop: list | case (+ context). Below 992px: the list, or the selected case alone.
+{% endcomment %}
+{% block title %}{% if complaint %}{{ complaint.reference }} · {% endif %}Complaints · UOL Student Affairs{% endblock %}
+{% block page_class %} sa-page--workspace{% endblock %}
+{% block messages %}{% endblock %}
+{% block content %}
+<div class="sa-workspace{% if complaint %} sa-workspace--has-case{% endif %}">
+  <section class="sa-ws-list" aria-labelledby="ws-list-title">
+    {% if not complaint %}{% include "includes/messages.html" %}{% endif %}
+    {% include "complaints/advisor/_list.html" %}
+  </section>
+  <section class="sa-ws-case" aria-labelledby="{% if complaint %}case-title{% else %}ws-empty-title{% endif %}">
+    {% if complaint %}
+      {% include "complaints/advisor/_case.html" %}
+    {% else %}
+      <div class="sa-ws-empty">
+        <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-file"/></svg>
+        <h2 class="sa-h2" id="ws-empty-title">Choose a complaint from the list.</h2>
+        {% if cohort_labels %}<p class="sa-small sa-muted mb-0">Showing complaints from {{ cohort_labels|join:", " }}.</p>{% endif %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

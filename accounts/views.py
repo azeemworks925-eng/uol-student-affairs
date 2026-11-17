@@ -8,6 +8,8 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 
+from complaints.advisor_views import cohort_value
+
 from .forms import StudentRegistrationForm
 from .identity import extract_sap_id
 from .models import StudentProfile, User
@@ -86,6 +88,10 @@ def student_home(request):
 @batch_advisor_required
 def advisor_home(request):
     assignments = list(request.user.advisor_assignments.select_related("batch", "semester", "section"))
+    workspace = reverse("advisor_complaints")
+    for a in assignments:
+        # P3-8: each card opens the complaints workspace filtered to this exact cohort.
+        a.complaints_url = f"{workspace}?{urlencode({'cohort': cohort_value(a.batch_id, a.semester_id, a.section_id)})}"
     return render(request, "accounts/advisor_home.html", {"assignments": assignments})
 
 

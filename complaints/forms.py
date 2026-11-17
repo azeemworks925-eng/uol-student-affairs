@@ -11,6 +11,7 @@ from django import forms
 from accounts.forms import AccessibleErrorsMixin
 
 from .models import TEXT_LIMIT, Complaint, ComplaintCategory, ComplaintSubcategory
+from .services import NOTE_REQUIRED, STAFF_TRANSITIONS
 
 TITLE_LIMIT = Complaint._meta.get_field("title").max_length
 
@@ -103,3 +104,98 @@ class CancellationRequestForm(AccessibleErrorsMixin, forms.Form):
         strip=True,
         widget=_textarea(3),
     )
+
+
+# ---------- Batch Advisor workspace (Complaints Part 3) ----------
+
+STATUS_NOTE_LABELS = {
+    Complaint.Status.UNDER_REVIEW: "Note to the student",
+    Complaint.Status.RESOLVED: "Resolution note",
+    Complaint.Status.REJECTED: "Reason for rejection",
+}
+
+
+class AdvisorResponseForm(AccessibleErrorsMixin, forms.Form):
+    message = forms.CharField(
+        label="Response to the student",
+        max_length=TEXT_LIMIT,
+        strip=True,
+        widget=_textarea(5),
+        help_text="Visible to the student. Sending a response does not change the status.",
+        error_messages={"required": "Write a response."},
+    )
+
+
+class StatusUpdateForm(AccessibleErrorsMixin, forms.Form):
+    """Offers only the transitions the service allows from the current status (DEC-221).
+
+    `expected_status` carries the status the advisor saw, so a change based on a stale page
+    is refused by services.change_status (P3-6).
+    """
+
+    new_status = forms.ChoiceField(
+        label="New status",
+        widget=forms.RadioSelect(attrs={"class": "form-check-input", "data-status-choice": ""}),
+        error_messages={"required": "Choose the new status.", "invalid_choice": "Choose one of the statuses offered."},
+    )
+    note = forms.CharField(
+        # Without JavaScript the label states the rule; with it, the label follows the choice.
+        label="Note to the student (required for Resolved and Rejected)",
+        required=False,
+        max_length=TEXT_LIMIT,
+        strip=True,
+        widget=_textarea(4),
+        help_text="Visible to the student in the complaint's history.",
+    )
+    expected_status = forms.ChoiceField(choices=Complaint.Status.choices, widget=forms.HiddenInput)
+
+    def __init__(self, *args, complaint, seen_status=None, **kwargs):
+        # Offer the transitions from the status the advisor saw (posted as expected_status),
+        # so a stale page reaches services.change_status, which refuses it atomically with a
+        # clear message, rather than failing here as an unexplained invalid choice.
+        basis = seen_status if seen_status in Complaint.Status.values else complaint.status
+        kwargs.setdefault("initial", {}).setdefault("expected_status", basis)
+        super().__init__(*args, **kwargs)
+        allowed = STAFF_TRANSITIONS.get(basis, set())
+        self.fields["new_status"].choices = [(value, label) for value, label in Complaint.Status.choices if value in allowed]
+        self.note_labels = {
+            value: {"label": STATUS_NOTE_LABELS[value], "required": value in NOTE_REQUIRED} for value in allowed
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        new_status = cleaned.get("new_status")
+        if new_status in NOTE_REQUIRED and not cleaned.get("note"):
+            self.add_error("note", NOTE_REQUIRED[new_status])
+        return cleaned
+
+
+class ComplaintListFilterForm(forms.Form):
+    """The workspace list's search, filters and sort (GET). Invalid values are ignored, so a
+    filter can only ever narrow the advisor's visible complaints (DEC-205)."""
+
+    SORTS = [("activity", "Latest activity"), ("newest", "Newest submitted")]
+    OPEN = "open"
+
+    q = forms.CharField(label="Search", required=False, max_length=100, strip=True, widget=forms.SearchInput)
+    cohort = forms.ChoiceField(label="Cohort", required=False)
+    status = forms.ChoiceField(label="Status", required=False)
+    category = forms.ChoiceField(label="Category", required=False)
+    sort = forms.ChoiceField(label="Sort by", required=False, choices=SORTS)
+
+    def __init__(self, data, *, cohorts, categories):
+        super().__init__(data)
+        self.fields["cohort"].choices = [("", "All assigned cohorts")] + cohorts
+        self.fields["status"].choices = (
+            [("", "All"), (self.OPEN, "Open")] + list(Complaint.Status.choices)
+        )
+        self.fields["category"].choices = [("", "All categories")] + [(str(c.pk), c.name) for c in categories]
+        for name, field in self.fields.items():
+            field.widget.attrs.setdefault("class", "form-control" if name == "q" else "form-select")
+        self.fields["q"].widget.attrs.update({"placeholder": "Search complaints", "aria-describedby": "ws-search-hint"})
+
+    def value(self, name):
+        """The cleaned value, or empty if the field was missing or invalid."""
+        if not hasattr(self, "cleaned_data"):
+            self.is_valid()
+        return self.cleaned_data.get(name) or ""

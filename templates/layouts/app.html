@@ -39,7 +39,7 @@
     </header>
 
     <main id="main" class="sa-page{% block page_class %}{% endblock %}" tabindex="-1">
-      {% include "includes/messages.html" %}
+      {% block messages %}{% include "includes/messages.html" %}{% endblock %}
       {% block content %}{% endblock %}
     </main>
 
