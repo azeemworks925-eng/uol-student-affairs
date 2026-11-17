@@ -70,6 +70,7 @@ class Section(models.Model):
 # The reporting window is defined in the university's local time, whatever the server's zone.
 REPORTING_TIME_ZONE = ZoneInfo("Asia/Karachi")
 EARLIEST_TERM_DATE, LATEST_TERM_DATE = date(1900, 1, 1), date(9998, 12, 31)
+_NOT_LOADED = object()  # is_current was deferred when the instance was loaded
 CURRENT_FLAG_MESSAGE = "The current term can only be changed with set_current_term() or clear_current_term()."
 
 
@@ -164,6 +165,12 @@ class AcademicTerm(models.Model):
             models.CheckConstraint(
                 condition=Q(end_date__gte=F("start_date")), name="academic_term_dates_valid"
             ),
+            # With the check above, this keeps both dates within 1900-9998, so the reporting
+            # window stays representable in UTC however the row was written.
+            models.CheckConstraint(
+                condition=Q(start_date__gte=EARLIEST_TERM_DATE) & Q(end_date__lte=LATEST_TERM_DATE),
+                name="academic_term_dates_supported",
+            ),
             models.CheckConstraint(
                 # An explicit comparison: on SQLite, Q(is_current=True) compiles to a bare
                 # truthiness test that would accept 2 alongside 1 (two "current" terms).
@@ -199,19 +206,52 @@ class AcademicTerm(models.Model):
         if self.start_date and self.end_date and self.end_date < self.start_date:
             raise ValidationError({"end_date": "The end date cannot be before the start date."})
 
+    # The current flag (`is_current`) is written only by academics.services, under row locks.
+    # Ordinary saves never write it, so a stale instance (for example an admin form loaded
+    # before another Super Admin changed the current term) cannot overwrite the service's change.
+    # An explicit attempt to change it is refused. "Explicit" is decided from the value the
+    # instance was loaded with, not from a fresh read of the row: a check-then-write against the
+    # stored row was the race found in review (see docs/technical/ACADEMIC_TERMS.md).
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        instance._loaded_is_current = instance.__dict__.get("is_current", _NOT_LOADED)
+        return instance
+
+    def refresh_from_db(self, *args, **kwargs):
+        super().refresh_from_db(*args, **kwargs)
+        if "is_current" in self.__dict__:
+            self._loaded_is_current = self.is_current
+
+    def _mark_current_flag(self, value):
+        """For academics.services: record the flag it has just written for this row."""
+        self.is_current = value
+        self._loaded_is_current = value
+
     def save(self, *args, **kwargs):
-        # The current flag is changed only by academics.services. Compare with the stored row,
-        # not in-memory state.
         update_fields = kwargs.get("update_fields")
-        writes_flag = update_fields is None or "is_current" in update_fields
-        if writes_flag:
-            # An instance built with an existing pk would overwrite that row, so it is compared too.
-            if self.pk is None or kwargs.get("force_insert"):
-                stored = None
-            else:
-                stored = AcademicTerm._base_manager.filter(pk=self.pk).values_list("is_current", flat=True).first()
-            if self.is_current != stored:
+        if update_fields is not None and "is_current" in set(update_fields):
+            raise ProtectedTermError(CURRENT_FLAG_MESSAGE)
+        if self._state.adding or kwargs.get("force_insert"):
+            # A new term is never current. An instance built with an existing pk is inserted,
+            # never used to overwrite that row (the duplicate pk is refused by the database).
+            if self.is_current is not None:
                 raise ProtectedTermError(CURRENT_FLAG_MESSAGE)
+            if self.pk is not None and not kwargs.get("force_update"):
+                kwargs["force_insert"] = True
+            super().save(*args, **kwargs)
+            self._loaded_is_current = None
+            return
+        loaded = getattr(self, "_loaded_is_current", _NOT_LOADED)
+        if "is_current" in self.__dict__ and self.is_current != loaded:
+            raise ProtectedTermError(CURRENT_FLAG_MESSAGE)  # changed in memory: an explicit attempt
+        if update_fields is None:
+            deferred = self.get_deferred_fields()
+            kwargs["update_fields"] = [
+                field.name for field in self._meta.concrete_fields
+                if not field.primary_key and field.name != "is_current" and field.attname not in deferred
+            ]
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):

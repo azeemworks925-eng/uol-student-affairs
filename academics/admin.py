@@ -3,7 +3,7 @@ from django.db import IntegrityError
 from django.http import HttpResponseRedirect
 
 from . import services
-from .models import AcademicTerm, Batch, Section, Semester
+from .models import AcademicTerm, Batch, ProtectedTermError, Section, Semester
 
 
 class AcademicEntryAdmin(admin.ModelAdmin):
@@ -55,16 +55,23 @@ class AcademicTermAdmin(admin.ModelAdmin):
         return False
 
     def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
-        # The form already refuses duplicate names (ignoring case and accents) and reversed
-        # dates. A duplicate saved by someone else at the same moment is caught by the
-        # database; the admin's transaction has rolled back by the time it arrives here.
+        # The form already refuses duplicate names (ignoring case and accents), reversed dates
+        # and unsupported dates, and an edit never writes the current flag (AcademicTerm.save),
+        # so a term made current or not current meanwhile keeps that state. Two conflicts can
+        # still only be detected while saving; the admin's transaction (changeform_view is
+        # atomic) has rolled back by the time they arrive here, so nothing was saved:
+        # - IntegrityError: for example, the same name saved by someone else at the same moment;
+        # - ProtectedTermError: a refused change to the current flag (a safeguard; the form
+        #   cannot send one).
+        # Any other exception propagates unchanged.
         try:
             return super().changeform_view(request, object_id, form_url, extra_context)
-        except IntegrityError:
+        except (IntegrityError, ProtectedTermError):
             self.message_user(
                 request,
-                "The term was not saved: it conflicts with a term saved at the same time "
-                "(for example, the same name). Check the list and try again.",
+                "The term was not saved because it conflicts with a change made at the same time "
+                "(for example, a term with the same name). Nothing was changed. Check the term "
+                "list, then try again.",
                 messages.ERROR,
             )
             return HttpResponseRedirect(request.get_full_path())

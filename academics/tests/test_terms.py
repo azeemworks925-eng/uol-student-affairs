@@ -8,6 +8,7 @@ from unittest import mock
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connection, connections, transaction
 from django.db.migrations.executor import MigrationExecutor
+from django.db.models import Model
 from django.test import TestCase, TransactionTestCase, skipUnlessDBFeature
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -126,6 +127,19 @@ class DatabaseConstraintTests(TestCase):
             cursor.execute(f"SELECT COUNT(*) FROM {connection.ops.quote_name(TABLE)} WHERE is_current IS NOT NULL")
             self.assertEqual(cursor.fetchone()[0], 1)
 
+    def test_database_refuses_unsupported_dates(self):
+        # academics.0003: ORM writes that skip full_clean() cannot store a date outside
+        # 1900-9998 (the reporting window must stay representable in UTC).
+        for start, end in ((date(1, 1, 1), date(2026, 1, 1)), (date(1899, 12, 31), date(2026, 1, 1)),
+                           (date(2026, 1, 1), date(9999, 12, 31))):
+            with self.subTest(start=start, end=end), self.assertRaises(IntegrityError), transaction.atomic():
+                AcademicTerm.objects.create(name=f"Edge {start}", start_date=start, end_date=end)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            raw("UPDATE {table} SET end_date = %s WHERE id = %s", [date(9999, 12, 31), self.a.pk])
+        edge = AcademicTerm.objects.create(name="Widest", start_date=date(1900, 1, 1), end_date=date(9998, 12, 31))
+        start, end = edge.window()
+        self.assertEqual((start.astimezone(UTC).year, end.astimezone(UTC).year), (1899, 9998))
+
     def test_database_refuses_reversed_dates_on_update(self):
         with self.assertRaises(IntegrityError), transaction.atomic():
             raw("UPDATE {table} SET end_date = %s WHERE id = %s", [date(2026, 1, 1), self.a.pk])
@@ -145,28 +159,80 @@ class OrmGuardTests(TestCase):
                 AcademicTerm.objects.create(name=f"New {value}", start_date=date(2027, 2, 1),
                                             end_date=date(2027, 6, 1), is_current=value)
 
-    def test_instance_save_cannot_change_the_flag(self):
+    def test_changing_the_flag_in_memory_is_refused(self):
+        # An explicit attempt: the flag differs from the value the instance was loaded with.
         self.other.is_current = True
         with self.assertRaises(ProtectedTermError):
             self.other.save()
-        self.term.is_current = None
+        loaded = AcademicTerm.objects.get(pk=self.term.pk)
+        loaded.is_current = None
+        loaded.name = "Renamed while clearing"
         with self.assertRaises(ProtectedTermError):
-            self.term.save(update_fields=["is_current"])
+            loaded.save()
+        self.assertEqual(current_pks(), [self.term.pk])
+        self.assertEqual(AcademicTerm.objects.get(pk=self.term.pk).name, "Fall 2026")
+
+    def test_update_fields_naming_the_flag_is_refused(self):
+        for fields in (["is_current"], ["name", "is_current"], ("is_current",)):
+            with self.subTest(fields=fields), self.assertRaises(ProtectedTermError):
+                AcademicTerm.objects.get(pk=self.term.pk).save(update_fields=fields)
         self.assertEqual(current_pks(), [self.term.pk])
 
-    def test_a_stale_copy_cannot_clear_the_flag(self):
+    def test_a_stale_instance_saves_its_edit_without_touching_the_flag(self):
+        # Loaded while not current; the service then makes it current; the stale copy saves an
+        # unrelated edit. Before the fix this raised (or, in a narrower window, cleared the flag).
         stale = AcademicTerm.objects.get(pk=self.other.pk)
-        services.set_current_term(stale)
-        self.other.name = "Renamed"  # self.other still says not current
-        with self.assertRaises(ProtectedTermError):
-            self.other.save()
+        services.set_current_term(AcademicTerm.objects.get(pk=self.other.pk))
+        stale.name = "Spring 2026 (renamed)"
+        stale.save()
+        row = AcademicTerm.objects.get(pk=self.other.pk)
+        self.assertEqual((row.name, row.is_current), ("Spring 2026 (renamed)", True))
         self.assertEqual(current_pks(), [self.other.pk])
 
-    def test_an_unsaved_copy_with_an_existing_pk_cannot_clear_the_flag(self):
-        forged = AcademicTerm(pk=self.term.pk, name="Forged", start_date=date(2026, 9, 1), end_date=date(2027, 1, 15))
+    def test_a_stale_current_instance_cannot_restore_the_flag(self):
+        stale = AcademicTerm.objects.get(pk=self.term.pk)  # loaded while current
+        services.set_current_term(AcademicTerm.objects.get(pk=self.other.pk))
+        stale.end_date = date(2027, 1, 20)
+        stale.save()
+        row = AcademicTerm.objects.get(pk=self.term.pk)
+        self.assertEqual((row.end_date, row.is_current), (date(2027, 1, 20), None))
+        self.assertEqual(current_pks(), [self.other.pk])
+
+    def test_an_ordinary_save_never_writes_the_flag_column(self):
+        term = AcademicTerm.objects.get(pk=self.term.pk)
+        term.name = "Fall 2026 (edited)"
+        with CaptureQueriesContext(connection) as queries:
+            term.save()
+        updates = [q["sql"] for q in queries.captured_queries if q["sql"].upper().startswith("UPDATE")]
+        self.assertEqual(len(updates), 1)
+        self.assertNotIn("is_current", updates[0])
+        self.assertIn("name", updates[0])
+
+    def test_service_results_and_refresh_keep_instances_saveable(self):
+        services.set_current_term(self.other)  # the instance is updated by the service
+        self.other.name = "Spring 2026 (main)"
+        self.other.save()
+        self.term.refresh_from_db()  # now not current
+        self.term.name = "Fall 2026 (main)"
+        self.term.save()
+        self.assertEqual(current_pks(), [self.other.pk])
+
+    def test_deferred_flag_is_neither_written_nor_treated_as_a_change(self):
+        term = AcademicTerm.objects.only("name").get(pk=self.term.pk)
+        term.name = "Only name loaded"
+        term.save()
+        self.assertEqual(AcademicTerm.objects.get(pk=self.term.pk).is_current, True)
+        term = AcademicTerm.objects.defer("is_current").get(pk=self.other.pk)
+        term.is_current = True  # assigned although never loaded: explicit
         with self.assertRaises(ProtectedTermError):
+            term.save()
+
+    def test_an_unsaved_copy_with_an_existing_pk_never_overwrites_the_row(self):
+        forged = AcademicTerm(pk=self.term.pk, name="Forged", start_date=date(2026, 9, 1), end_date=date(2027, 1, 15))
+        with self.assertRaises(IntegrityError), transaction.atomic():
             forged.save()
-        self.assertEqual(AcademicTerm.objects.get(pk=self.term.pk).name, "Fall 2026")
+        row = AcademicTerm.objects.get(pk=self.term.pk)
+        self.assertEqual((row.name, row.is_current), ("Fall 2026", True))
 
     def test_other_fields_still_save(self):
         self.term.name = "Fall 2026 (main)"
@@ -439,6 +505,99 @@ class ConcurrencyTests(TransactionTestCase):
         self.assertEqual(results["second"], (None, False))  # it saw that nothing was current any more
         self.assertEqual(current_pks(), [])
 
+    # Regressions for the review of PR #18: an ordinary edit (what the admin change form does:
+    # load the term, change a field, save) racing a current-term change on another connection.
+
+    def edit_after(self, pk, edit, started, proceed, results, *, pause_inside_save=False):
+        """In its own transaction: load term `pk`, signal `started`, wait for `proceed`, then edit
+        and save it. With pause_inside_save, it waits inside save() instead, after the term's own
+        save logic has run and just before the row is written (the window found in review)."""
+
+        def target():
+            with transaction.atomic():
+                term = AcademicTerm.objects.get(pk=pk)
+                edit(term)
+                if pause_inside_save:
+                    real_save = Model.save
+
+                    def paused(instance, *args, **kwargs):
+                        started.set()
+                        proceed.wait(self.WAIT * 2)
+                        return real_save(instance, *args, **kwargs)
+
+                    with mock.patch.object(Model, "save", paused):
+                        term.save()
+                else:
+                    started.set()
+                    proceed.wait(self.WAIT * 2)
+                    term.save()
+            return "saved"
+
+        return self.in_thread(target, results, "edit")
+
+    def race_edit_against(self, change, pk, edit, *, pause_inside_save):
+        results, started, proceed = {}, threading.Event(), threading.Event()
+        editor = self.edit_after(pk, edit, started, proceed, results, pause_inside_save=pause_inside_save)
+        self.assertTrue(started.wait(self.WAIT), "the edit did not start")
+        service = self.in_thread(change, results, "service")
+        service.join(self.WAIT)
+        self.assertFalse(service.is_alive(), "the service change should not wait for the edit")
+        proceed.set()
+        editor.join(self.WAIT)
+        self.assertEqual(results["edit"], "saved")
+        return results
+
+    def rename(self, term):
+        term.name = "A (renamed)"
+
+    def test_an_edit_inside_save_cannot_undo_a_concurrent_selection(self):
+        # The reproduced lost update: the edit's save() had already checked the row when the
+        # service committed; the old full save then wrote is_current=NULL back.
+        results = self.race_edit_against(
+            lambda: services.set_current_term(AcademicTerm.objects.get(pk=self.a.pk)),
+            self.a.pk, self.rename, pause_inside_save=True,
+        )
+        self.assertEqual(results["service"], (None, True))
+        row = AcademicTerm.objects.get(pk=self.a.pk)
+        self.assertEqual((row.name, row.is_current), ("A (renamed)", True))
+        self.assertEqual(current_pks(), [self.a.pk])
+
+    def test_an_edit_loaded_before_a_selection_keeps_the_selection(self):
+        # The stale admin form: loaded while not current, saved after the service committed.
+        results = self.race_edit_against(
+            lambda: services.set_current_term(AcademicTerm.objects.get(pk=self.a.pk)),
+            self.a.pk, self.rename, pause_inside_save=False,
+        )
+        self.assertEqual(results["service"], (None, True))
+        row = AcademicTerm.objects.get(pk=self.a.pk)
+        self.assertEqual((row.name, row.is_current), ("A (renamed)", True))
+        self.assertEqual(current_pks(), [self.a.pk])
+
+    def test_an_edit_of_the_old_current_term_cannot_restore_it(self):
+        # Loaded while current; another Super Admin switches to B; the edit then saves.
+        for pause_inside_save in (False, True):
+            with self.subTest(pause_inside_save=pause_inside_save):
+                services.set_current_term(AcademicTerm.objects.get(pk=self.a.pk))
+                results = self.race_edit_against(
+                    lambda: services.set_current_term(AcademicTerm.objects.get(pk=self.b.pk)),
+                    self.a.pk, lambda term: setattr(term, "end_date", date(2026, 6, 29)),
+                    pause_inside_save=pause_inside_save,
+                )
+                previous, changed = results["service"]
+                self.assertEqual((previous.pk, changed), (self.a.pk, True))
+                row = AcademicTerm.objects.get(pk=self.a.pk)
+                self.assertEqual((row.end_date, row.is_current), (date(2026, 6, 29), None))
+                self.assertEqual(current_pks(), [self.b.pk])
+
+    def test_an_edit_cannot_undo_a_concurrent_clear(self):
+        services.set_current_term(self.a)
+        results = self.race_edit_against(
+            services.clear_current_term, self.a.pk, self.rename, pause_inside_save=True,
+        )
+        self.assertEqual(results["service"][1], True)
+        self.assertEqual(AcademicTerm.objects.get(pk=self.a.pk).name, "A (renamed)")
+        self.assertEqual(current_pks(), [])
+
     def test_many_writers_never_leave_two_current_terms_or_deadlock(self):
         terms = [self.a, self.b, self.c]
         barrier, errors = threading.Barrier(6), []
@@ -467,7 +626,8 @@ class ConcurrencyTests(TransactionTestCase):
 
 
 class MigrationTests(TransactionTestCase):
-    """academics.0002_academicterm is reversible on MySQL and SQLite."""
+    """academics.0002_academicterm and 0003_academicterm_dates_supported are reversible on
+    MySQL and SQLite."""
 
     def test_migration_can_be_reversed_and_reapplied(self):
         executor = MigrationExecutor(connection)
@@ -481,6 +641,17 @@ class MigrationTests(TransactionTestCase):
             constraints = connection.introspection.get_constraints(cursor, TABLE)
         self.assertIn("academic_term_dates_valid", constraints)
         self.assertIn("academic_term_current_true_or_null", constraints)
+        self.assertIn("academic_term_dates_supported", constraints)
         unique_columns = [c["columns"] for c in constraints.values() if c["unique"] and not c["primary_key"]]
         self.assertIn(["is_current"], unique_columns)
         self.assertIn(["name"], unique_columns)
+
+    def test_date_range_migration_can_be_reversed_and_reapplied(self):
+        executor = MigrationExecutor(connection)
+        executor.migrate([("academics", "0002_academicterm")])
+        with connection.cursor() as cursor:
+            self.assertNotIn("academic_term_dates_supported", connection.introspection.get_constraints(cursor, TABLE))
+        executor = MigrationExecutor(connection)
+        executor.migrate(executor.loader.graph.leaf_nodes())
+        with connection.cursor() as cursor:
+            self.assertIn("academic_term_dates_supported", connection.introspection.get_constraints(cursor, TABLE))

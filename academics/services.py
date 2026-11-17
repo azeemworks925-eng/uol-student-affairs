@@ -76,9 +76,9 @@ def set_current_term(term):
     if term is None or term.pk is None:
         raise AcademicTerm.DoesNotExist("A saved academic term is required.")
     previous, changed = _run(term.pk)
-    term.is_current = True
+    term._mark_current_flag(True)
     if previous is not None and previous.pk != term.pk:
-        previous.is_current = None
+        previous._mark_current_flag(None)
     return previous, changed
 
 
@@ -90,5 +90,5 @@ def clear_current_term(expected=ANY):
     expected_pk = expected if expected is ANY else (expected.pk if expected is not None else None)
     previous, changed = _run(None, expected_pk)
     if previous is not None:
-        previous.is_current = None
+        previous._mark_current_flag(None)
     return previous, changed

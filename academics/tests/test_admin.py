@@ -11,7 +11,7 @@ from django.urls import reverse
 
 from academics import services
 from academics.admin import AcademicTermAdmin
-from academics.models import AcademicTerm
+from academics.models import AcademicTerm, ProtectedTermError
 from accounts.tests.helpers import make_academics, make_advisor, make_student, make_super_admin
 
 CHANGELIST = reverse("admin:academics_academicterm_changelist")
@@ -138,6 +138,68 @@ class FormTests(TermAdminTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("error", [level for level, _ in self.messages(response)])
         self.assertFalse(AcademicTerm.objects.filter(name="Race 2026").exists())
+
+
+class StaleFormTests(TermAdminTestCase):
+    """Regressions for the review of PR #18: the change form loads the term, and another Super
+    Admin changes the current term before this form is saved. The switch is simulated at the
+    last moment before the save (in save_model), on the same request; the real two-connection
+    races are in academics.tests.test_terms.ConcurrencyTests."""
+
+    def submit_after(self, change, term, **data):
+        real_save_model = AcademicTermAdmin.save_model
+
+        def concurrent_change_then_save(admin_self, request, obj, form, changed):
+            change()
+            return real_save_model(admin_self, request, obj, form, changed)
+
+        with mock.patch.object(AcademicTermAdmin, "save_model", concurrent_change_then_save):
+            return self.client.post(change_url(term), form_data(**data), follow=True)
+
+    def test_editing_the_old_current_term_after_a_switch_is_saved_safely(self):
+        # Before the fix: HTTP 500 (ProtectedTermError).
+        services.set_current_term(self.fall)
+        response = self.submit_after(
+            lambda: services.set_current_term(AcademicTerm.objects.get(pk=self.spring.pk)),
+            self.fall, name="Fall 2026 (renamed)",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.redirect_chain[-1][1], 302)
+        self.assertEqual(self.messages(response)[0][0], "success")
+        fall = AcademicTerm.objects.get(pk=self.fall.pk)
+        self.assertEqual((fall.name, fall.is_current), ("Fall 2026 (renamed)", None))
+        self.assertEqual(current_pks(), [self.spring.pk])
+        self.assertEqual(AcademicTerm.objects.get(pk=self.spring.pk).name, "Spring 2026")
+
+    def test_editing_a_term_made_current_meanwhile_keeps_it_current(self):
+        # Before the fix (in the narrower window): a silent lost update, leaving no current term.
+        response = self.submit_after(
+            lambda: services.set_current_term(AcademicTerm.objects.get(pk=self.fall.pk)),
+            self.fall, name="Fall 2026 (renamed)",
+        )
+        self.assertEqual(response.redirect_chain[-1][1], 302)
+        fall = AcademicTerm.objects.get(pk=self.fall.pk)
+        self.assertEqual((fall.name, fall.is_current), ("Fall 2026 (renamed)", True))
+        self.assertEqual(current_pks(), [self.fall.pk])
+
+    def test_a_refused_flag_change_is_a_message_not_a_server_error(self):
+        # A safeguard: the form cannot send the flag, but if a save is refused it is reported.
+        with mock.patch.object(AcademicTerm, "save", side_effect=ProtectedTermError("refused")):
+            response = self.client.post(change_url(self.fall), form_data(name="Never saved"), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            self.messages(response),
+            [("error", "The term was not saved because it conflicts with a change made at the same time "
+                       "(for example, a term with the same name). Nothing was changed. Check the term "
+                       "list, then try again.")],
+        )
+        self.assertEqual(AcademicTerm.objects.get(pk=self.fall.pk).name, "Fall 2026")
+
+    def test_unrelated_errors_are_not_swallowed(self):
+        with mock.patch.object(AcademicTerm, "save", side_effect=ValueError("unrelated")):
+            with self.assertRaises(ValueError):
+                self.client.post(change_url(self.fall), form_data(name="Never saved"))
+        self.assertEqual(AcademicTerm.objects.get(pk=self.fall.pk).name, "Fall 2026")
 
 
 class ListTests(TermAdminTestCase):

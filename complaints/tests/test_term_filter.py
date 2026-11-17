@@ -108,6 +108,14 @@ class TermOnlyTests(TermFilterTestCase):
         self.assertEqual(self.refs(response), set())
         self.assertContains(response, "No complaints match these filters.")
 
+    def test_the_widest_supported_term_filters_without_error(self):
+        # Dates outside 1900-9998 cannot be stored (academics.0003), so every stored term has a
+        # window that converts to UTC; the extremes that can exist are handled.
+        widest = AcademicTerm.objects.create(name="Widest", start_date=date(1900, 1, 1), end_date=date(9998, 12, 31))
+        response = self.get(term=widest.pk)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(self.refs(response)), 6)
+
     def test_invalid_or_unknown_terms_are_ignored(self):
         for value in ("abc", "999999", "-1", "1.5", " ", "%00", str(self.fall.pk) + "x"):
             with self.subTest(value=value):
