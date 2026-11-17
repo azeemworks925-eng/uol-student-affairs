@@ -36,7 +36,7 @@ def student_register(request):
         # Registration is one-time; corrections are made by the Super Admin (DEC-202).
         return redirect("home")
 
-    form = StudentRegistrationForm(request.POST or None)
+    form = StudentRegistrationForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
         try:
             register_student(request.user, **form.cleaned_data)
