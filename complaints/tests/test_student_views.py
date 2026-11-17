@@ -191,7 +191,9 @@ class SubmissionPageTests(StudentPagesTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Give your complaint a short title.")
         self.assertContains(response, 'aria-invalid="true"')
-        self.assertContains(response, 'aria-describedby="id_title-error"')
+        # The error and the field's help text are both announced.
+        self.assertContains(response, 'aria-describedby="id_title-error id_title_helptext"')
+        self.assertContains(response, 'id="id_title_helptext"')
         self.assertContains(response, "Still here")
         self.assertFalse(Complaint.objects.exists())
 

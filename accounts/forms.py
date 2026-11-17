@@ -14,7 +14,11 @@ class AccessibleErrorsMixin:
                 attrs = self.fields[name].widget.attrs
                 attrs["class"] = f"{attrs.get('class', '')} is-invalid".strip()
                 attrs["aria-invalid"] = "true"
-                attrs["aria-describedby"] = f"{self[name].id_for_label}-error"
+                # Keep Django's help-text reference (<id>_helptext) alongside the error.
+                described_by = [f"{self[name].id_for_label}-error"]
+                if self.fields[name].help_text:
+                    described_by.append(f"{self[name].id_for_label}_helptext")
+                attrs["aria-describedby"] = " ".join(described_by)
 
 
 class StudentRegistrationForm(AccessibleErrorsMixin, forms.Form):
