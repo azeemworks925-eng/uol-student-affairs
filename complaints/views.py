@@ -59,7 +59,9 @@ def _open_complaints_by_category(student):
 @student_required
 @require_http_methods(["GET", "POST"])
 def complaint_new(request):
-    form = ComplaintSubmissionForm(request.POST or None)
+    # Bind on every POST: an entirely empty POST is a falsey QueryDict, and must still be
+    # validated so the required-field errors are shown.
+    form = ComplaintSubmissionForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
         data = form.cleaned_data
         try:

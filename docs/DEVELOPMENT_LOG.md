@@ -51,15 +51,16 @@ Rules:
 
 **Verification**
 
-- Tests: 31 new tests in `complaints/tests/test_student_views.py`, covering:
+- Tests: 32 new tests in `complaints/tests/test_student_views.py`, covering:
   - access by role, anonymous, deactivated and unregistered users;
   - another student's reference, and POST-only actions;
-  - submission, cohort from the profile, inactive categories, mismatched or unknown subcategories, kept values and ARIA errors, overlong input, and the duplicate notice;
+  - submission, cohort from the profile, inactive categories, mismatched or unknown subcategories, an entirely empty POST, kept values and ARIA errors, overlong input, and the duplicate notice;
   - list, filter, pagination and empty states;
   - details, timeline privacy and the three actions, including refused actions;
   - navigation integration.
 - Two PR #6 tests that asserted "Complaints" and "Submit a complaint" were not yet links were updated to the new behaviour; Student Voice and Meetings are still checked as unavailable.
-- Results: 267/267 on MySQL 8.0.44 in two consecutive `--keepdb` runs, and 267 on SQLite with 1 skipped (the MySQL-only concurrency test). `check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0.
+- Review fix: an entirely empty POST to the submission page created an unbound form (an empty `QueryDict` is falsey), so the blank form came back without errors. The form is now bound on every POST, and a regression test covers it.
+- Results: 268/268 on MySQL 8.0.44 in two consecutive `--keepdb` runs, and 268 on SQLite with 1 skipped (the MySQL-only concurrency test). `check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0.
 - Browser: headless Chrome at 100% zoom at 1280×590 (DEC-307), 1232×590, 1100×590, 1600×740, 1440×800 and 360px. 11 page states (empty, filtered and full lists; the form, its errors and the duplicate notice; received, resolved, cancellation-requested, error and keyboard-focus details) × 6 viewports = 66 combinations. All have no horizontal overflow, no clipped or covered content, local fonts, no outside requests, and touch targets of at least 44px on phones.
   - Found and fixed during the checks: status filter chips scrolling out of view at 360px (now wrap), dates breaking mid-date, a dangling journey connector on small phones, and controls under 44px on phones.
 

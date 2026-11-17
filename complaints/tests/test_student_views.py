@@ -171,6 +171,21 @@ class SubmissionPageTests(StudentPagesTestCase):
                 self.assertContains(response, message)
         self.assertFalse(Complaint.objects.exists())
 
+    def test_entirely_empty_post_shows_required_field_errors(self):
+        response = self.client.post(reverse("student_complaint_new"), {})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "complaints/student/new.html")
+        form = response.context["form"]
+        self.assertTrue(form.is_bound)
+        self.assertFalse(form.is_valid())
+        self.assertEqual(set(form.errors), {"category", "title", "description"})
+        for message in ("Choose a category.", "Give your complaint a short title.", "Describe your complaint."):
+            self.assertContains(response, message)
+        for field in ("category", "title", "description"):
+            self.assertContains(response, f'id="id_{field}-error"')
+        self.assertFalse(Complaint.objects.exists())
+        self.assertFalse(ComplaintEvent.objects.exists())
+
     def test_invalid_submission_keeps_values_and_marks_errors(self):
         response = self.client.post(reverse("student_complaint_new"), self.submission(title="", description="Still here"))
         self.assertEqual(response.status_code, 200)
