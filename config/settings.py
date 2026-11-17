@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.google",
     "accounts",
     "academics",
+    "complaints",
 ]
 
 MIDDLEWARE = [

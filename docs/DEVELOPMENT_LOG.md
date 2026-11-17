@@ -21,8 +21,105 @@ Rules:
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O25, O30 to O34. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
-| Product features | Complaints, Student Voice, meetings and the Super Admin analytics are not implemented. |
+| Complaints | Part 1 (backend foundation: models, services, permissions, tests) on branch `feat/complaints-foundation`, awaiting review. No complaint screens yet. |
+| Other product features | Student Voice, meetings, collective issues and the Super Admin analytics are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
+
+---
+
+## 2026-11-17 — Complaints Part 1: backend foundation
+
+**Context**
+
+- Branch `feat/complaints-foundation`, from `main` at `5b87417` (after PR #5). Backend only: no views, URLs, templates or admin screens.
+- Implements DEC-030, DEC-031 and DEC-220 to DEC-230 within the exact-cohort rules of DEC-020, DEC-204, DEC-205 and DEC-210.
+
+**What was done**
+
+- New `complaints` app.
+  - `ComplaintCategory` and `ComplaintSubcategory`: database-managed and deactivated rather than deleted (DEC-220). Migration `0002_initial_categories` adds Academic, Non-academic, Personal/Wellbeing and Other as ordinary rows; no code depends on those names.
+  - `Complaint`:
+    - the submitting student;
+    - the exact cohort at submission (batch, semester and section foreign keys, kept if the student's profile later changes);
+    - category, optional subcategory, title, original description and status;
+    - an optional responsible owner;
+    - timestamps.
+  - Reference IDs such as `CMP-2026-00042` are derived from the primary key inside the submission transaction, so concurrent submissions cannot collide, and the column is unique.
+  - Statuses: Received, Under Review, Resolved and Rejected (DEC-221), with a database check. There are no priority or overdue states (DEC-226).
+  - `ComplaintEvent`: an immutable history entry for submission, status changes, "Still not resolved", responses, further information, cancellation requests and changes of responsible owner. Database checks require a rejection reason and a resolution note, text on responses and further information, and both ends of every status change.
+  - Every foreign key uses PROTECT, and complaints and events refuse `save` edits and `delete`. Deactivating academic structure or a category keeps every complaint and its history (DEC-210).
+- `complaints.services`: every state change runs in a transaction, locks the complaint row, checks permission and records an event.
+  - Submission takes the cohort from the student's own registered profile, never from the request, and requires it to be active. The category and subcategory must be active.
+  - Status changes by a cohort Batch Advisor or the Super Admin: Received → Under Review, Resolved or Rejected; Under Review → Resolved or Rejected.
+  - Responses never change the status.
+  - The student's "Still not resolved" returns a resolved complaint to Under Review (DEC-222).
+  - Further information keeps the original description (DEC-223).
+  - A cancellation request is recorded only (DEC-224, O28).
+  - The Super Admin can assign, reassign or take over the responsible owner (DEC-227, DEC-228).
+  - Possible duplicates are the student's own open complaints in the same category. They are a warning only and never block a submission (DEC-225).
+- `complaints.permissions` (DEC-229, DEC-205):
+  - **Students:** only the complaints they submitted.
+  - **Batch Advisors:** only complaints whose stored cohort exactly matches one of their assignments, so shared cohorts work and partial matches grant nothing.
+  - **Super Admins:** everything.
+  - **Inactive users:** nothing.
+  - `get_visible_complaint` returns 404 for anything outside the user's scope.
+- `accounts.permissions`: the exact-cohort filter is now public (`assigned_cohort_filter`) so complaints reuse it rather than duplicate it.
+
+**Tests**
+
+- 46 new tests in `complaints/tests/`:
+  - submission and validation;
+  - reference uniqueness, including 8 concurrent submissions on separate MySQL connections;
+  - exact-cohort access, including the same semester and section in another batch, partial matches, shared cohorts and unassigned advisors;
+  - changing a reference to reach another student's complaint;
+  - the status rules and mandatory notes, "Still not resolved", further information and immutable history;
+  - cancellation requests, and the responsible owner;
+  - deactivated structure and categories.
+- Results: 216/216 on MySQL 8.0.44 (`manage.py test --keepdb`) and 216 on SQLite with 1 skipped (the concurrency test needs row locking, which SQLite lacks).
+- `manage.py check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0, with only the known allauth W036 warning.
+
+**Review follow-up: bulk ORM operations (2026-11-17)**
+
+- Found: the instance-level `save()`/`delete()` guards did not cover Django's bulk paths. A probe on a test database confirmed that these went through:
+  - `QuerySet.update()`, including through `complaint.events`;
+  - `bulk_update()`;
+  - `QuerySet.delete()`;
+  - an upserting `bulk_create(update_conflicts=True)`.
+
+  Together they could rewrite or delete history, change a complaint's status or description, or delete a complaint that had no events yet.
+- Fixed: `Complaint` and `ComplaintEvent` now use a `ProtectedQuerySet` that refuses `update()`, `bulk_update()`, `delete()` and upserting `bulk_create()`, raising `ProtectedRecordError` (a `ValidationError`).
+  - Plain inserts still work.
+  - The services are unaffected because `Model.save()` updates rows through Django's internal `_update()`.
+  - No migration was needed.
+- Scope: this covers the application's ordinary ORM paths. It does not stop raw SQL, direct database access or Django's private `_base_manager` / `_update()` APIs.
+- Tests: 16 new tests in `complaints/tests/test_immutability.py` run each real operation and check that the database is unchanged. Two existing tests were updated to the new mechanism with the same assertions: the duplicate-reference test now collides through `save()`, and complaint deletion now expects `ProtectedRecordError`. Run against the previous models, 12 of the 16 new tests fail; the other 4 cover paths that were already protected.
+- Results: 232/232 on MySQL 8.0.44 in two consecutive `--keepdb` runs, and 232 on SQLite with 1 skipped. `check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0, with only the known allauth W036 warning.
+
+**Review follow-up: detached instances (2026-11-17)**
+
+- Found: the instance guards trusted in-memory state. A newly constructed object given an existing primary key has `_state.adding=True` and none of the description captured on load, so `save()` updated the stored row. Reproduced on a test database:
+  - `ComplaintEvent(pk=existing, ..., created_at=...).save()` rewrote an event's kind and message;
+  - `ComplaintEvent(pk=existing, message=...).save(update_fields=["message"])` rewrote a message;
+  - `Complaint(pk=existing, ...).save()` and `Complaint(pk=existing, description=...).save(update_fields=["description"])` replaced the original description.
+
+  A bare detached event save was stopped only incidentally, by the NOT NULL check on `created_at`.
+- Fixed:
+  - `ComplaintEvent.save()` refuses `update_fields` and any primary key that already exists, and always inserts (`force_insert=True`), so it can never update a row. A duplicate key racing in between fails in the database.
+  - `Complaint.save()` compares the description with the stored row whenever the save could write it, instead of relying on the value captured on load (the `from_db` hook was removed). The services save with `update_fields` that exclude `description`, so they make no extra query.
+  - No migration was needed.
+- Scope: the `Complaint` guard protects the original description only, as specified. A detached `save()` can still change other complaint fields; status and owner changes are meant to go through `complaints.services`. Raw SQL and Django's private APIs remain outside what the ORM can protect.
+- Tests: 4 new tests in `complaints/tests/test_immutability.py` check that the database is unchanged after each refused attempt. Run against the previous models (`b344091`), the 3 detached-instance tests fail; the fourth (saving with an unchanged description is allowed) passes on both, as intended. No test was removed or skipped.
+- Results: 236/236 on MySQL 8.0.44 in two consecutive `--keepdb` runs, and 236 on SQLite with 1 skipped (the MySQL-only concurrency test). `check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0.
+
+**Limitations from open decisions**
+
+- O27: no responsible owner is assigned automatically; only the Super Admin sets it. Every Batch Advisor of the cohort can act on a complaint until O27 decides whether actions are limited to the owner.
+- O28: a cancellation request is only recorded. It does not change the status, and nobody approves or rejects it.
+- O33: no event is classified as needing an advisor response, and there is no "Waiting for you" queue.
+
+**Not done (later parts)**
+
+- Student screens (submit, My Submissions, history), Batch Advisor and Super Admin complaint screens, category management for the Super Admin, in-app notifications for status changes and responses (DEC-070, DEC-270), and the DEC-281 analytics.
 
 ---
 
