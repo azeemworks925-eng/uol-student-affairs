@@ -1,6 +1,6 @@
 # Complaints Part 3 — Batch Advisor Complaints Workspace: specification
 
-**Status:** Proposed. For technical-lead review before any implementation.
+**Status:** Approved (PR #10), with decisions P3-1 to P3-8 as recommended. Implemented on branch `feat/advisor-complaints-workspace`; see `docs/technical/COMPLAINTS.md` section 3.
 **Builds on:** `main` at `0cc2013`: Part 1 backend (PR #7) and Part 2 student pages (PR #8).
 **Decisions:** DEC-205, DEC-221, DEC-222, DEC-224 to DEC-229, DEC-283, DEC-300, DEC-301, DEC-302, DEC-305, DEC-307; design plan section 5 (Batch Advisor Complaints) and section 8 (Mobile).
 **Open, and not decided here:** O27 (responsible owner), O28 (cancellation handling), O33 (which events need a response).
