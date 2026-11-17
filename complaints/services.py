@@ -11,7 +11,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from accounts.models import StudentProfile
+from accounts.models import StudentProfile, User
 
 from .models import Complaint, ComplaintCategory, ComplaintEvent, ComplaintSubcategory
 from .permissions import advisor_has_cohort, can_manage_complaint, is_complaint_owner
@@ -196,20 +196,41 @@ def request_cancellation(student, complaint, reason=""):
     return _record(complaint, student, Kind.CANCELLATION_REQUESTED, message=_text(reason))
 
 
+def is_eligible_owner(user, complaint):
+    """DEC-310: an active Batch Advisor assigned to the complaint's exact batch + semester +
+    section, or an active Super Admin. The one rule used by assign_responsible and the forms."""
+    return user is not None and user.is_active and (
+        user.is_super_admin or (user.is_batch_advisor and advisor_has_cohort(user, complaint))
+    )
+
+
+def eligible_advisors(complaint):
+    """Active Batch Advisors assigned to the complaint's exact cohort, by name."""
+    return (
+        User.objects.filter(
+            role=User.Role.BATCH_ADVISOR,
+            is_active=True,
+            advisor_assignments__batch_id=complaint.batch_id,
+            advisor_assignments__semester_id=complaint.semester_id,
+            advisor_assignments__section_id=complaint.section_id,
+        )
+        .distinct()
+        .order_by("full_name", "email")
+    )
+
+
 @transaction.atomic
 def assign_responsible(actor, complaint, owner):
     """
-    The Super Admin assigns or reassigns the responsible owner (DEC-227), or takes the
-    complaint over (DEC-228). The owner must be an active Batch Advisor of the exact cohort,
-    or a Super Admin. No owner is assigned automatically: that rule is OPEN (O27).
+    A Super Admin assigns or reassigns the responsible owner, or takes the complaint over
+    (DEC-227, DEC-228, DEC-310). The owner must satisfy is_eligible_owner. Nothing assigns
+    an owner automatically, and the owner grants no extra access: every advisor of the exact
+    cohort keeps their visibility and actions. Repeating the current owner is a no-op.
     """
     if not (actor.is_authenticated and actor.is_active and actor.is_super_admin):
         raise PermissionDenied("Only the Super Admin can assign the responsible owner.")
     complaint = _locked(complaint)
-    eligible = owner is not None and owner.is_active and (
-        owner.is_super_admin or (owner.is_batch_advisor and advisor_has_cohort(owner, complaint))
-    )
-    if not eligible:
+    if not is_eligible_owner(owner, complaint):
         raise ValidationError(
             {"responsible": "Choose an active Batch Advisor assigned to this exact cohort, or a Super Admin."}
         )

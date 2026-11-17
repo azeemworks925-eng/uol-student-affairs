@@ -22,6 +22,8 @@ STATUS_TONES = {
     Status.REJECTED: "rejected",
 }
 
+# Owner changes are internal to staff (DEC-310): never shown to students. The Batch Advisor
+# workspace keeps its Part 3 history; the Super Admin workspace shows them (Part 4 Stage 1).
 STUDENT_HIDDEN_KINDS = {Kind.RESPONSIBLE_CHANGED}
 
 MESSAGE_LABELS = {
@@ -93,6 +95,13 @@ def _entry(event, audience):
             "You added further information" if student else f"Further information from {student_name}",
             event.created_at, message=event.message, by_student=True,
         )
+    if kind == Kind.RESPONSIBLE_CHANGED and not student:
+        owner = event.responsible
+        title = (
+            f"{_staff_name(event.actor)} took over this complaint" if owner.pk == event.actor_id
+            else f"Responsible owner set to {_staff_name(owner)}"
+        )
+        return TimelineEntry(title, event.created_at, by="" if owner.pk == event.actor_id else _staff_name(event.actor))
     if kind == Kind.CANCELLATION_REQUESTED:
         return TimelineEntry(
             "You asked to cancel this complaint" if student else f"{student_name} asked to cancel this complaint",
@@ -104,14 +113,11 @@ def _entry(event, audience):
     return None
 
 
-def _timeline(complaint, audience, newest_first):
+def _timeline(complaint, audience, newest_first, include_owner_changes=False):
     order = ("-created_at", "-id") if newest_first else ("created_at", "id")
-    # Owner changes stay internal while O27 is open: hidden for students and advisors alike.
-    events = (
-        complaint.events.select_related("actor", "complaint__student")
-        .exclude(kind__in=STUDENT_HIDDEN_KINDS)
-        .order_by(*order)
-    )
+    events = complaint.events.select_related("actor", "responsible", "complaint__student").order_by(*order)
+    if not include_owner_changes:
+        events = events.exclude(kind__in=STUDENT_HIDDEN_KINDS)
     return [entry for entry in (_entry(event, audience) for event in events) if entry]
 
 
@@ -120,9 +126,10 @@ def student_timeline(complaint):
     return _timeline(complaint, "student", newest_first=False)
 
 
-def staff_timeline(complaint):
-    """The complaint's history for a Batch Advisor, newest first (P3-7), with names and roles."""
-    return _timeline(complaint, "staff", newest_first=True)
+def staff_timeline(complaint, include_owner_changes=False):
+    """Staff history, newest first (P3-7), with names and roles. Owner changes are included
+    for the Super Admin workspace; the Batch Advisor workspace keeps its Part 3 history."""
+    return _timeline(complaint, "staff", newest_first=True, include_owner_changes=include_owner_changes)
 
 
 def has_cancellation_request(complaint):
