@@ -90,11 +90,32 @@ Rules:
   - Re-checked: student complaint pages 66/66, Batch Advisor workspace 60/60, Super Admin workspace 48/48, category pages 48/48.
   - Found and fixed: a duplicate hairline above the list.
 
+**Review follow-up: source validation (PR #16 review)**
+
+- **Found:** `notify()` treated a non-NULL pk plus a matching model label as proof that the source was saved. A probe on a test database created notifications for:
+  - an unsaved `ComplaintEvent` with an explicit unused pk;
+  - an unsaved one whose pk matched an existing row;
+  - a saved one whose row had been removed with raw SQL.
+- **Fixed** (`notifications/services._persisted_source_type`): the source must be a Django model instance of the declared model, not marked as new (`_state.adding`), with a pk and a database alias (`_state.db`), and its row must exist on that alias (`_base_manager.using(source._state.db)`). Producers, recipients, attribution, destinations, transactions, immutability and the UI are unchanged. No migration.
+- **Tests:** 8 new tests in `NotifyValidationTests`:
+  - the four requested cases (unused explicit pk, pk of an existing row, stale row removed by raw SQL inside the test transaction, normal persisted source);
+  - `None` and non-model objects;
+  - an unsaved instance that carries an alias;
+  - a forged instance with no alias;
+  - the existence query running on the source's own alias.
+
+  Against the previous implementation, every new test fails except the persisted-source case.
+- **Results after the follow-up:**
+  - 462/462 on MySQL 8.0.44 in two consecutive `--keepdb` runs; 462 on SQLite with the same 5 MySQL-only skips; the 64 focused notification tests pass on MySQL (61 run and 3 skipped on SQLite).
+  - `check`, `makemigrations --check --dry-run`, `compileall` and `git diff --check`: clean.
+  - The development database still has `notifications.0001_initial` unapplied, as agreed.
+
 **Not changed / limitations**
 
 - The student home's "Your latest updates" (DEC-303) still awaits seen/unseen tracking.
 - There is no retention or clean-up of notifications.
 - No other DEC-270 producers yet.
+- Notifications reference their source by model label and pk, not a database foreign key. `notify()` verifies that the source row exists when it creates the notification; complaint events are insert-only and cannot be deleted through the ORM.
 
 ---
 

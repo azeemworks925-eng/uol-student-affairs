@@ -9,6 +9,7 @@ mark read) requires an authenticated, active user and is scoped to their own not
 """
 
 from django.core.exceptions import ValidationError
+from django.db import models
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.text import Truncator
@@ -25,19 +26,39 @@ def _active(user):
     return bool(user and user.is_authenticated and user.is_active)
 
 
+def _persisted_source_type(source, event_type, notification_type):
+    """
+    The source's model label, once the source is proven to be a persisted row of the model the
+    type declares. A non-NULL pk alone is not proof: an unsaved instance can be built with an
+    explicit pk (even one that matches another row), and an instance loaded earlier can refer to
+    a row that has since been removed. So the instance must be a Django model of the declared
+    model, not marked as new (_state.adding), have a pk, and its row must exist on the database
+    alias it was loaded from or saved to (_state.db).
+    """
+    if not isinstance(source, models.Model):
+        raise ValidationError("A notification's source must be a saved database record.")
+    source_type = source._meta.label_lower
+    if source_type != notification_type.source_model:
+        raise ValidationError(f"{event_type} notifications come from {notification_type.source_model}, not {source_type}.")
+    if source._state.adding or source.pk is None or source._state.db is None:
+        raise ValidationError("A notification's source must be a saved database record.")
+    # _base_manager: no default-manager filtering can hide a real row. The alias is the source's
+    # own, so a record from another database is checked there, not on "default".
+    if not type(source)._base_manager.using(source._state.db).filter(pk=source.pk).exists():
+        raise ValidationError("A notification's source record no longer exists.")
+    return source_type
+
+
 def notify(recipient, *, event_type, source, title, body="", target_url_name, target_arg=""):
     """
-    Create the notification for one recipient and one saved source record, or return the existing
-    one (the database allows only one per recipient and source). Returns (notification, created).
+    Create the notification for one recipient and one persisted source record, or return the
+    existing one (the database allows only one per recipient and source).
+    Returns (notification, created).
     """
     notification_type = registry.get_type(event_type)
     if notification_type is None:
         raise ValidationError(f"Unregistered notification type: {event_type}.")
-    if source is None or getattr(source, "pk", None) is None:
-        raise ValidationError("A notification needs a saved source record.")
-    source_type = source._meta.label_lower
-    if source_type != notification_type.source_model:
-        raise ValidationError(f"{event_type} notifications come from {notification_type.source_model}, not {source_type}.")
+    source_type = _persisted_source_type(source, event_type, notification_type)
     if target_url_name not in notification_type.destinations:
         raise ValidationError(f"{target_url_name} is not an allowed destination for {event_type}.")
     if recipient is None or getattr(recipient, "pk", None) is None:

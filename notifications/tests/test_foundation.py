@@ -1,6 +1,7 @@
 """Notification foundation: model protection, registry and source checks, user-facing services."""
 
 import threading
+from unittest import mock
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, connection, connections, transaction
@@ -146,6 +147,82 @@ class NotifyValidationTests(FoundationTestCase):
     def test_source_must_be_saved(self):
         with self.assertRaises(ValidationError):
             self.make(source=ComplaintEvent(complaint=self.complaint, actor=self.student, kind="response", message="x"))
+
+    def assert_source_rejected(self, source):
+        # Calls notify() directly: make() falls back to a real event when source is falsy.
+        with self.assertRaises(ValidationError):
+            services.notify(self.student, event_type="complaint.response", source=source, title="T",
+                            target_url_name="student_complaint_detail", target_arg=self.complaint.reference)
+        self.assertFalse(Notification.objects.exists())
+
+    def test_unsaved_source_with_an_unused_explicit_pk_is_rejected(self):
+        unused = (ComplaintEvent.objects.order_by("-pk").values_list("pk", flat=True).first() or 0) + 1000
+        source = ComplaintEvent(pk=unused, complaint=self.complaint, actor=self.student, kind="response", message="x")
+        self.assertTrue(source._state.adding)
+        self.assert_source_rejected(source)
+
+    def test_unsaved_source_with_the_pk_of_an_existing_row_is_rejected(self):
+        source = ComplaintEvent(pk=self.event.pk, complaint=self.complaint, actor=self.student, kind="response", message="x")
+        self.assertTrue(ComplaintEvent.objects.filter(pk=self.event.pk).exists())  # the pk is real...
+        self.assert_source_rejected(source)  # ...but this instance was never saved
+
+    def test_stale_source_whose_row_was_removed_is_rejected(self):
+        stale = ComplaintEvent.objects.create(complaint=self.complaint, actor=self.student, kind="further_information", message="y")
+        self.assertFalse(stale._state.adding)
+        # ComplaintEvent cannot be deleted through the ORM, so remove the row with raw SQL. This
+        # runs inside the test's transaction and is rolled back when the test ends.
+        table = connection.ops.quote_name(ComplaintEvent._meta.db_table)
+        with connection.cursor() as cursor:
+            cursor.execute(f"DELETE FROM {table} WHERE id = %s", [stale.pk])
+        self.assertFalse(ComplaintEvent.objects.filter(pk=stale.pk).exists())
+        self.assert_source_rejected(stale)
+
+    def test_persisted_source_still_creates_its_notification(self):
+        persisted = ComplaintEvent.objects.get(pk=self.event.pk)
+        self.assertFalse(persisted._state.adding)
+        self.assertEqual(persisted._state.db, "default")
+        notification, created = self.make(source=persisted)
+        self.assertTrue(created)
+        self.assertEqual((notification.source_type, notification.source_id), ("complaints.complaintevent", persisted.pk))
+
+    def test_none_and_non_model_sources_are_rejected(self):
+        class Imitation:  # looks like a model instance to a duck-typed check, but is not one
+            pk = 1
+            _meta = ComplaintEvent._meta
+
+        for source in (None, Imitation(), "complaints.complaintevent", 1):
+            with self.subTest(source=source):
+                self.assert_source_rejected(source)
+
+    def test_unsaved_instance_carrying_an_alias_is_still_rejected(self):
+        # Assigning related objects in the constructor sets _state.db, so an alias alone does not
+        # prove the instance was saved; _state.adding and the row check still reject it.
+        source = ComplaintEvent(pk=self.event.pk, complaint=self.complaint, actor=self.student, kind="response", message="x")
+        self.assertEqual(source._state.db, "default")
+        self.assertTrue(source._state.adding)
+        self.assert_source_rejected(source)
+
+    def test_source_with_no_database_alias_is_rejected(self):
+        source = ComplaintEvent(pk=self.event.pk, complaint=self.complaint, actor=self.student, kind="response", message="x")
+        source._state.adding = False  # forged "not new"...
+        source._state.db = None  # ...but with no database it was loaded from or saved to
+        self.assert_source_rejected(source)
+
+    def test_existence_is_checked_on_the_sources_own_database_alias(self):
+        from django.db.models.query import QuerySet
+
+        aliases = []
+        original_using = QuerySet.using
+
+        def recording_using(queryset, alias):
+            if queryset.model is ComplaintEvent:
+                aliases.append(alias)
+            return original_using(queryset, alias)
+
+        persisted = ComplaintEvent.objects.get(pk=self.event.pk)
+        with mock.patch.object(QuerySet, "using", recording_using):
+            self.make(source=persisted)
+        self.assertEqual(aliases, [persisted._state.db])
 
     def test_destination_must_be_allowed_and_resolvable(self):
         for url_name, arg in (("super_admin_complaint_detail", self.complaint.reference), ("student_complaints", "")):

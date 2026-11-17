@@ -51,7 +51,13 @@ Each event type declares a `NotificationType`: the `source_model` its source rec
 ## 3. Services (`notifications/services.py`)
 
 - **`notify(recipient, *, event_type, source, title, body, target_url_name, target_arg)`**, for producers:
-  - **Checks:** the type is registered; the source is saved and of the declared model; the destination is allowed for the type and resolves.
+  - **Checks:** the type is registered; the destination is allowed for the type and resolves; and the source is a **persisted row** of the declared model. A non-NULL pk alone is not accepted as proof. The source must:
+    - be a Django model instance of the declared model;
+    - not be marked as new (`_state.adding`);
+    - have a pk and a database alias (`_state.db`);
+    - still have its row on that alias (checked with `_base_manager.using(source._state.db)`).
+
+    So an unsaved instance built with an explicit pk, even one matching an existing row, and an instance whose row has been removed, are rejected.
   - **Writes:** truncates the title and body, then `get_or_create` on the unique key. The savepoint means a concurrent duplicate returns the existing row and never breaks the caller's transaction. Returns `(notification, created)`.
   - **Recipients:** it does **not** require an active recipient, so deactivated users keep their notifications for when they are reactivated.
 - **User-facing functions:** `for_user`, `unread_count`, `mark_read` and `mark_all_read`.
