@@ -1,9 +1,9 @@
 # Academic terms — technical notes
 
-**Status:** Complaints Part 4 Stage 4a. Under review on branch `feat/academic-term`; not merged.
+**Status:** Complaints Part 4 Stage 4a. Implemented and merged into `main` through PR #18 (squash merge commit `1809730`, 2026-11-17), including the review fixes and migration `0003`.
 **Decisions:** DEC-314 (one named academic-term reporting window, by submission date), DEC-210 (academic records are kept, not deleted). Specification: `COMPLAINTS_PART4_SPEC.md` section 6.1.
 
-An academic term is the reporting window for the complaint analytics planned for Stage 4b. This stage adds the term record, how the current term is chosen, the shared date-boundary rule, and a term filter on the Super Admin complaint list. It adds no analytics.
+An academic term is the reporting window for the complaint analytics of Stage 4b (specified in `COMPLAINTS_PART4_SPEC.md` section 6, not implemented; DEC-316). This stage adds the term record, how the current term is chosen, the shared date-boundary rule, and a term filter on the Super Admin complaint list. It adds no analytics.
 
 ## 1. Model (`academics.AcademicTerm`)
 
@@ -55,7 +55,7 @@ An academic term is the reporting window for the complaint analytics planned for
     - **Server error:** an edit of the old current term after a switch raised the guard's error as an HTTP 500 in the admin.
 - **Raw SQL** is outside what the ORM can protect, but the database constraints still apply to it.
 
-**Migrations.** Neither has been applied to the owner's development database.
+**Migrations.** Both are in `main` (PR #18). Applying them to the owner's development database is the owner's step; this document doesn't record whether that has happened.
 - **`academics/0002_academicterm`** only creates this table with its constraints. It is additive, needs no data and is reversible.
 - **`academics/0003_academicterm_dates_supported`** only adds the date-range check constraint. It is reversible (`DROP CHECK`).
   - On a database that already held an out-of-range term it would fail rather than change data. Such a term can't be created through the admin.

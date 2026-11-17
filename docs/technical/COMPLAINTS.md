@@ -1,7 +1,7 @@
 # Complaints — technical notes
 
-**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md (merged in PR #12). Part 4 Stage 1 (Super Admin complaint workspace and owner assignment) is merged through PR #14. Part 4 Stage 2 (category and subcategory management, section 6) is merged through PR #15. Part 4 Stage 3 (in-app notifications, section 7) is merged through PR #16 (`d857d27`). Part 4 Stage 4a (academic terms and the Super Admin term filter, section 8) is on branch `feat/academic-term`, awaiting review. Stage 4b (analytics) and Stage 5 (final acceptance) are not implemented.
-**Decisions:** DEC-030, DEC-031, DEC-220 to DEC-230, and DEC-310 to DEC-315 in docs/decisions/DECISIONS.md. Complaint-specific portions of O27, O28 and O33 are resolved; see the decision register for remaining open items.
+**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md (merged in PR #12). Part 4 Stage 1 (Super Admin complaint workspace and owner assignment) is merged through PR #14. Part 4 Stage 2 (category and subcategory management, section 6) is merged through PR #15. Part 4 Stage 3 (in-app notifications, section 7) is merged through PR #16 (`d857d27`). Part 4 Stage 4a (academic terms and the Super Admin term filter, section 8) is merged through PR #18 (`1809730`). Part 4 Stage 4b (analytics on the Super Admin Overview) is specified in COMPLAINTS_PART4_SPEC.md section 6 and summarised in section 9; it is **not implemented**. Stage 5 (final acceptance) is not started.
+**Decisions:** DEC-030, DEC-031, DEC-220 to DEC-230, and DEC-310 to DEC-322 in docs/decisions/DECISIONS.md. Complaint-specific portions of O27, O28 and O33 are resolved; see the decision register for remaining open items.
 
 ## 1. Backend (`complaints/`)
 
@@ -115,13 +115,13 @@ One template serves every state; CSS decides the layout from `sa-workspace--has-
 
 ## Part 4 overview (Super Admin oversight)
 
-Specification: COMPLAINTS_PART4_SPEC.md (owner-approved scope and decisions; submitted for review).
+Specification: COMPLAINTS_PART4_SPEC.md (owner-approved scope and decisions; merged in PR #12; section 6 finalised for Stage 4b with DEC-316 to DEC-322).
 
 Part 4 covers the department-wide Super Admin complaint workspace with manual owner assignment (DEC-228, DEC-310); category/subcategory management with deactivation rather than deletion (DEC-220); a reusable in-app notification foundation and approved student complaint events (DEC-070, DEC-270); and the three complaint analytics on the existing Super Admin Overview (DEC-280, DEC-281, DEC-306), using the academic-term window and privacy rules (DEC-313 to DEC-315).
 
 Cancellation requests remain record-only (DEC-311). There is no response-required classification or “Waiting for you” queue (DEC-312). Student-facing owner identities and owner-change events remain hidden. Student Voice, meetings and collective issues are not implemented by this complaints part; the notification foundation is designed to support their already-approved events when those modules are built.
 
-The specification was merged in PR #12. Stage 1 is described in section 5, Stage 2 in section 6, Stage 3 in section 7 and Stage 4a (under review) in section 8; Stage 4b and Stage 5 are not implemented.
+The specification was merged in PR #12. Stage 1 is described in section 5, Stage 2 in section 6, Stage 3 in section 7, Stage 4a in section 8 and the Stage 4b plan in section 9; Stage 4b and Stage 5 are not implemented.
 
 ## 5. Super Admin complaint workspace and owner assignment (Part 4 Stage 1)
 
@@ -293,3 +293,27 @@ Academic terms, the current-term services and the reporting window are described
 - **List state:** `term` is part of the Super Admin list state (`SUPER_ADMIN_LIST_PARAMS`), so it is kept across pagination, case links, Back and POST redirects.
 - **Batch Advisor list unchanged:** it still uses `LIST_PARAMS` and `FILTER_PARAMS`. It has no term field; a forged `term` parameter is neither applied nor carried in links or redirects, and its SQL queries are identical with or without one. Student pages don't read `term`.
 - **No migration** in the complaints app: the filter uses the existing `created_at` column.
+
+## 9. Overview analytics (Part 4 Stage 4b): specified, not implemented
+
+**Status:** the specification is final in COMPLAINTS_PART4_SPEC.md section 6 (DEC-316 to DEC-322). No analytics code exists yet: the Super Admin Overview still shows its placeholder headline. Nothing in this section has been implemented or tested.
+
+**Summary** (the specification is authoritative):
+- **Window:** the current academic term only. The window is the existing `term_window()` rule, applied to `created_at`; with no current term, a setup state is shown.
+- **The three analytics:** cohort distribution, category distribution and resolved versus not resolved, on the existing Overview.
+- **Suppression:**
+  - cohorts with fewer than five active students (counted at page generation) are suppressed;
+  - complementary suppression prevents reconstruction;
+  - all figures are withheld when the total is zero with a suppressed cohort, or when safe complementary suppression is impossible.
+
+### Privacy limitations and residual risks
+
+- **Aggregate only (DEC-320):** suppression applies to the analytics output, not to operational access. The Super Admin complaint list and its cohort and term filters (sections 5 and 8) are unchanged, and an authorised Super Admin can count records there, including for cohorts the analytics suppress. This is a documented limitation, not a defect.
+- **Not anonymous (DEC-322):** the analytics are not described as anonymous. Residual risks include:
+  - comparing figures across visits, or after the current term or its dates change;
+  - cohorts crossing the five-student threshold;
+  - the structural fact that a cohort is suppressed;
+  - small department-level category or status counts.
+
+  See COMPLAINTS_PART4_SPEC.md section 6.7.
+- **Privacy review:** required before any pilot use.

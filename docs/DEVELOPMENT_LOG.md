@@ -12,7 +12,7 @@ Rules:
 
 ---
 
-## Status at a glance (2026-11-17)
+## Status at a glance (2026-11-18)
 
 | Area | Status |
 |---|---|
@@ -21,15 +21,44 @@ Rules:
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O30 and O34; O25 is resolved by DEC-315. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
-| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`); Stage 3 (in-app notifications) through PR #16 (`d857d27`). Stage 4a (academic terms and the Super Admin term filter) on branch `feat/academic-term`, awaiting review. Stage 4b (analytics) and Stage 5 (final acceptance) are not implemented. |
+| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`); Stage 3 (in-app notifications) through PR #16 (`d857d27`). Stage 4a (academic terms and the Super Admin term filter) through PR #18 (`1809730`). Stage 4b (analytics) is specified (COMPLAINTS_PART4_SPEC.md section 6, DEC-316 to DEC-322) in a documentation PR awaiting review; it is not implemented. Stage 5 (final acceptance) is not started. |
 | Other product features | Student Voice, meetings, collective issues and the Super Admin analytics are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
 
 ---
 
-## 2026-11-17 — Complaints Part 4 Stage 4a: academic terms (awaiting review)
+## 2026-11-18 — Complaints Part 4 Stage 4b: analytics specification finalised (awaiting review)
 
-Branch `feat/academic-term`, created from `main` at `290250a`. This entry records the work and its local verification. **It is not merged.** Technical notes: `docs/technical/ACADEMIC_TERMS.md` and `COMPLAINTS.md` section 8.
+Documentation only, on branch `docs/stage-4b-analytics-spec` from `main` at `1809730`. No application code, templates, CSS, migrations or dependencies changed. **The analytics are not implemented.** Implementation can start once this documentation PR is reviewed and merged.
+
+- **Decisions:** the owner confirmed the remaining Stage 4b product decisions after a read-only audit. They are recorded as DEC-316 to DEC-322:
+  - the current term only, with no selector or comparison;
+  - the real-cohort universe, and active students counted at page generation;
+  - a uniform hidden presentation, with no access to hidden values through the analytics interface;
+  - withheld analytics for a zero total with a suppressed cohort, or when complementary suppression is impossible;
+  - aggregate privacy separate from operational Super Admin access (option A);
+  - category and order rules;
+  - documented residual risks and a privacy review before any pilot.
+- **Specification:** `COMPLAINTS_PART4_SPEC.md` section 6 is now the final Stage 4b specification, and the section 8 analytics acceptance criteria match it.
+- **Operational access unchanged:** the Super Admin complaint list keeps its permissions and its cohort and term filters (DEC-320). This is documented as a limitation of the analytics privacy guarantee.
+- **Corrected out-of-date records:**
+  - Stage 4a status in `COMPLAINTS.md`, `ACADEMIC_TERMS.md` and this log;
+  - O25, O27, O28 and O31–O33 in `DESIGN_PLAN.md`;
+  - the status, roadmap and open-item lines in `MASTER_PROJECT_BRIEF.md` and `PROJECT_CONTEXT.md`.
+
+---
+
+## 2026-11-17 — Complaints Part 4 Stage 4a merged (PR #18)
+
+- **Merge:** PR #18 (academic terms and the Super Admin term filter) was squash-merged into `main` on 2026-11-17 at 23:48 Asia/Karachi (18:48 UTC) as `18097301e185ed4ef1fce4568c0bf738cedbfd63`. Its final PR head was `8c47abb`, which includes the review fixes (`c3b6db1`) and migration `academics/0003_academicterm_dates_supported`.
+- **Verification:** the final results are recorded in the Stage 4a entry below. They are local runs; there is no hosted CI.
+- **Migrations:** this log doesn't record whether `academics` 0002 and 0003 have since been applied to the owner's development database.
+
+---
+
+## 2026-11-17 — Complaints Part 4 Stage 4a: academic terms (merged in PR #18)
+
+Branch `feat/academic-term`, created from `main` at `290250a`. This entry records the work and its local verification during review; it was merged through PR #18 (see the entry above). Technical notes: `docs/technical/ACADEMIC_TERMS.md` and `COMPLAINTS.md` section 8.
 
 - **Model:** `academics.AcademicTerm`, with a name, start and end dates and a current flag (`TRUE` or `NULL`).
   - **One current term:** a plain unique index on the nullable flag allows at most one current term on both MySQL and SQLite. A check constraint allows only `NULL` or `TRUE`. The check is written as an explicit `IN (TRUE)` comparison: SQLite compiled the first version to a bare truthiness test, which accepted `2` beside `1` (two current terms). The SQLite test run found this and it was fixed before commit; a regression test covers it.
@@ -98,7 +127,7 @@ Branch `feat/academic-term`, created from `main` at `290250a`. This entry record
   - **Full suite on MySQL:** 562/562 in two consecutive `--keepdb` runs, 0 skipped.
   - **SQLite:** 562 run, 548 passed, 14 skipped. The skips are the MySQL-only concurrency tests: 9 academic-term ones and the 5 existing ones.
   - **Checks:** `check`: no issues. `makemigrations --check --dry-run`: no changes. `compileall` and `git diff --check`: clean.
-  - **Migrations:** 0002 and 0003 remain unapplied on the development database.
+  - **Migrations:** 0002 and 0003 were not applied to the development database during this work.
 
 ---
 

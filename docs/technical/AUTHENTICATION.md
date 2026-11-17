@@ -16,7 +16,7 @@ Every role uses one sign-in page with one "Sign in with Google" button. There is
 
 Google's OAuth tokens are not stored (`SOCIALACCOUNT_STORE_TOKENS = False`). Only the identity claims are kept, in allauth's `SocialAccount.extra_data`.
 
-## 2. Library choice (proposed resolution of O3)
+## 2. Approved authentication library
 
 **django-allauth 65.22.1** with its Google provider (`requirements.txt` pins it and its dependencies). Reasons:
 

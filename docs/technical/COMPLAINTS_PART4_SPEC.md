@@ -1,9 +1,9 @@
 # Complaints Part 4 — Super Admin Oversight, Categories, Notifications and Analytics
 
-**Status:** Owner-approved scope and product decisions; specification submitted for review.
+**Status:** Owner-approved scope and product decisions. Merged in PR #12. Stages 1–4a are implemented and merged (PRs #14, #15, #16 and #18). Section 6 is the final Stage 4b specification; Stage 4b is **not implemented**.
 **Builds on:** Complaints Parts 1–3 merged into main (PRs #7–#11).
-**Decisions:** DEC-310 to DEC-315 in docs/decisions/DECISIONS.md.
-**Implementation must not begin until this specification is reviewed and merged.**
+**Decisions:** DEC-310 to DEC-322 in docs/decisions/DECISIONS.md.
+**Stage 4b implementation must not begin until the section 6 update (DEC-316 to DEC-322) is reviewed and merged.**
 
 ## 1. Purpose and scope
 
@@ -102,25 +102,165 @@ Do not notify staff for submission, further information, “Still not resolved�
 
 The foundation should support future producers for the already-approved DEC-270 events: official Student Voice answers, meeting confirmation/rescheduling/cancellation, and new CR/GR issues. Do not implement those producers or invent their recipients in this part.
 
-## 6. Super Admin Overview analytics
+## 6. Super Admin Overview analytics (Stage 4b)
 
-Keep analytics on the existing Super Admin Overview, following DEC-306: one written department summary followed by three numbered chapters. Each chapter gives its written takeaway before the visual and links into the relevant filtered complaint list.
+**Status:** final specification, not implemented. **Decisions:** DEC-090, DEC-205, DEC-228, DEC-281, DEC-306, DEC-313 to DEC-322. Where this section and `DECISIONS.md` disagree, `DECISIONS.md` wins.
 
-### 6.1 Reporting period
+The analytics stay on the existing Super Admin Overview (`super_admin_home`), following DEC-306:
+- one written department summary, then three numbered chapters;
+- each chapter gives its written takeaway before its visual, and links into records only where section 6.5 allows.
 
-Use one explicitly named academic-term window shared by all three analytics. Count complaints by submission date and use one consistent inclusive/exclusive boundary rule. Display term name and exact start/end dates.
+There is no separate dashboard, no new route and no Batch Advisor analytics in this stage (DEC-321). Every rule below concerns only what the Overview displays; section 6.6 explains how this relates to operational complaint access.
 
-The current academic structure has Batch, Semester and Section but no dated reporting-term entity. Add the smallest coherent academic-term record with name, start date, end date and one current-term designation managed by Super Admin. Validate date ranges and prevent ambiguous multiple current terms. Do not use a Batch label as a reporting term. If no current term exists, show a setup state; never silently fall back to all-time data.
+### 6.1 Reporting period (DEC-314, DEC-316)
 
-### 6.2 Three analytics
+- **Term:** the **current** academic term only, from `academics.services.current_term()`. There is no historical term selector and no comparison between terms.
+- **Window:** the term's reporting window, from the existing rule `term_window()` (also `AcademicTerm.window()`; see `docs/technical/ACADEMIC_TERMS.md` section 2):
+  - start date at 00:00 Asia/Karachi, inclusive;
+  - the day after the end date at 00:00 Asia/Karachi, exclusive;
+  - a complaint belongs to the window when `created_at >= start` and `created_at < end`.
 
-1. **Distribution by section:** cohort map in academic order. Each cell represents one exact batch + semester + section. A real cohort with zero complaints is visually distinct from a nonexistent cohort. Clicking a cell opens the complaint list filtered to that cohort and reporting period.
-2. **Category share:** counts and percentages by category for the period. Include inactive categories if they have complaints in the period. State the denominator and use it consistently.
-3. **Resolved vs not resolved:** Resolved = status Resolved. Not resolved = Received + Under Review + Rejected. Rejected complaints must be separately identified in the written takeaway and never described as awaiting action. Show counts, percentages, denominator and period.
+  The window is calculated once per page and used by all three analytics.
+- **Shown with it:** the term name and its exact dates (`AcademicTerm.dates_label`), in the summary and in the withheld state.
+- **Setup state:** with no current term, the Overview shows:
+  - a setup state explaining that a current academic term must be set;
+  - a link to the academic-term administration (Configuration → Academic Structure → Academic terms);
+  - **no** figures, totals, takeaways or analytics drill-down links.
 
-### 6.3 Small-cohort privacy
+  It never falls back to all-time figures.
+- **Status counted:** the status of each complaint as it stands when the page is generated (see 6.3, analytic 3). The window decides which complaints are counted, by submission time, not which status they had.
 
-Suppress cohort-level breakdowns where the cohort has fewer than five active students at the relevant reporting point. Apply complementary suppression: hiding one cell is insufficient if its exact value can be derived by subtracting visible cells from a total. Suppress at least one additional value or affected total whenever required. If safe suppression cannot be guaranteed for a chart/filter combination, withhold that aggregate. Show department totals only where they cannot reveal a suppressed value. Never expose names, SAP IDs or individual complaint titles in analytics.
+### 6.2 Cohorts and active students (DEC-205, DEC-317)
+
+- **Cohort:** an exact batch + semester + section combination.
+- **Real cohorts:** the union of the cohorts of:
+  1. existing advisor assignments (`AdvisorAssignment`);
+  2. existing student profiles (`StudentProfile`);
+  3. complaints submitted in the reporting window (`Complaint.batch`, `semester`, `section`, recorded at submission).
+- **Inactive entries:** cohorts made of inactive batches, semesters or sections are included when they are in this union.
+- **Active students of a cohort:** counted when the page is generated, as user accounts that are active, have the student role and have a student profile in that exact cohort. Inactive accounts, staff and accounts without a student profile are not counted.
+
+### 6.3 The three analytics
+
+The department total `T` is the number of complaints in the reporting window. It is the denominator of every percentage, and each chapter states it. Rounding of percentages is an engineering choice, but each percentage is calculated from the counts shown with it.
+
+**Department summary.** A sentence built from `T` and the term name and dates, for example the number of complaints submitted in the term. It replaces the current placeholder headline.
+
+**1. Distribution by section (cohort map).**
+- **Grid:**
+  - **Order:** the existing academic order (DESIGN_PLAN.md section 6): Semester 1 to 8. Within a semester, batches and sections follow their existing ordering (`Batch` and `Section` are ordered by name). No database field is added for ordering (DEC-321).
+  - **Cells:** each cell is one exact cohort. The grid covers the semester-and-batch rows and the section columns present among the real cohorts. A combination inside the grid that is not a real cohort is a **nonexistent cohort**.
+- **Cell states** (DEC-306, DEC-318):
+
+  | Cell | Shown as | Link |
+  |---|---|---|
+  | Real cohort, visible, with complaints | Its count | Yes (6.5) |
+  | Real cohort, visible, with zero complaints | "No complaints" (solid cell) | Yes (6.5) |
+  | Nonexistent cohort | Hatched, no number | No |
+  | Real cohort, suppressed (primary or complementary) | One neutral hidden-value presentation, identical for both kinds of suppression, with no number | No |
+
+**2. Category distribution (DEC-281, DEC-321).**
+- **Which categories:**
+  - every **active** category, including those with zero complaints in the window;
+  - an **inactive** category only when it has at least one complaint in the window, labelled as inactive (for example "(inactive)");
+  - an inactive category with no complaints in the window is not listed.
+- **Each row:** its count and its percentage of `T`.
+- **Order:** the existing category ordering (position, then name).
+- **Scope:** department-level only. There is no breakdown of categories by cohort.
+
+**3. Resolved versus not resolved (DEC-313).**
+- **Resolved:** status `resolved`.
+- **Not resolved:** statuses `received`, `under_review` and `rejected`.
+- **Shown:** counts and percentages of `T` for both groups.
+- **Takeaway:** it identifies rejected complaints separately and never describes them as awaiting action. Received and Under Review complaints may be described as still being handled. Example: "9 are not resolved: 6 are still being handled and 3 were rejected."
+- **Scope:** department-level only, with no breakdown by cohort.
+
+**Takeaways (all chapters):**
+- They are calculated from displayed values only.
+- They never name, rank, compare or otherwise describe a suppressed cohort or value. For example, "the most complaints" refers only to the cohorts shown, and says so.
+- They never include student names, SAP IDs or complaint titles.
+
+### 6.4 Suppression (DEC-315, DEC-318, DEC-319)
+
+- **Primary suppression:**
+  - **Rule:** a real cohort with fewer than five active students (6.2) is suppressed, whatever its complaint count, including zero.
+  - **Scope:** suppression applies to cohort-level values. The category and status chapters have no cohort breakdown.
+- **Complementary suppression:**
+  - **Requirement:** further cohort values are suppressed so that **no suppressed value can be reconstructed** from the complete displayed output of all three chapters, not just the cohort grid or the direct display of `T`.
+  - **`T` counts as known whenever chapter 2 or 3 is shown:**
+    - The department total `T` can be inferred even if it were not printed: the complete category counts add up to `T`, and so, independently, do the complete status counts. A count shown with its percentage of `T` also implies `T`.
+    - So whenever category or status counts are displayed, the safety test must treat `T` as known.
+  - **What the observer knows:** the safety test considers everything the analytics display together:
+    - every visible cohort cell;
+    - `T`, whether displayed directly or inferred as above;
+    - any other displayed aggregate that constrains cohort values (for example, a subtotal, if one were ever displayed);
+    - the facts that every count is a whole number of at least zero, and that a visible zero cell is exactly zero.
+
+    Together these form a set of equations and bounds on the suppressed values.
+  - **The test is uniqueness:** a suppressed cohort value is safe only if **more than one value for it is consistent with everything displayed**. It is unsafe if exactly one value is consistent, whether by subtraction from `T`, from the zero lower bound, from any other displayed equation, or from a combination of these.
+    - So hiding a second cohort is **not automatically sufficient**. Every hidden value must remain individually undeterminable.
+    - For example, two hidden cells whose combined total is zero are both determined: each must be 0.
+  - **No safe arrangement means withholding:** if no arrangement of complementary suppression makes every suppressed value safe, the analytics use the complete withheld state of DEC-319 (case (b) below). Chapters are never partially withheld.
+  - **Engineering choices:** the algorithm and how complementary cells are chosen. The algorithm must satisfy the uniqueness test above. The choice should be stable rather than dependent on small changes in counts. This does not remove every inference risk (6.7).
+  - **Worked examples** (the department-level chapters reveal `T`):
+
+    | Data (suppressed cohorts marked *) | What an observer can derive | Outcome |
+    |---|---|---|
+    | A* = 2, B = 3, C = 4; `T` = 9 | A = 9 − 3 − 4 = 2 | **Unsafe.** Hiding A alone is not allowed. |
+    | A* = 2, B* = 3 (complement), C = 4; `T` = 9 | Only A + B = 5. Six pairs fit: (0,5), (1,4), (2,3), (3,2), (4,1), (5,0) | **Safe.** Neither value is unique. |
+    | A* = 0, B = 0, C = 4; `T` = 4. Complement B chosen | A + B = 0, so A = 0 and B = 0 | **Unsafe.** Choosing C as the complement instead gives A + C = 4 with five pairs and is safe; B stays visible as 0. |
+    | A* = 3 is the only real cohort; `T` = 3 | A = `T` = 3, and no other cohort can be hidden | **No safe arrangement:** complete withheld state (DEC-319 (b)). |
+- **No hidden values in the page:** the analytics code passes the template only values that may be displayed. A suppressed value is `None`, or absent, and is never in the HTML, attributes, hidden fields, embedded data or text.
+- **Withheld state (DEC-319):**
+  - **When:** all three analytics, the department totals and the takeaways are withheld if:
+    - (a) `T` is zero and at least one real cohort requires suppression; or
+    - (b) complementary suppression cannot be achieved safely for a non-zero `T`. For example, the only real cohort is a suppressed cohort.
+  - **What is shown:** the term name and dates, and one neutral privacy explanation.
+  - **The same in both cases:** the text and layout must not reveal which case applied, or whether the total is zero.
+  - **No figures or links:** no number and no analytics drill-down link is shown. The existing Manage links stay.
+
+### 6.5 Drill-down links
+
+- **Visible cells:** each one, including a visible zero cell, links to the Super Admin complaint list filtered to that cohort and the reporting term: `super_admin_complaints?cohort=<batch_id>.<semester_id>.<section_id>&term=<current term id>`.
+- **Category rows:** link with `?category=<id>&term=<id>`.
+- **Status figures:**
+  - Resolved links with `?status=resolved&term=<id>`.
+  - "Not resolved" has no single link. Its components link separately to `received`, `under_review` and `rejected`, using the existing status filter; no new filter value is added.
+- **Not linked:** suppressed and nonexistent cells; and nothing at all in the setup or withheld state. Their markup carries no hidden value and no cohort-specific URL.
+- **Access:** the links lead only to the existing Super Admin complaint list. It keeps its own access rules (`super_admin_required`, `visible_complaints`) and its existing filters. Stage 4b changes nothing there (6.6).
+
+### 6.6 Aggregate analytics privacy versus operational access (DEC-320)
+
+Suppression protects the **analytics output**. It does not limit the Super Admin's authorised access to individual complaint records (DEC-228):
+- **Unchanged:** the Super Admin complaint list, including its cohort and term filters (Stage 1 and Stage 4a), is not blocked, blurred or restricted for small cohorts.
+- **Consequence:** an authorised Super Admin can therefore count individual records there, including for cohorts that the analytics suppress. This is a known, documented limitation of the analytics privacy guarantee. It is not a defect to be fixed by restricting operational access.
+- **No path from the Overview itself:** the analytics interface must still give no direct or indirect path to a suppressed value. There are no links, URLs or data for suppressed cells (6.4, 6.5).
+- **Wording:** neither the documentation nor the interface describes the analytics as anonymous, or claims that hidden counts cannot be obtained by an authorised administrator.
+
+### 6.7 Residual privacy risks and review (DEC-322)
+
+These risks remain and are documented, not eliminated:
+- **Operational access:** counts can be obtained from authorised record access (6.6).
+- **Comparing visits:** if `T` rises while every visible cell stays the same, a new complaint was in a suppressed cohort.
+- **Term changes:** changing the current term or editing its dates changes the window; comparing the figures before and after can narrow down suppressed values.
+- **Membership changes:** a cohort reaching five active students shows values that were suppressed before. Students are counted when the page is generated, while complaints keep their cohort at submission, so a cohort's suppression can change over time.
+- **Structural information:** a suppressed cell shows that the cohort is small, or was chosen as a complement.
+- **Small department-level figures:** the category and status chapters are not suppressed by DEC-315. A very small count (for example one complaint in a category) can still be meaningful to someone who knows the department.
+- **Complement selection** reduces, but does not remove, inference across visits.
+
+The analytics are not described as completely anonymous. **A privacy review is required before any pilot use.**
+
+### 6.8 Not in Stage 4b
+
+- a historical term selector or term comparison;
+- Batch Advisor analytics or statistics (DEC-280);
+- a separate dashboard or Statistics destination (DEC-306);
+- new complaint filters or changes to complaint permissions;
+- charts beyond the three analytics;
+- exports;
+- new database fields for ordering.
+
+No migration is expected.
 
 ## 7. Architecture and migration planning
 
@@ -161,15 +301,26 @@ Notifications:
 - Rolled-back actions leave no orphan notification.
 - No external/email notification is sent.
 
-Analytics:
-- All charts share one configured academic-term period and submission-date rule.
-- Counts and percentages reconcile with the underlying aggregate.
-- Rejected cases are not described as awaiting action.
-- Zero-complaint real cohorts differ from nonexistent cohorts.
-- Cohorts below five active students are suppressed.
-- Complementary suppression prevents arithmetic recovery through totals and filters.
-- No individual identity appears in aggregate output.
-- Missing/invalid current-term configuration shows a setup state.
+Analytics (Stage 4b; section 6):
+- All three analytics use the current term's window (6.1); complaints exactly on the window boundaries are counted correctly.
+- No current term shows the setup state, with no figures and no all-time fallback.
+- Counts and percentages reconcile with `T`, the cohort, category and status totals.
+- Rejected cases are identified separately and not described as awaiting action.
+- Zero-complaint real cohorts differ from nonexistent cohorts; cohorts come from the real-cohort union (6.2).
+- Active categories with zero complaints are listed; inactive categories appear only with complaints in the window, labelled.
+- Cohorts below five active students, counted at page generation, are suppressed.
+- No suppressed value can be reconstructed from the complete displayed output of all three chapters, with `T` treated as known whenever category or status counts are shown (6.4). This is tested as a uniqueness check: an exhaustive check over small generated grids confirms that every suppressed value has more than one consistent value. It includes these deterministic cross-chapter cases:
+  - **One suppressed cohort with visible cohorts** (A* = 2, B = 3, C = 4): the category and status counts each add up to `T` = 9, so hiding A alone would reveal A = 2. The suppression must hide more, and the page must never display that arrangement.
+  - **Two suppressed cohorts with a non-zero combined total** (A* = 2, B* = 3, C = 4): only A + B = 5 is derivable, with more than one consistent value for each, so the arrangement is accepted.
+  - **Two suppressed cohorts with a combined total of zero** (A* = 0, B* = 0, C = 4): both values are forced to 0, so the arrangement is rejected as unsafe. Another complement is used, or the withheld state if none is safe.
+  - **A hidden value made unique by displayed equations or bounds:** the safety check is given an arrangement where one suppressed value has exactly one consistent value (for example, through an additional displayed equation such as a subtotal, or through the zero bound). The check must reject it.
+  - **No safe suppression possible** (one real cohort, suppressed, with `T` = 3): the complete withheld state is shown, with no analytics figures, totals, takeaways or drill-down links. It is identical to the zero-total withheld state.
+- No suppressed value appears anywhere in the page: links, URLs, attributes, hidden fields, embedded data or takeaways.
+- Primary and complementary suppression look the same.
+- Both withheld cases (6.4) show the same withheld state with no figures.
+- Visible cells link to the complaint list with the correct cohort and term; suppressed and nonexistent cells do not link.
+- No student names, SAP IDs or complaint titles appear in the analytics.
+- The Super Admin complaint list and its filters are unchanged (6.6).
 
 Quality:
 - Full test suite on MySQL and SQLite; identify MySQL-specific skips.
@@ -183,11 +334,11 @@ Quality:
 1. Super Admin complaint workspace and owner assignment.
 2. Category/subcategory management.
 3. Notification foundation and the two approved complaint producers.
-4. Academic-term configuration and privacy-safe analytics on the existing Overview.
+4. Academic-term configuration (Stage 4a, merged in PR #18) and then privacy-safe analytics on the existing Overview (Stage 4b, section 6).
 5. Full regression, database/browser acceptance, and technical documentation updates.
 
 Split into focused PRs if that reduces review and regression risk. Do not combine unrelated work just to reduce PR count.
 
 ## 10. Decision boundaries
 
-DEC-310 to DEC-315 resolve the complaint-specific portions of O27, O28, O33, O31, O32 and O25. The separate BA routing question for collective issues, Student Voice and meetings remains open. Other OPEN items are not resolved by this specification.
+DEC-310 to DEC-315 resolve the complaint-specific portions of O27, O28, O33, O31, O32 and O25; DEC-316 to DEC-322 settle the Stage 4b analytics details. The separate BA routing question for collective issues, Student Voice and meetings remains open. Other OPEN items are not resolved by this specification.

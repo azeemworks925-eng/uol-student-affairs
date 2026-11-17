@@ -3,7 +3,7 @@
 **Status:** Design D is the approved visual reference for production implementation (owner, 2026-11-16; DEC-302).
 **This document is the written production specification of Design D.** The HTML prototypes used during the design phase were not kept in the repository and are not a reference; where a detail is not written here, it is decided during implementation within these rules.
 **Implemented so far:** the application shell, role navigation, Student Dashboard and the Batch Advisor and Super Admin overviews, and the sign-in pages (PR #6). Production tokens and components live in `static/css/app.css` and `templates/`.
-**Decisions:** recorded in `docs/decisions/DECISIONS.md` (DEC-300 to DEC-308; open items O25 and O30 to O34). If this plan and `DECISIONS.md` disagree, `DECISIONS.md` wins.
+**Decisions:** recorded in `docs/decisions/DECISIONS.md` (DEC-300 to DEC-308; the complaint and analytics items O25, O27 (for complaints), O28 and O31 to O33 are resolved by DEC-310 to DEC-322; O29, O30 and O34 remain open). If this plan and `DECISIONS.md` disagree, `DECISIONS.md` wins.
 
 Labels used below: **Approved** (owner decision), **Recommendation** (default for implementation unless the owner says otherwise), **Open** (needs an owner decision before the related feature is final).
 
@@ -61,17 +61,17 @@ The full application shell (drawer behaviour, notification list, account menu co
 - Reference layout: 72px rail | ~360px list | case workspace | ~300px context. Proportions adapt; below about 1360px the context becomes a compact strip under the case header instead of disappearing.
 - List: headline sentence, search by reference ID or student name (within assigned cohorts only), cohort and status filters, rows with reference, flags, title, full student name (never truncated), cohort chip and status.
 - Case: reference, status, title, student, cohort, category; status journey; immutable history (newest first); response composer; **Respond and Update status are separate, and sending a response never changes the status.** Resolve/Reject ask for the mandatory note (DEC-221).
-- Context: student identity, exact batch/semester/section, the advisors assigned to the cohort. The **responsible advisor** is not shown or assumed until O27 is decided. "Other complaints from this student" is **not** in V1.
-- Grouping "Waiting for you" / "Other open" is a proposal: **Open (O33)** — which complaint events genuinely require an advisor response and which are informational?
+- Context: student identity, exact batch/semester/section, the advisors assigned to the cohort. The responsible owner is designated manually by a Super Admin (DEC-310); the Batch Advisor workspace does not currently show it. "Other complaints from this student" is **not** in V1.
+- A "Waiting for you" / "Other open" grouping is **not** adopted (DEC-312, resolving O33).
 - Phone: list → full-screen case → back. Context below the case content. The composer sits at the end of the history (never floating over it) with a sticky Respond / Update status bar; `interactive-widget=resizes-content` so the keyboard shrinks the layout instead of covering the history.
 
 ## 6. Super Admin Overview — Approved (DEC-302, DEC-306)
 
 - Editorial layout, no KPI tiles: department headline sentence, then three numbered chapters for the DEC-281 analytics, each with a written takeaway before its visual and links into records: **01 Distribution by section** (cohort map), **02 Category share**, **03 Resolved vs not resolved**.
 - Cohort map: academic order (Semester 1 → 8), each cell exactly one batch + semester + section, linking to that cohort's complaints. A real section with zero complaints (solid cell, "No complaints") is visibly different from a section that does not exist (hatched, no number).
-- **Open (O31), recommended:** Resolved = Resolved; not resolved = Received + Under Review + Rejected. Wording must never present rejected complaints as awaiting action (e.g. "42 are not resolved: 33 are still being handled and 9 were rejected").
-- **Open (O32), recommended:** one explicitly defined reporting window shared by all three analytics — the academic term, with start and end dates stored in Academic Structure; complaints counted by submission date. The screen always states the window.
-- **Open (O25), proposed:** suppress a cohort's breakdown when it has fewer than 5 active students, keeping department totals. **Risk found:** suppressing one cell while showing totals lets anyone derive the hidden value by subtraction; the rule needs complementary suppression (hide at least one more cell or withhold the affected total).
+- **Resolved (O31, DEC-313):** Resolved = Resolved; not resolved = Received + Under Review + Rejected. Wording must never present rejected complaints as awaiting action (e.g. "42 are not resolved: 33 are still being handled and 9 were rejected").
+- **Resolved (O32, DEC-314, DEC-316):** one explicitly defined reporting window shared by all three analytics — the academic term, with start and end dates stored in Academic Structure; complaints counted by submission date. The screen always states the window.
+- **Resolved (O25, DEC-315, DEC-317 to DEC-320):** suppress a cohort's breakdown when it has fewer than 5 active students. **Risk found:** suppressing one cell while showing totals lets anyone derive the hidden value by subtraction; the rule needs complementary suppression (hide at least one more cell or withhold the affected total).
 
 ## 7. Laptop and zoom acceptance — Approved (DEC-307)
 
@@ -98,12 +98,12 @@ No attachments, social feeds, email notifications, extra analytics, unapproved d
 
 | ID | Question |
 |---|---|
-| O25 | Small-cohort privacy threshold (proposed: fewer than 5 active students) and complementary suppression |
-| O27 | How the responsible advisor is designated |
+| O25 | Resolved: DEC-315, with DEC-317 to DEC-320 (Stage 4b details in COMPLAINTS_PART4_SPEC.md section 6) |
+| O27 | Resolved for complaints by DEC-310; still open for collective issues, Student Voice and meetings |
 | O28 | How cancellation requests appear and are recorded |
 | O29 | Meeting status names and student actions on suggested times |
 | O30 | Final production typography (Newsreader + Inter preferred) |
-| O31 | Classification for resolved vs not resolved (recommendation above) |
-| O32 | Reporting window for Super Admin analytics (recommendation above) |
-| O33 | Which complaint events require an advisor response ("Waiting for you") |
+| O31 | Resolved: DEC-313 |
+| O32 | Resolved: DEC-314 and DEC-316 (current academic term only) |
+| O33 | Resolved: DEC-312 (no response-required classification or queue) |
 | O34 | Theme switch: Light and Dark only, or also System |
