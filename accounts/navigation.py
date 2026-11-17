@@ -21,6 +21,8 @@ class NavItem:
     url_name: str | None = None
     query: dict | None = None
     kwargs: dict | None = None
+    # Other views that belong to this destination, so it stays marked as current there.
+    also_current: tuple = ()
 
     def url(self):
         if not self.url_name:
@@ -29,12 +31,20 @@ class NavItem:
         return f"{base}?{urlencode(self.query)}" if self.query else base
 
 
+STUDENT_COMPLAINT_VIEWS = (
+    "student_complaint_new",
+    "student_complaint_detail",
+    "student_complaint_add_information",
+    "student_complaint_still_not_resolved",
+    "student_complaint_request_cancellation",
+)
+
 # (group heading or None, items)
 NAVIGATION = {
     User.Role.STUDENT: [
         (None, [
             NavItem("Home", "home", "student_home"),
-            NavItem("Complaints", "file"),
+            NavItem("Complaints", "file", "student_complaints", also_current=STUDENT_COMPLAINT_VIEWS),
             NavItem("Student Voice", "voice"),
             NavItem("Meetings", "calendar"),
         ]),
@@ -76,7 +86,7 @@ def _resolve(item, current_url_name):
         "label": item.label,
         "icon": item.icon,
         "url": item.url(),
-        "current": bool(item.url_name) and item.url_name == current_url_name,
+        "current": bool(item.url_name) and current_url_name in (item.url_name, *item.also_current),
     }
 
 

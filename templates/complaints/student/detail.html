@@ -1,0 +1,91 @@
+{% extends "layouts/app.html" %}
+{% load static %}
+{# Complaint details for the student who submitted it (DEC-031, DEC-221 to DEC-224). #}
+{% block title %}{{ complaint.reference }} · UOL Student Affairs{% endblock %}
+{% block content %}
+<div class="sa-narrow">
+  <a class="sa-back" href="{% url 'student_complaints' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>My Submissions</a>
+
+  <header class="sa-case-head">
+    <div class="sa-case-ids">
+      <span class="sa-ref">{{ complaint.reference }}</span>
+      {% include "complaints/student/_status.html" with tone=tone label=complaint.get_status_display %}
+    </div>
+    <h1 class="sa-display">{{ complaint.title }}</h1>
+    <dl class="sa-facts">
+      <div><dt>Category</dt><dd>{{ complaint.category }}{% if complaint.subcategory %} · {{ complaint.subcategory.name }}{% endif %}</dd></div>
+      <div><dt>Submitted</dt><dd>{{ complaint.created_at|date:"j F Y, H:i" }}</dd></div>
+      <div><dt>Section</dt><dd><span class="sa-cohort" title="Batch · Semester · Section when submitted">{{ complaint.batch }} · {{ complaint.semester }} · {{ complaint.section }}</span></dd></div>
+    </dl>
+    <ol class="sa-journey" aria-label="Where this complaint stands">
+      {% for step in journey %}<li class="is-{{ step.state }}"{% if step.state == "current" %} aria-current="step"{% endif %}><span class="dot" aria-hidden="true"></span>{{ step.label }}</li>{% endfor %}
+    </ol>
+  </header>
+
+  <section class="sa-original" aria-labelledby="original-title">
+    <h2 class="sa-label" id="original-title">Your original complaint</h2>
+    <div class="sa-prose">{{ complaint.description|linebreaksbr }}</div>
+    <p class="sa-small sa-muted mb-0">The original stays as you wrote it. Anything you add appears in the history below.</p>
+  </section>
+
+  <section class="sa-section" aria-labelledby="history-title">
+    <div class="sa-section-head"><h2 class="sa-h2" id="history-title">History</h2></div>
+    <ol class="sa-timeline">
+      {% for entry in timeline %}
+      <li class="sa-timeline-item{% if entry.by_student %} is-student{% endif %}">
+        <div class="sa-timeline-head">
+          <span class="sa-timeline-title">{{ entry.title }}</span>
+          {% if entry.status %}{% include "complaints/student/_status.html" with tone=entry.tone label=entry.status_label %}{% endif %}
+        </div>
+        <p class="sa-timeline-meta"><time datetime="{{ entry.when|date:'c' }}">{{ entry.when|date:"j M Y, H:i" }}</time>{% if entry.by %} · {{ entry.by }}{% endif %}</p>
+        {% if entry.message %}<div class="sa-timeline-message">{% if entry.message_label %}<span class="sa-label">{{ entry.message_label }}</span>{% endif %}<div class="sa-prose">{{ entry.message|linebreaksbr }}</div></div>{% endif %}
+        {% if entry.note %}<p class="sa-small sa-muted mb-0">{{ entry.note }}</p>{% endif %}
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  <section class="sa-section" aria-labelledby="actions-title">
+    <div class="sa-section-head"><h2 class="sa-h2" id="actions-title">What you can do</h2></div>
+    <div class="sa-actions">
+      {% if can_mark_still_not_resolved %}
+      <details class="sa-action"{% if open_panel == "still_form" %} open{% endif %}>
+        <summary><span><b>Still not resolved?</b><span class="d">Your complaint goes back to Under Review.</span></span></summary>
+        <form method="post" action="{% url 'student_complaint_still_not_resolved' complaint.reference %}" novalidate data-once-submit>
+          {% csrf_token %}
+          {% if still_form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ still_form.non_field_errors|join:" " }}</div>{% endif %}
+          {% include "includes/form_field.html" with field=still_form.message %}
+          <button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">Mark as still not resolved</button>
+        </form>
+      </details>
+      {% endif %}
+
+      <details class="sa-action"{% if open_panel == "information_form" %} open{% endif %}>
+        <summary><span><b>Add further information</b><span class="d">Your original complaint stays unchanged.</span></span></summary>
+        <form method="post" action="{% url 'student_complaint_add_information' complaint.reference %}" novalidate data-once-submit>
+          {% csrf_token %}
+          {% if information_form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ information_form.non_field_errors|join:" " }}</div>{% endif %}
+          {% include "includes/form_field.html" with field=information_form.message %}
+          <button type="submit" class="btn btn-sa-primary" data-submit-label="Adding…">Add to complaint</button>
+        </form>
+      </details>
+
+      {% if can_request_cancellation %}
+      <details class="sa-action"{% if open_panel == "cancel_form" %} open{% endif %}>
+        <summary><span><b>Request cancellation</b><span class="d">Records your request. It does not cancel or delete the complaint.</span></span></summary>
+        <form method="post" action="{% url 'student_complaint_request_cancellation' complaint.reference %}" novalidate data-once-submit>
+          {% csrf_token %}
+          <p class="sa-small">Your request is added to the history for the staff handling your complaint. The complaint is not cancelled or deleted, and its status does not change.</p>
+          {% if cancel_form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ cancel_form.non_field_errors|join:" " }}</div>{% endif %}
+          {% include "includes/form_field.html" with field=cancel_form.reason %}
+          <button type="submit" class="btn btn-sa-secondary" data-submit-label="Sending…">Send cancellation request</button>
+        </form>
+      </details>
+      {% elif cancellation_requested %}
+      <p class="sa-small sa-muted mb-0">You have asked to cancel this complaint. Your request is in the history above.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

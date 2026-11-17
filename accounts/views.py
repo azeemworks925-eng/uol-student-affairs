@@ -54,12 +54,16 @@ def cohort_label(batch, semester, section):
 
 
 # Quick Access: three separate actions (DEC-282, DEC-303). A destination stays unavailable
-# (url None) until its module is built, so nothing links to a page that does not exist.
+# (url_name None) until its module is built, so nothing links to a page that does not exist.
 QUICK_ACCESS = [
-    {"label": "Submit a complaint", "description": "Raise a problem with your Batch Advisor", "icon": "plus", "url": None, "primary": True},
-    {"label": "Student Voice", "description": "An idea, a question or feedback", "icon": "voice", "url": None},
-    {"label": "My meetings", "description": "Request or review meetings", "icon": "calendar", "url": None},
+    {"label": "Submit a complaint", "description": "Raise a problem with your Batch Advisor", "icon": "plus", "url_name": "student_complaint_new", "primary": True},
+    {"label": "Student Voice", "description": "An idea, a question or feedback", "icon": "voice", "url_name": None},
+    {"label": "My meetings", "description": "Request or review meetings", "icon": "calendar", "url_name": None},
 ]
+
+
+def quick_access():
+    return [{**item, "url": reverse(item["url_name"]) if item["url_name"] else None} for item in QUICK_ACCESS]
 
 
 @student_required
@@ -75,7 +79,7 @@ def student_home(request):
         "first_name": first_name(request.user),
         "cohort_label": cohort_label(profile.batch, profile.semester, profile.section),
         "summary": personal_summary(updates),
-        "quick_access": QUICK_ACCESS,
+        "quick_access": quick_access(),
     })
 
 

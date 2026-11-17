@@ -1,0 +1,56 @@
+{% extends "layouts/app.html" %}
+{# My Submissions (DEC-031): the student's own complaints only. #}
+{% block title %}My Submissions · UOL Student Affairs{% endblock %}
+{% block content %}
+<header class="sa-page-head sa-page-head--split">
+  <div>
+    <span class="sa-eyebrow">My Submissions · Complaints</span>
+    <h1 class="sa-display">{% if not total %}You have not submitted any complaints.{% elif open_count %}You have {{ open_count }} open complaint{{ open_count|pluralize }}.{% else %}You have no open complaints.{% endif %}</h1>
+    <p class="sa-lede"><span class="soft">Only you and the staff who handle your complaints can see them.</span></p>
+  </div>
+  <a class="btn btn-sa-primary" href="{% url 'student_complaint_new' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Submit a complaint</a>
+</header>
+
+{% if total %}
+<nav class="sa-filter" aria-label="Filter by status">
+  {% for value, label in filters %}
+    <a href="{% url 'student_complaints' %}{% if value %}?status={{ value }}{% endif %}"{% if value == status %} aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+
+{% if page.object_list %}
+<ul class="sa-case-list">
+  {% for complaint in page %}
+  <li>
+    <a class="sa-case-row" href="{% url 'student_complaint_detail' complaint.reference %}">
+      <span class="sa-case-main">
+        <span class="sa-ref">{{ complaint.reference }}</span>
+        <span class="sa-case-title">{{ complaint.title }}</span>
+        <span class="sa-case-meta">{{ complaint.category }} · <span class="sa-nowrap">Submitted {{ complaint.created_at|date:"j M Y" }}</span>{% if complaint.event_count > 1 %} · <span class="sa-nowrap">Last update {{ complaint.last_activity|date:"j M Y" }}</span>{% endif %}</span>
+      </span>
+      {% include "complaints/student/_status.html" with tone=complaint.tone label=complaint.get_status_display %}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+
+{% if page.has_other_pages %}
+<nav class="sa-pagination" aria-label="Pages">
+  {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="?{% if status %}status={{ status }}&amp;{% endif %}page={{ page.previous_page_number }}">Newer</a>{% endif %}
+  <span class="sa-small sa-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="?{% if status %}status={{ status }}&amp;{% endif %}page={{ page.next_page_number }}">Older</a>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+<div class="sa-empty">
+  <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
+  <div><p class="title">No complaints with this status.</p><p class="sa-muted sa-small"><a href="{% url 'student_complaints' %}">Show all your complaints</a></p></div>
+</div>
+{% endif %}
+{% else %}
+<div class="sa-empty">
+  <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-file"/></svg>
+  <div><p class="title">Nothing here yet.</p><p class="sa-muted sa-small">When you submit a complaint, it appears here with its reference and status, and every reply and change is recorded in its history.</p></div>
+</div>
+{% endif %}
+{% endblock %}

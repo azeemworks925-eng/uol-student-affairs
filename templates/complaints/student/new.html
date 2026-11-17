@@ -1,0 +1,33 @@
+{% extends "layouts/app.html" %}
+{% load static %}
+{# Submit a complaint (DEC-030, DEC-220, DEC-225). The cohort comes from the student's registration, never from this form. #}
+{% block title %}Submit a complaint · UOL Student Affairs{% endblock %}
+{% block content %}
+<div class="sa-narrow">
+  <a class="sa-back" href="{% url 'student_complaints' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>My Submissions</a>
+  <header class="sa-page-head">
+    <span class="sa-eyebrow">Complaints</span>
+    <h1 class="sa-display">Submit a complaint</h1>
+    <p class="sa-lede">It goes to the Batch Advisors of your section{% if user.student_profile %}, <span class="sa-cohort">{{ user.student_profile.batch }} · {{ user.student_profile.semester }} · {{ user.student_profile.section }}</span>{% endif %}. Only you and the staff who handle it can see it.</p>
+  </header>
+
+  <form method="post" class="sa-panel" novalidate data-once-submit>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    {% include "includes/form_field.html" with field=form.category %}
+    <div class="sa-notice mb-3" data-duplicate-notice hidden role="status">
+      <p class="mb-1"><b>You already have an open complaint in this category.</b></p>
+      <p class="sa-small sa-muted mb-2">If it is about the same problem, you can add information to it instead. You can still submit a new complaint.</p>
+      <ul class="sa-notice-list" data-duplicate-list></ul>
+    </div>
+    {% if form.has_subcategories %}{% include "includes/form_field.html" with field=form.subcategory wrapper_attrs="data-subcategory-field" %}{% endif %}
+    {% include "includes/form_field.html" with field=form.title %}
+    {% include "includes/form_field.html" with field=form.description %}
+    <div class="sa-form-actions">
+      <button type="submit" class="btn btn-sa-primary btn-lg" data-submit-label="Submitting…">Submit complaint</button>
+    </div>
+  </form>
+</div>
+{{ open_by_category|json_script:"open-complaints" }}
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}
