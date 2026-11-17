@@ -150,7 +150,7 @@ Product workflows are settled. Do not assume answers to the following; full word
 **Technical implementation choices**
 
 - O2: Domain enforcement and verification for students and staff.
-- O3: Google OAuth library, client setup and credential handling.
+- O3: Google OAuth client setup and credential handling. The library choice is settled: `django-allauth` is approved; real sign-in with UOL accounts is not yet configured or verified.
 - O26: Bootstrap mechanism for the initial Super Admin.
 - O20: Django app structure and database schema.
 - O18: Design system, official UOL brand assets, visual references.
@@ -170,7 +170,7 @@ Product workflows are settled. Do not assume answers to the following; full word
 - Django 5.2 LTS (5.2.19 installed)
 - MySQL: development on the existing MySQL Server 8.0.44. MySQL 8.4 LTS is a future evaluation question; it is not installed and no upgrade is approved.
 - python-dotenv for loading settings from `.env`
-- Google OAuth for authentication (library not yet chosen)
+- Google OAuth for authentication, through the approved `django-allauth` library. Real Google sign-in is not yet configured or verified with UOL accounts (O2, O3).
 - Django Templates
 - HTML, CSS and vanilla JavaScript
 - Bootstrap 5.3
@@ -180,7 +180,7 @@ Product workflows are settled. Do not assume answers to the following; full word
 - Visual Studio Code and MySQL Workbench
 - Claude Code for AI-assisted implementation
 
-Do not introduce React, Next.js, a separate Node.js backend, microservices, Kubernetes, Redis or other infrastructure without a justified proposal and the owner's approval. A new library, including one for Google OAuth, also needs approval.
+Do not introduce React, Next.js, a separate Node.js backend, microservices, Kubernetes, Redis or other infrastructure without a justified proposal and the owner's approval. Any other new library also needs approval; the Google OAuth library, `django-allauth`, is already approved.
 
 ## 7. Environment constraints
 

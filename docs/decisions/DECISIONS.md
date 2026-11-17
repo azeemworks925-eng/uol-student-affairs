@@ -244,7 +244,7 @@ Kept for traceability. These items appeared as NEEDS CONFIRMATION (Q) or OPEN (O
 | Q6 | 15-day overdue indicator | Not included. DEC-226 |
 | O1 | Sign-in for BAs and the Super Admin; first Super Admin | DEC-010, DEC-200, DEC-013, DEC-203. The bootstrap mechanism itself remains open as O26. |
 | O2 | Domain enforcement | Still open (technical). See section 5. |
-| O3 | OAuth implementation | Still open (technical). See section 5. |
+| O3 | OAuth implementation | Library chosen: `django-allauth` is approved. The rest is still open (technical). See section 5. |
 | O4 | How students change semester or section | DEC-021 |
 | O5 | CR/GR lifecycle and the meaning of GR | DEC-016, DEC-240, DEC-245 |
 | O6 | Collective issue visibility and support | DEC-241, DEC-243 |
@@ -274,7 +274,7 @@ These do not change what the product does. They are resolved during design and i
 | ID | Open item |
 |---|---|
 | O2 | Technical verification and domain enforcement for students and staff: how the email format is enforced, how staff accounts are verified, and confirmation that the relevant UOL accounts work with Google sign-in. |
-| O3 | The Google OAuth library and implementation details; OAuth client setup; secure handling of the client credentials. |
+| O3 | Google OAuth implementation beyond the approved library (`django-allauth`): OAuth client setup and secure handling of the client credentials. Real sign-in with UOL accounts is not yet configured or verified (see also O2). |
 | O26 | The exact bootstrap mechanism for the initial Super Admin account (DEC-203). |
 | O20 | Final Django app structure and database schema. |
 | O18 | Final design system, official UOL brand assets and validated visual references. Partly settled by DEC-300 to DEC-302; official UOL brand assets remain open. |

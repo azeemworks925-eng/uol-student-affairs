@@ -125,7 +125,7 @@ There is no separate department-admin, Administrator or HOD portal in V1. (DEC-0
 - Student registration collects full name, batch, semester and section. Department defaults to Software Engineering. There is no Morning/Evening field. (DEC-201)
 - The Super Admin creates each BA account by entering the teacher's name and official UOL email. BAs then use the same Google login page. (DEC-013)
 
-Open technical items: domain enforcement and verification (O2), OAuth library and credentials (O3), bootstrap mechanism (O26).
+The Google OAuth library is `django-allauth` (approved). Open technical items: domain enforcement and verification with real UOL accounts (O2), OAuth client setup and credential handling (O3), bootstrap mechanism (O26).
 
 ## 6.2 Academic structure and student records
 
@@ -347,7 +347,7 @@ The contents of each dashboard are confirmed (section 6.8). The design system an
 | Language | Python 3.13 (3.13.15 installed) |
 | Backend | Django 5.2 LTS (5.2.19 installed) |
 | Database | MySQL. Development on the existing MySQL Server 8.0.44. |
-| Authentication | Google OAuth (library not yet chosen) |
+| Authentication | Google OAuth through `django-allauth` (approved library; real UOL sign-in not yet configured or verified) |
 | Configuration | `.env` loaded with python-dotenv |
 | Frontend rendering | Django Templates |
 | Structure and styling | HTML and CSS |
@@ -499,7 +499,7 @@ A proposed roadmap, not a fixed schedule.
 
 | Phase | Content | State |
 |---|---|---|
-| 1. Requirements | V1 product workflows, roles and boundaries. | Confirmed. Three workflow details remain (O27 to O29). |
+| 1. Requirements | V1 product workflows, roles and boundaries. | Confirmed. Two workflow areas remain: Batch Advisor routing for collective issues, Student Voice and meetings (O27), and meeting statuses with student cancellation or rescheduling (O29). O28 is resolved by DEC-311. |
 | 2. Development foundation | Environment, Django project, database, custom user model, secrets handling. | Created and tested locally. |
 | 3. System design | App structure, database schema, permission enforcement, state transitions, threat model. | Next (O20, O22). |
 | 4. Product design and UX | UOL brand research, user journeys, wireframes, design system, responsive review. | To do (O18). |
@@ -516,7 +516,7 @@ Product workflows are settled. The complete list of remaining items is in `DECIS
 **Technical implementation choices**
 
 - Domain enforcement and verification for students and staff (O2).
-- Google OAuth library, client setup and credential handling (O3).
+- Google OAuth client setup and credential handling; the library, `django-allauth`, is approved (O3).
 - Bootstrap mechanism for the initial Super Admin (O26).
 - Django app structure and database schema (O20).
 - Design system, official UOL brand assets and visual references (O18).
