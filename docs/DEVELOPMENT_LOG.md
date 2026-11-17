@@ -19,7 +19,7 @@ Rules:
 | V1 product workflows | Confirmed in `DECISIONS.md`. |
 | Django foundation | Complete and verified locally. Merged into `main` through PR #1 (merge commit `a1ed704`). |
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
-| Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O25, O30 to O34. |
+| Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O30 and O34; O25 is resolved by DEC-315. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
 | Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification is on branch docs/complaints-part4-spec, awaiting review; implementation has not started. |
 | Other product features | Student Voice, meetings, collective issues and the Super Admin analytics are not implemented. |
