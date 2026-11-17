@@ -200,7 +200,10 @@ class ComplaintListFilterForm(forms.Form):
                 choices=[("", "Any owner"), (self.UNASSIGNED, "Unassigned")]
                 + [(str(user.pk), f"{user.get_full_name()} ({user.get_role_display()})") for user in owners],
             )
-        self.fields["category"].choices = [("", "All categories")] + [(str(c.pk), c.name) for c in categories]
+        # Staff filters mark inactive categories (Part 4 Stage 2); students never see this label.
+        self.fields["category"].choices = [("", "All categories")] + [
+            (str(c.pk), c.name if c.is_active else f"{c.name} (inactive)") for c in categories
+        ]
         for name, field in self.fields.items():
             field.widget.attrs.setdefault("class", "form-control" if name == "q" else "form-select")
         self.fields["q"].widget.attrs.update({"placeholder": "Search complaints", "aria-describedby": "ws-search-hint"})
@@ -234,3 +237,38 @@ class ResponsibleOwnerForm(AccessibleErrorsMixin, forms.Form):
 
     def clean_owner(self):
         return self.people[self.cleaned_data["owner"]]
+
+
+# ---------- Category management (Part 4 Stage 2) ----------
+
+class _NameForm(AccessibleErrorsMixin, forms.Form):
+    """A name only. Normalisation, the 80-character limit and duplicates are decided by
+    complaints.category_services; the form caps raw input and keeps the value on errors.
+    There is no position or parent field: order changes by Up/Down, and parents are fixed."""
+
+    name = forms.CharField(
+        max_length=200,
+        strip=True,
+        widget=forms.TextInput(attrs={"class": "form-control", "autocomplete": "off"}),
+        error_messages={"required": "Enter a name."},
+    )
+
+
+class CategoryNameForm(_NameForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["name"].label = "Category name"
+
+
+class SubcategoryNameForm(_NameForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["name"].label = "Subcategory name"
+
+
+class ActiveStateForm(forms.Form):
+    active = forms.TypedChoiceField(choices=[("1", "Activate"), ("0", "Deactivate")], coerce=lambda v: v == "1")
+
+
+class MoveForm(forms.Form):
+    direction = forms.ChoiceField(choices=[("up", "Move up"), ("down", "Move down")])

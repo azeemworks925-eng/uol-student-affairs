@@ -47,6 +47,18 @@ SUPER_ADMIN_COMPLAINT_VIEWS = (
     "super_admin_complaint_owner",
 )
 
+CATEGORY_VIEWS = (
+    "super_admin_category_create",
+    "super_admin_category_detail",
+    "super_admin_category_rename",
+    "super_admin_category_active",
+    "super_admin_category_move",
+    "super_admin_subcategory_create",
+    "super_admin_subcategory_rename",
+    "super_admin_subcategory_active",
+    "super_admin_subcategory_move",
+)
+
 # (group heading or None, items)
 NAVIGATION = {
     User.Role.STUDENT: [
@@ -83,7 +95,7 @@ NAVIGATION = {
         ]),
         ("Configuration", [
             NavItem("Academic Structure", "layers", "admin:app_list", kwargs={"app_label": "academics"}),
-            NavItem("Complaint Categories", "tags"),
+            NavItem("Complaint Categories", "tags", "super_admin_categories", also_current=CATEGORY_VIEWS),
         ]),
     ],
 }

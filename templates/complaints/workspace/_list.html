@@ -42,7 +42,7 @@
       <span class="sa-ws-row-top"><span class="sa-ref">{{ item.reference }}</span>{% include "complaints/student/_status.html" with tone=item.tone label=item.get_status_display %}</span>
       <span class="sa-ws-row-title">{{ item.title }}</span>
       <span class="sa-ws-row-student">{{ item.student.get_full_name }}{% if workspace.department_wide and item.student.student_profile %} <span class="sa-ref">{{ item.student.student_profile.sap_id }}</span>{% endif %}</span>
-      <span class="sa-ws-row-meta"><span class="sa-cohort">{{ item.batch }} · {{ item.semester }} · {{ item.section }}</span>{% if workspace.department_wide %} <span>{{ item.category }}</span>{% endif %} <span class="sa-nowrap">Last activity {{ item.last_activity|date:"j M Y" }}</span></span>
+      <span class="sa-ws-row-meta"><span class="sa-cohort">{{ item.batch }} · {{ item.semester }} · {{ item.section }}</span>{% if workspace.department_wide %} <span>{{ item.category }}{% if not item.category.is_active %} (inactive){% endif %}</span>{% endif %} <span class="sa-nowrap">Last activity {{ item.last_activity|date:"j M Y" }}</span></span>
       {% if workspace.department_wide %}<span class="sa-ws-row-owner">{% if item.responsible %}Owner: {{ item.responsible.get_full_name }}{% else %}Unassigned{% endif %}</span>{% endif %}
       {% if item.cancellation_requested or item.reopened %}
       <span class="sa-ws-flags">{% if item.cancellation_requested %}<span class="sa-flag">Cancellation requested</span>{% endif %}{% if item.reopened %}<span class="sa-flag">Reopened by student</span>{% endif %}</span>

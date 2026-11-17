@@ -1,0 +1,90 @@
+{% extends "layouts/app.html" %}
+{% load static %}
+{# One complaint category and its subcategories (Complaints Part 4 Stage 2). No delete control by design. #}
+{% block title %}{{ category.name }} · Complaint categories · UOL Student Affairs{% endblock %}
+{% block content %}
+<div class="sa-narrow" data-focus-invalid>
+  <a class="sa-back" href="{% url 'super_admin_categories' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Complaint categories</a>
+  <header class="sa-page-head">
+    <span class="sa-eyebrow">Configuration · Complaint category</span>
+    <h1 class="sa-display">{{ category.name }}</h1>
+    <p class="sa-cat-summary">{% include "complaints/categories/_state.html" with active=category.is_active %} <span class="sa-muted">{{ complaint_count }} complaint{{ complaint_count|pluralize }} · {{ subcategories|length }} subcategor{{ subcategories|length|pluralize:"y,ies" }}</span></p>
+  </header>
+
+  <section class="sa-panel" aria-labelledby="rename-title">
+    <h2 class="sa-h2" id="rename-title">Name</h2>
+    <form method="post" action="{% url 'super_admin_category_rename' category.pk %}" class="sa-inline-form" novalidate data-once-submit>
+      {% csrf_token %}
+      {% include "includes/form_field.html" with field=rename_form.name wrapper_class="sa-inline-field" %}
+      <button type="submit" class="btn btn-sa-primary" data-submit-label="Saving…">Rename</button>
+    </form>
+    <p class="sa-small sa-muted mb-0">Existing complaints keep this category and show the new name.</p>
+  </section>
+
+  <section class="sa-panel mt-3" aria-labelledby="availability-title">
+    <h2 class="sa-h2" id="availability-title">Availability</h2>
+    {% if category.is_active %}
+      <p>Students can choose this category, and its active subcategories, for new complaints.</p>
+      <p class="sa-small sa-muted">Deactivating it keeps every existing complaint in this category and its subcategories. Students can&rsquo;t choose it, or any of its subcategories, for new complaints. Its subcategories keep their own settings and become available again when you reactivate it.</p>
+      {% if is_last_active %}
+        <p class="sa-small mb-0" id="last-active-note"><b>This is the only active category.</b> Activate another category before deactivating this one.</p>
+      {% else %}
+        <form method="post" action="{% url 'super_admin_category_active' category.pk %}">{% csrf_token %}<input type="hidden" name="active" value="0">
+          <button type="submit" class="btn btn-sa-secondary">Deactivate category</button></form>
+      {% endif %}
+    {% else %}
+      <p>This category is inactive. Existing complaints keep it, and staff can still filter by it.</p>
+      <p class="sa-small sa-muted">Activating it makes it, and its active subcategories, available to students again.</p>
+      <form method="post" action="{% url 'super_admin_category_active' category.pk %}">{% csrf_token %}<input type="hidden" name="active" value="1">
+        <button type="submit" class="btn btn-sa-primary">Activate category</button></form>
+    {% endif %}
+  </section>
+
+  <section class="sa-section" id="subcategories" aria-labelledby="subcategories-title">
+    <div class="sa-section-head"><h2 class="sa-h2" id="subcategories-title">Subcategories</h2><span class="sa-small sa-muted">Optional for students</span></div>
+    {% if not category.is_active and subcategories %}<p class="sa-small sa-muted">While this category is inactive, none of its subcategories are available to students.</p>{% endif %}
+    {% if subcategories %}
+    <ol class="sa-cat-list">
+      {% for sub in subcategories %}
+      <li class="sa-cat-row sa-cat-row--sub" id="subcategory-{{ sub.pk }}">
+        <div class="sa-cat-main">
+          <span class="sa-cat-name">{{ sub.name }}</span>
+          {% include "complaints/categories/_state.html" with active=sub.is_active %}
+          <span class="sa-cat-meta">{{ sub.complaint_count }} complaint{{ sub.complaint_count|pluralize }}</span>
+        </div>
+        <form method="post" action="{% url 'super_admin_subcategory_rename' category.pk sub.pk %}" class="sa-inline-form" novalidate data-once-submit>
+          {% csrf_token %}
+          {% include "includes/form_field.html" with field=sub.rename_form.name wrapper_class="sa-inline-field" %}
+          <button type="submit" class="btn btn-sa-secondary" aria-label="Rename {{ sub.name }}">Rename</button>
+        </form>
+        <div class="sa-cat-actions">
+          {% url 'super_admin_subcategory_move' category.pk sub.pk as move_url %}
+          {% include "complaints/categories/_move.html" with action=move_url label=sub.name first=forloop.first last=forloop.last %}
+          <form method="post" action="{% url 'super_admin_subcategory_active' category.pk sub.pk %}">{% csrf_token %}
+            <input type="hidden" name="active" value="{% if sub.is_active %}0{% else %}1{% endif %}">
+            <button type="submit" class="btn btn-sa-secondary btn-sm" aria-label="{% if sub.is_active %}Deactivate{% else %}Activate{% endif %} {{ sub.name }}">{% if sub.is_active %}Deactivate{% else %}Activate{% endif %}</button>
+          </form>
+        </div>
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}
+    <div class="sa-empty">
+      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-tags"/></svg>
+      <div><p class="title">No subcategories.</p><p class="sa-muted sa-small">Subcategories are optional. Students can submit with just the category.</p></div>
+    </div>
+    {% endif %}
+
+    <div class="sa-panel mt-3">
+      <h3 class="sa-h2" id="add-sub-title">Add a subcategory</h3>
+      <form method="post" action="{% url 'super_admin_subcategory_create' category.pk %}" class="sa-inline-form" novalidate data-once-submit aria-labelledby="add-sub-title">
+        {% csrf_token %}
+        {% include "includes/form_field.html" with field=sub_create_form.name wrapper_class="sa-inline-field" %}
+        <button type="submit" class="btn btn-sa-primary" data-submit-label="Adding…">Add subcategory</button>
+      </form>
+      {% if not category.is_active %}<p class="sa-small sa-muted mb-0">You can add subcategories while the category is inactive. Students will see them once it is active again.</p>{% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

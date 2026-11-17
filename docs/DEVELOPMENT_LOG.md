@@ -21,9 +21,78 @@ Rules:
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O30 and O34; O25 is resolved by DEC-315. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
-| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`). Part 4 Stage 1 (Super Admin workspace and owner assignment, Issue #13) on branch `feat/super-admin-complaints-workspace`, awaiting review. Stages 2–5 not started. |
+| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`). Stage 2 (category management) on branch `feat/complaint-category-management`, awaiting review. Stages 3–5 not started. |
 | Other product features | Student Voice, meetings, collective issues and the Super Admin analytics are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
+
+---
+
+## 2026-11-17 — Complaints Part 4 Stage 2: category and subcategory management
+
+**Context**
+
+- Branch `feat/complaint-category-management` from `main` at `5bed61e` (Stage 1 merged, PR #14). The investigation report's assumptions were confirmed against that commit.
+- Owner decisions:
+  - historical complaints show the current name, with no snapshots;
+  - management lives on portal pages, not Django admin;
+  - the last active category can't be deactivated;
+  - subcategories may be created under an inactive category;
+  - no audit history;
+  - complaint usage counts on the index;
+  - "(inactive)" shown to staff only;
+  - no migration;
+  - duplicates treated like MySQL's case- and accent-insensitive collation;
+  - a subcategory's parent can't change;
+  - no hard deletion of either model.
+- **No migrations.**
+
+**What was done**
+
+- **Models:** `CategoryQuerySet` refuses queryset `delete()`, and both models refuse instance `delete()` (`ProtectedRecordError`), even when unreferenced; `update()` is unchanged. `ComplaintSubcategory.save()` refuses a parent change, checked against the stored row.
+- **`complaints/category_services.py`:** create, rename, activate/deactivate and move for categories and subcategories. Each operation:
+  - re-checks for an active Super Admin and runs in a transaction;
+  - normalises names and checks duplicates ignoring case and accents, including inactive records, converting `IntegrityError` into the same field error;
+  - appends new records, and for moves locks and renumbers siblings so ties can't block them;
+  - never cascades deactivation to subcategory flags, and refuses to deactivate the last active category.
+- **Pages:**
+  - `/super-admin/complaint-categories/`: index and category pages, every change POST + CSRF with Post/Redirect/Get, subcategory lookups through their parent, no delete route.
+  - The "Complaint Categories" navigation item now links here, which also adds it to the Overview's Manage links.
+- **Staff labels:** "(inactive)" in staff case details, staff category filters and Super Admin rows; student pages are unchanged.
+- **Accessibility fix (shared):** `AccessibleErrorsMixin` now also marks fields when an error is added later with `add_error()`. Service-raised field errors, such as duplicates, previously showed their message but left the input unmarked; this also covers the existing complaint forms. On the category pages, an invalid field is scrolled into view and focused.
+- **Two existing tests adapted** to "no hard deletion":
+  - the seed-migration test no longer clears the table with `delete()`;
+  - category deletion now expects `ProtectedRecordError`.
+
+**Verification**
+
+- Tests: 44 in `complaints/tests/test_category_management.py`, covering:
+  - model guards: delete refused, `update()` kept, parent fixed;
+  - services: permissions for every operation, normalisation, duplicates (case, accents, inactive, per parent), `IntegrityError`, ordering (ties, boundaries, per parent, student-form order), activation (no cascade, last active, inactive parent, reactivation), historical integrity;
+  - pages: access by role and state, 405 on GET, CSRF, 404 for unknown ids and forged pairings, forged values, no delete route, counts, order and disabled boundary moves, page flows, accessible errors including service-raised ones, navigation and the Overview link;
+  - staff labels, filtering by an inactive category, and students seeing the current name without the marker.
+- **Mutation checks:**
+  - disabling the service permission check fails the permission test for every operation and actor;
+  - disabling the last-active rule fails both last-active tests;
+  - removing the `add_error()` marking fails the service-error assertion.
+- **Review follow-up: subcategory parent bypasses.**
+  - **Found:** `ComplaintSubcategory.save()` guarded only instance saves. A probe on a test database moved a subcategory to another category through seven paths:
+    - `update(category=…)` and `update(category_id=…)`, including through `category.subcategories.update()`;
+    - `bulk_update([...], ["category"])`;
+    - `other.subcategories.add(sub)` and `.set([sub])`, which in bulk mode update through the base manager;
+    - an upserting `bulk_create(update_conflicts=True, update_fields=["category"])`.
+  - **Fixed:**
+    - `SubcategoryQuerySet` refuses `update()` / `bulk_update()` naming `category` or `category_id`, and upserts that update `category`. Other fields, and inserts, are unaffected.
+    - A guarded reverse descriptor on `ComplaintCategory.subcategories` refuses `add()` / `set()` when they would move an existing subcategory of another category. It is used instead of `Meta.base_manager_name`, which would need a migration.
+    - **No migration.**
+  - **Tests:** 6 new model tests covering each path, plus non-parent updates and legitimate creation still working, and historical complaints keeping their category and subcategory. Against the previous model, the 5 bypass tests fail.
+- Results:
+  - **After the follow-up:** 398/398 on MySQL 8.0.44 in two consecutive `--keepdb` runs; 398 on SQLite with the same 2 MySQL-only skips; the 50 Stage 2 tests pass on MySQL.
+  - **Before the follow-up:** 392/392 on MySQL 8.0.44 in two consecutive `--keepdb` runs; the 44 Stage 2 tests passed on MySQL and SQLite.
+  - 392 on SQLite with 2 skipped (MySQL-only: `test_only_one_stale_status_change_succeeds`, `test_concurrent_submissions_get_distinct_references`).
+  - `check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0. `compileall`: exit 0. `git diff --check`: clean.
+- Browser: headless Chrome at 100% zoom, 8 category-page states × 6 viewports (1280×590, 1232×590, 1100×590, 1600×740, 1440×800, 360px) = 48/48 clean. The states were: the index, an active category, a long-named category, an inactive category, the last active category, a create error, a subcategory error and keyboard focus.
+  - Re-checked: student complaint pages 66/66, Batch Advisor workspace 60/60, Super Admin workspace 48/48.
+  - Found and fixed during the checks: name links under 44px on phones, inline buttons misaligned beside an error, errors below the fold not brought into view, and the unmarked service-raised field errors.
 
 ---
 

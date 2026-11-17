@@ -19,6 +19,8 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxLengthValidator
 from django.db import models
 from django.db.models import Q
+from django.db.models.fields.related_descriptors import ReverseManyToOneDescriptor, create_reverse_many_to_one_manager
+from django.utils.functional import cached_property
 
 from academics.models import ActiveQuerySet
 
@@ -73,15 +75,63 @@ class ProtectedQuerySet(models.QuerySet):
     bulk_create.alters_data = True
 
 
+class CategoryQuerySet(ActiveQuerySet):
+    """Categories and subcategories are deactivated, never deleted (DEC-210, Part 4 section 4).
+    Bulk delete() is refused; update() stays available."""
+
+    def delete(self):
+        raise ProtectedRecordError(
+            f"{self.model._meta.verbose_name_plural.capitalize()} cannot be deleted. Deactivate them instead."
+        )
+
+    delete.alters_data = True
+    delete.queryset_only = True
+
+
+SUBCATEGORY_PARENT_FIELDS = {"category", "category_id"}
+REPARENT_MESSAGE = "A subcategory cannot be moved to another category."
+
+
+class SubcategoryQuerySet(CategoryQuerySet):
+    """Refuses the bulk paths that would move a subcategory to another category (they skip
+    ComplaintSubcategory.save()). Updates to any other field, and inserts, are unaffected."""
+
+    def update(self, **kwargs):
+        if SUBCATEGORY_PARENT_FIELDS & kwargs.keys():
+            raise ProtectedRecordError(REPARENT_MESSAGE)
+        return super().update(**kwargs)
+
+    update.alters_data = True
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        if SUBCATEGORY_PARENT_FIELDS & set(fields):
+            raise ProtectedRecordError(REPARENT_MESSAGE)
+        return super().bulk_update(objs, fields, batch_size=batch_size)
+
+    bulk_update.alters_data = True
+
+    def bulk_create(self, objs, batch_size=None, ignore_conflicts=False, update_conflicts=False,
+                    update_fields=None, unique_fields=None):
+        if update_conflicts and SUBCATEGORY_PARENT_FIELDS & set(update_fields or ()):
+            raise ProtectedRecordError(REPARENT_MESSAGE)  # an upsert could rewrite an existing parent
+        return super().bulk_create(
+            objs, batch_size=batch_size, ignore_conflicts=ignore_conflicts,
+            update_conflicts=update_conflicts, update_fields=update_fields, unique_fields=unique_fields,
+        )
+
+    bulk_create.alters_data = True
+
+
 class ComplaintCategory(models.Model):
-    """A main complaint category, managed by the Super Admin (DEC-220)."""
+    """A main complaint category, managed by the Super Admin (DEC-220; changes through
+    complaints.category_services)."""
 
     name = models.CharField(max_length=80, unique=True)
     position = models.PositiveSmallIntegerField(default=0, help_text="Lower numbers are listed first.")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    objects = ActiveQuerySet.as_manager()
+    objects = CategoryQuerySet.as_manager()
 
     class Meta:
         ordering = ["position", "name"]
@@ -90,9 +140,13 @@ class ComplaintCategory(models.Model):
     def __str__(self):
         return self.name
 
+    def delete(self, *args, **kwargs):
+        raise ProtectedRecordError("Complaint categories cannot be deleted. Deactivate them instead.")
+
 
 class ComplaintSubcategory(models.Model):
-    """An optional subcategory within a main category (DEC-220)."""
+    """An optional subcategory within a main category (DEC-220). Its parent is fixed at
+    creation: moving it would reclassify the complaints that use it."""
 
     category = models.ForeignKey(ComplaintCategory, on_delete=models.PROTECT, related_name="subcategories")
     name = models.CharField(max_length=80)
@@ -100,7 +154,7 @@ class ComplaintSubcategory(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    objects = ActiveQuerySet.as_manager()
+    objects = SubcategoryQuerySet.as_manager()
 
     class Meta:
         ordering = ["category__position", "category__name", "position", "name"]
@@ -111,6 +165,57 @@ class ComplaintSubcategory(models.Model):
 
     def __str__(self):
         return f"{self.category} / {self.name}"
+
+    def save(self, *args, **kwargs):
+        # Compare with the stored row (not in-memory state), as for complaint descriptions.
+        update_fields = kwargs.get("update_fields")
+        writes_parent = update_fields is None or "category" in update_fields or "category_id" in update_fields
+        if self.pk is not None and writes_parent and not kwargs.get("force_insert"):
+            stored = ComplaintSubcategory._base_manager.filter(pk=self.pk).values_list("category_id", flat=True).first()
+            if stored is not None and stored != self.category_id:
+                raise ProtectedRecordError(REPARENT_MESSAGE)
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ProtectedRecordError("Complaint subcategories cannot be deleted. Deactivate them instead.")
+
+
+def _refuse_reparenting(category, objs):
+    """Refuse adding an existing subcategory that belongs to another category."""
+    pks = [obj.pk for obj in objs if isinstance(obj, ComplaintSubcategory) and obj.pk is not None]
+    if pks and ComplaintSubcategory._base_manager.filter(pk__in=pks).exclude(category_id=category.pk).exists():
+        raise ProtectedRecordError(REPARENT_MESSAGE)
+
+
+class _FixedParentReverseDescriptor(ReverseManyToOneDescriptor):
+    """`category.subcategories`: in bulk mode, add() and set() update rows through the model's
+    base manager (Django 5.2 create_reverse_many_to_one_manager), bypassing both
+    ComplaintSubcategory.save() and SubcategoryQuerySet. This manager refuses those calls when
+    they would move an existing subcategory. Installed below instead of Meta.base_manager_name,
+    which would need a migration."""
+
+    @cached_property
+    def related_manager_cls(self):
+        base = create_reverse_many_to_one_manager(self.rel.related_model._default_manager.__class__, self.rel)
+
+        class FixedParentRelatedManager(base):
+            def add(self, *objs, bulk=True):
+                _refuse_reparenting(self.instance, objs)
+                return super().add(*objs, bulk=bulk)
+
+            add.alters_data = True
+
+            def set(self, objs, *, bulk=True, clear=False):
+                objs = tuple(objs)
+                _refuse_reparenting(self.instance, objs)
+                return super().set(objs, bulk=bulk, clear=clear)
+
+            set.alters_data = True
+
+        return FixedParentRelatedManager
+
+
+ComplaintCategory.subcategories = _FixedParentReverseDescriptor(ComplaintSubcategory._meta.get_field("category").remote_field)
 
 
 class ComplaintStatus(models.TextChoices):
