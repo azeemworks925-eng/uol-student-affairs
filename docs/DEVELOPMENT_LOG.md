@@ -19,11 +19,30 @@ Rules:
 | V1 product workflows | Confirmed in `DECISIONS.md`. |
 | Django foundation | Complete and verified locally. Merged into `main` through PR #1 (merge commit `a1ed704`). |
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
-| Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O25, O30 to O34. |
+| Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O30 and O34; O25 is resolved by DEC-315. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
-| Complaints | Part 1 (backend) merged through PR #7 (`06bbc2a`); Part 2 (student pages) through PR #8 (`0cc2013`); Part 3 specification through PR #10 (`ca07b44`). Part 3 (Batch Advisor workspace) on branch `feat/advisor-complaints-workspace`, awaiting review. Super Admin complaint screens are not built. |
+| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification is on branch docs/complaints-part4-spec, awaiting review; implementation has not started. |
 | Other product features | Student Voice, meetings, collective issues and the Super Admin analytics are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
+
+---
+
+## 2026-11-17 — Complaints Part 4: scope and specification
+
+**Owner-approved decisions**
+
+- O27 (complaint owner): manual designation by a Super Admin; no automatic assignment. Eligible owners are active advisors assigned to the exact cohort, or a Super Admin taking over. Existing cohort-advisor access remains unchanged (DEC-310). The separate BA-routing question for collective issues, Student Voice and meetings remains open.
+- O28: cancellation requests remain record-only; no status change or approval/decline workflow (DEC-311).
+- O33: no response-required classification or “Waiting for you” queue (DEC-312).
+- O31: resolved vs not resolved classification is fixed, with rejected complaints separately identified (DEC-313).
+- O32: one academic-term reporting window, using submission date and explicit displayed dates (DEC-314).
+- O25: suppress cohort breakdowns below five active students and apply complementary suppression (DEC-315).
+
+**Specification**
+
+- Added COMPLAINTS_PART4_SPEC.md covering Super Admin complaint oversight, category management, in-app notifications, privacy-safe analytics, permissions, tests and implementation sequence.
+- Corrected the status at a glance: Part 3 was merged through PR #11; it is not awaiting review.
+- No Part 4 implementation has started. The specification must be reviewed and merged before Claude Code receives the implementation task.
 
 ---
 

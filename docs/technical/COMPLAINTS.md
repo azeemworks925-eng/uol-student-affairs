@@ -1,7 +1,7 @@
 # Complaints — technical notes
 
-**Status:** Part 1 (backend) merged in PR #7; Part 2 (student pages) in PR #8; Part 3 (Batch Advisor workspace) on branch `feat/advisor-complaints-workspace`. Part 4 (Super Admin complaint oversight, category management, notifications and analytics) is not built.
-**Decisions:** DEC-030, DEC-031, DEC-220 to DEC-230 in `docs/decisions/DECISIONS.md`. Open: O27, O28, O33.
+**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md and awaits specification review; implementation has not started.
+**Decisions:** DEC-030, DEC-031, DEC-220 to DEC-230, and DEC-310 to DEC-315 in docs/decisions/DECISIONS.md. Complaint-specific portions of O27, O28 and O33 are resolved; see the decision register for remaining open items.
 
 ## 1. Backend (`complaints/`)
 
@@ -105,9 +105,20 @@ One template serves every state; CSS decides the layout from `sa-workspace--has-
 
 ## 4. Known limitations
 
-- **O27, O28, O33 are open.** No responsible owner is assigned automatically, and the owner is not shown to students or advisors. A cancellation request is recorded only. No event is classified as needing a response, and there is no "Waiting for you" queue.
+- **Owner/cancellation/queue behaviour (DEC-310 to DEC-312).** The product decisions are now settled: Super Admin manually designates the owner; cancellation requests are record-only; and no response-required queue exists. Part 3's current UI still hides owner changes in the advisor timeline and does not expose Super Admin ownership controls; those controls and staff-visible owner history are Part 4 work. Student-facing owner identity/history remains hidden.
 - **Advisor workspace.** It has no seen/unseen tracking, and no notifications for status changes and responses (DEC-270); those are Part 4 or later. The Super Admin cannot use the workspace yet (Part 4).
 - **Cancellation display.** Offering cancellation only for open complaints, and only once, is a presentation choice; the service itself accepts a request in any state.
 - **Student home.** "Your latest updates" (DEC-282, DEC-303) does not yet list complaint activity: it needs seen/unseen tracking, which is not built.
 - **Double submission.** This is prevented in the browser and by Post/Redirect/Get, not by a server-side token. Duplicates are allowed by DEC-225 in any case.
 - **Theme.** Only Forest Light is implemented (Forest Dark is approved but not built; O34 open).
+
+
+## 4. Super Admin oversight and Part 4
+
+Specification: COMPLAINTS_PART4_SPEC.md (owner-approved scope and decisions; submitted for review).
+
+Part 4 covers the department-wide Super Admin complaint workspace with manual owner assignment (DEC-228, DEC-310); category/subcategory management with deactivation rather than deletion (DEC-220); a reusable in-app notification foundation and approved student complaint events (DEC-070, DEC-270); and the three complaint analytics on the existing Super Admin Overview (DEC-280, DEC-281, DEC-306), using the academic-term window and privacy rules (DEC-313 to DEC-315).
+
+Cancellation requests remain record-only (DEC-311). There is no response-required classification or “Waiting for you” queue (DEC-312). Student-facing owner identities and owner-change events remain hidden. Student Voice, meetings and collective issues are not implemented by this complaints part; the notification foundation is designed to support their already-approved events when those modules are built.
+
+Implementation has not started. Review and merge the Part 4 specification before assigning implementation to Claude Code.
