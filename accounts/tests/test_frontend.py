@@ -98,8 +98,9 @@ class StudentHomeTests(TestCase):
         quick = section(self.html, '<nav class="sa-quick"')
         for label in ("Submit a complaint", "Student Voice", "My meetings"):
             self.assertIn(label, quick)
-        self.assertNotIn("<a ", quick)
-        self.assertEqual(quick.count('aria-disabled="true"'), 3)
+        # Only built destinations are links: complaints (Part 2). The others stay unavailable.
+        self.assertEqual(re.findall(r'<a [^>]*href="([^"]+)"', quick), [reverse("student_complaint_new")])
+        self.assertEqual(quick.count('aria-disabled="true"'), 2)
 
     def test_bottom_navigation_has_exactly_four_destinations(self):
         bottom = section(self.html, '<nav class="sa-bottomnav"')
@@ -115,7 +116,9 @@ class StudentHomeTests(TestCase):
 
     def test_unbuilt_destinations_are_not_links(self):
         self.assertIn("Soon", self.html)
-        self.assertNotRegex(self.html, r'<a class="sa-nav-link"[^>]*>.*Complaints</a>')
+        for label in ("Student Voice", "Meetings"):
+            self.assertNotRegex(self.html, r'<a class="sa-nav-link"[^>]*>.*{}</a>'.format(label))
+        self.assertRegex(self.html, r'<a class="sa-nav-link" href="{}">.*Complaints</a>'.format(re.escape(reverse("student_complaints"))))
 
     def test_no_staff_drawer_or_other_students(self):
         self.assertNotIn('id="sa-drawer"', self.html)
