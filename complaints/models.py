@@ -73,15 +73,29 @@ class ProtectedQuerySet(models.QuerySet):
     bulk_create.alters_data = True
 
 
+class CategoryQuerySet(ActiveQuerySet):
+    """Categories and subcategories are deactivated, never deleted (DEC-210, Part 4 section 4).
+    Bulk delete() is refused; update() stays available."""
+
+    def delete(self):
+        raise ProtectedRecordError(
+            f"{self.model._meta.verbose_name_plural.capitalize()} cannot be deleted. Deactivate them instead."
+        )
+
+    delete.alters_data = True
+    delete.queryset_only = True
+
+
 class ComplaintCategory(models.Model):
-    """A main complaint category, managed by the Super Admin (DEC-220)."""
+    """A main complaint category, managed by the Super Admin (DEC-220; changes through
+    complaints.category_services)."""
 
     name = models.CharField(max_length=80, unique=True)
     position = models.PositiveSmallIntegerField(default=0, help_text="Lower numbers are listed first.")
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    objects = ActiveQuerySet.as_manager()
+    objects = CategoryQuerySet.as_manager()
 
     class Meta:
         ordering = ["position", "name"]
@@ -90,9 +104,13 @@ class ComplaintCategory(models.Model):
     def __str__(self):
         return self.name
 
+    def delete(self, *args, **kwargs):
+        raise ProtectedRecordError("Complaint categories cannot be deleted. Deactivate them instead.")
+
 
 class ComplaintSubcategory(models.Model):
-    """An optional subcategory within a main category (DEC-220)."""
+    """An optional subcategory within a main category (DEC-220). Its parent is fixed at
+    creation: moving it would reclassify the complaints that use it."""
 
     category = models.ForeignKey(ComplaintCategory, on_delete=models.PROTECT, related_name="subcategories")
     name = models.CharField(max_length=80)
@@ -100,7 +118,7 @@ class ComplaintSubcategory(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    objects = ActiveQuerySet.as_manager()
+    objects = CategoryQuerySet.as_manager()
 
     class Meta:
         ordering = ["category__position", "category__name", "position", "name"]
@@ -111,6 +129,19 @@ class ComplaintSubcategory(models.Model):
 
     def __str__(self):
         return f"{self.category} / {self.name}"
+
+    def save(self, *args, **kwargs):
+        # Compare with the stored row (not in-memory state), as for complaint descriptions.
+        update_fields = kwargs.get("update_fields")
+        writes_parent = update_fields is None or "category" in update_fields or "category_id" in update_fields
+        if self.pk is not None and writes_parent and not kwargs.get("force_insert"):
+            stored = ComplaintSubcategory._base_manager.filter(pk=self.pk).values_list("category_id", flat=True).first()
+            if stored is not None and stored != self.category_id:
+                raise ProtectedRecordError("A subcategory cannot be moved to another category.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ProtectedRecordError("Complaint subcategories cannot be deleted. Deactivate them instead.")
 
 
 class ComplaintStatus(models.TextChoices):

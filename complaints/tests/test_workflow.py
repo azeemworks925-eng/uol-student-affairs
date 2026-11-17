@@ -235,7 +235,8 @@ class HistoryPreservationTests(WorkflowTestCase):
         self.assertIn(self.complaint, visible_complaints(self.student))
         with self.assertRaises(ValidationError):
             submit(self.student, category)
-        with self.assertRaises(ProtectedError):
+        # Categories are deactivated, never deleted (Part 4 Stage 2).
+        with self.assertRaises(ProtectedRecordError):
             category.delete()
 
     def test_deactivated_student_keeps_their_complaints_for_staff(self):

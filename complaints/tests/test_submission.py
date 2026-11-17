@@ -24,13 +24,15 @@ from .helpers import (
 
 class InitialCategoryTests(TestCase):
     def test_initial_categories_are_seeded_as_ordinary_rows(self):
-        # Run the data migration's own function on a clean table (a kept test database may
-        # have been flushed by a TransactionTestCase). Running it twice adds nothing.
+        # Run the data migration's own function on whatever the database holds (a kept test
+        # database may have been flushed by a TransactionTestCase; categories cannot be
+        # deleted to start clean). Running it again adds nothing.
         seed = importlib.import_module("complaints.migrations.0002_initial_categories").add_initial_categories
-        ComplaintCategory.objects.all().delete()
         seed(apps, None)
+        count = ComplaintCategory.objects.count()
         seed(apps, None)
-        names = list(ComplaintCategory.objects.values_list("name", flat=True))
+        self.assertEqual(ComplaintCategory.objects.count(), count)
+        names = list(ComplaintCategory.objects.filter(position__lte=4).values_list("name", flat=True))
         self.assertEqual(names, ["Academic", "Non-academic", "Personal/Wellbeing", "Other"])
         # Not a fixed list: categories can be added and deactivated like any other row.
         extra = ComplaintCategory.objects.create(name="Transport", position=5)
