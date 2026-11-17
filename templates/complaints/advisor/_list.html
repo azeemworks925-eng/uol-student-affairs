@@ -1,0 +1,70 @@
+{# Workspace list: headline, search, filters, rows. Every link carries the list state. #}
+<header class="sa-ws-list-head">
+  <span class="sa-eyebrow">Complaints</span>
+  {% if complaint %}<h2 class="sa-ws-title" id="ws-list-title">Your cohorts</h2>{% else %}<h1 class="sa-ws-title" id="ws-list-title">Your cohorts</h1>{% endif %}
+  {% if has_assignments %}<p class="sa-ws-headline">{{ headline }}</p>{% endif %}
+</header>
+
+{% if not has_assignments %}
+  <div class="sa-empty">
+    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
+    <div><p class="title">No cohorts are assigned to you yet.</p><p class="sa-muted sa-small">The Super Admin assigns cohorts. Complaints from them will appear here.</p></div>
+  </div>
+{% else %}
+<form method="get" action="{% url 'advisor_complaints' %}" class="sa-ws-search" role="search">
+  <label class="visually-hidden" for="{{ filters.q.id_for_label }}">Search complaints</label>
+  <div class="sa-ws-search-row">
+    {{ filters.q }}
+    <button type="submit" class="btn btn-sa-secondary">Search</button>
+  </div>
+  <p class="sa-small sa-muted mt-1 mb-0" id="ws-search-hint">By reference, student name or SAP ID.</p>
+  <details class="sa-ws-filters"{% if has_filters %} open{% endif %}>
+    <summary>Filters and sort</summary>
+    <div class="sa-ws-filter-grid">
+      {% if show_cohort_filter %}<div><label class="form-label" for="{{ filters.cohort.id_for_label }}">Cohort</label>{{ filters.cohort }}</div>{% endif %}
+      <div><label class="form-label" for="{{ filters.status.id_for_label }}">Status</label>{{ filters.status }}</div>
+      <div><label class="form-label" for="{{ filters.category.id_for_label }}">Category</label>{{ filters.category }}</div>
+      <div><label class="form-label" for="{{ filters.sort.id_for_label }}">Sort by</label>{{ filters.sort }}</div>
+    </div>
+    <div class="sa-ws-filter-actions">
+      <button type="submit" class="btn btn-sa-primary btn-sm">Apply</button>
+      {% if has_filters %}<a class="btn btn-sa-secondary btn-sm" href="{% url 'advisor_complaints' %}">Clear filters</a>{% endif %}
+    </div>
+  </details>
+</form>
+
+{% if page.object_list %}
+<ul class="sa-ws-rows">
+  {% for item in page %}
+  <li>
+    <a class="sa-ws-row" href="{% url 'advisor_complaint_detail' item.reference %}{% if list_state %}?{{ list_state }}{% endif %}"{% if item.reference == selected_reference %} aria-current="true"{% endif %}>
+      <span class="sa-ws-row-top"><span class="sa-ref">{{ item.reference }}</span>{% include "complaints/student/_status.html" with tone=item.tone label=item.get_status_display %}</span>
+      <span class="sa-ws-row-title">{{ item.title }}</span>
+      <span class="sa-ws-row-student">{{ item.student.get_full_name }}</span>
+      <span class="sa-ws-row-meta"><span class="sa-cohort">{{ item.batch }} · {{ item.semester }} · {{ item.section }}</span> <span class="sa-nowrap">Last activity {{ item.last_activity|date:"j M Y" }}</span></span>
+      {% if item.cancellation_requested or item.reopened %}
+      <span class="sa-ws-flags">{% if item.cancellation_requested %}<span class="sa-flag">Cancellation requested</span>{% endif %}{% if item.reopened %}<span class="sa-flag">Reopened by student</span>{% endif %}</span>
+      {% endif %}
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% if page.has_other_pages %}
+<nav class="sa-pagination" aria-label="Complaint list pages">
+  {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="?{% if list_state_without_page %}{{ list_state_without_page }}&amp;{% endif %}page={{ page.previous_page_number }}">Previous</a>{% endif %}
+  <span class="sa-small sa-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="?{% if list_state_without_page %}{{ list_state_without_page }}&amp;{% endif %}page={{ page.next_page_number }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% elif has_filters %}
+  <div class="sa-empty">
+    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
+    <div><p class="title">No complaints match these filters.</p><p class="sa-small mb-0"><a href="{% url 'advisor_complaints' %}">Clear filters</a></p></div>
+  </div>
+{% else %}
+  <div class="sa-empty">
+    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
+    <div><p class="title">There are no complaints in your cohorts.</p><p class="sa-muted sa-small">Complaints submitted by students in your assigned cohorts appear here.</p></div>
+  </div>
+{% endif %}
+{% endif %}

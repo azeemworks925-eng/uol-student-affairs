@@ -104,15 +104,25 @@ def submit_complaint(student, *, category, title, description, subcategory=None)
 
 
 @transaction.atomic
-def change_status(actor, complaint, new_status, note=""):
+def change_status(actor, complaint, new_status, note="", *, expected_status=None):
     """A Batch Advisor of the exact cohort, or a Super Admin, changes the status (DEC-221).
 
     Resolving needs a resolution note and rejecting needs a reason; both are visible to the
     student in the history.
+
+    `expected_status` is the status the actor saw. If given and the complaint has changed
+    since (for example, another advisor of the same cohort acted first), the change is
+    refused. The comparison runs under the row lock, so it is atomic. Omitted: no check.
     """
     if not can_manage_complaint(actor, complaint):
         raise PermissionDenied("You cannot change the status of this complaint.")
     complaint = _locked(complaint)
+    if expected_status is not None and complaint.status != expected_status:
+        raise ValidationError(
+            f"This complaint is now {complaint.get_status_display()}: it changed after you opened it. "
+            "Check the latest history before updating the status.",
+            code="stale_status",
+        )
     note = _text(note)
     if new_status not in STAFF_TRANSITIONS.get(complaint.status, set()):
         raise ValidationError(

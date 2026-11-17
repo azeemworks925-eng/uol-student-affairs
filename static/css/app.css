@@ -221,6 +221,10 @@ a.sa-quick-item:hover { border-color: var(--sa-border-control); }
 .sa-cohort-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .sa-cohort-card { padding: 16px 18px; border: 1px solid var(--sa-border); border-radius: 14px; background: var(--sa-surface); }
 .sa-cohort-card .batch { font: 600 16px/1.3 var(--sa-ui); }
+.sa-cohort-card--link { display: grid; gap: 2px; color: var(--sa-ink); text-decoration: none !important; }
+.sa-cohort-card--link:hover { border-color: var(--sa-border-control); }
+.sa-cohort-card--link .sa-small { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; color: var(--sa-accent); font-weight: 500; }
+.sa-cohort-card--link .sa-small svg { width: 16px; height: 16px; }
 .sa-goto { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 24px; }
 
 @media (max-width: 767.98px) {
@@ -306,4 +310,82 @@ a.sa-quick-item:hover { border-color: var(--sa-border-control); }
   .sa-journey { gap: 6px 16px; }
   .sa-journey li + li::before { display: none; }
 }
+/* ---------- Complaints: Batch Advisor workspace (Complaints Part 3) ---------- */
+.sa-page--workspace { max-width: none; padding: 0; }
+.sa-workspace { display: grid; grid-template-columns: minmax(0, 1fr); }
+.sa-ws-list { padding: clamp(14px, 2.6vh, 20px) 16px 24px; }
+.sa-ws-list-head { margin-bottom: 12px; }
+.sa-ws-title { font: 600 18px/1.3 var(--sa-ui); margin: 4px 0 6px; }
+.sa-ws-headline { font-family: var(--sa-display); font-size: 1.25rem; line-height: 1.3; color: var(--sa-heading); margin: 0; }
+.sa-ws-search { margin-bottom: 12px; }
+.sa-ws-search-row { display: flex; gap: 8px; }
+.sa-ws-search-row .form-control { min-width: 0; }
+.sa-ws-filters { margin-top: 8px; }
+.sa-ws-filters summary { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; list-style: none; font-size: 14px; font-weight: 500; color: var(--sa-ink); }
+.sa-ws-filters summary::-webkit-details-marker { display: none; }
+.sa-ws-filters summary::after { content: ""; width: 7px; height: 7px; border-right: 1.6px solid var(--sa-muted); border-bottom: 1.6px solid var(--sa-muted); transform: rotate(45deg); margin-top: -4px; }
+.sa-ws-filters[open] summary::after { transform: rotate(-135deg); margin-top: 3px; }
+.sa-ws-filter-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding-top: 4px; }
+.sa-ws-filter-grid .form-label { font-size: 13px; margin-bottom: 4px; }
+.sa-ws-filter-actions { display: flex; gap: 8px; padding-top: 10px; }
+.sa-ws-rows { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--sa-border); }
+.sa-ws-rows li { border-bottom: 1px solid var(--sa-border); }
+.sa-ws-row { position: relative; display: grid; gap: 4px; padding: 12px 10px; color: var(--sa-ink); text-decoration: none !important; border-radius: 8px; }
+.sa-ws-row:hover { background: var(--sa-subtle); }
+/* The selected case: ink indicator and weight, never the Forest tint (DEC-301). */
+.sa-ws-row[aria-current="true"] { background: var(--sa-surface); box-shadow: inset 3px 0 0 var(--sa-ink); }
+.sa-ws-row-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sa-ws-row-title { font: 600 15px/1.35 var(--sa-ui); overflow-wrap: anywhere; }
+.sa-ws-row-student { font-size: 14px; overflow-wrap: anywhere; }
+.sa-ws-row-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 13px; color: var(--sa-muted); }
+.sa-ws-flags { display: flex; flex-wrap: wrap; gap: 6px; }
+.sa-flag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border: 1px solid var(--sa-border-control); border-radius: 6px; font-size: 12px; color: var(--sa-ink); background: var(--sa-surface); }
+.sa-ws-case-inner { padding: clamp(14px, 2.6vh, 20px) 16px 32px; display: grid; grid-template-columns: minmax(0, 1fr); }
+.sa-ws-case-head .sa-display { font-size: var(--sa-display-m); }
+.sa-ws-context { display: flex; flex-wrap: wrap; gap: 12px 28px; padding: 14px 0; border-bottom: 1px solid var(--sa-border); }
+.sa-ws-context-item { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.sa-ws-context-item .sa-label { margin: 0; }
+.sa-ws-context-value { font-weight: 600; overflow-wrap: anywhere; }
+.sa-ws-advisors { list-style: none; margin: 0; padding: 0; font-size: 14px; }
+.sa-ws-case-body .sa-original { margin-top: 20px; }
+.sa-ws-panel { margin-top: var(--sa-gap-section); padding: 16px; border: 1px solid var(--sa-border); border-radius: 14px; background: var(--sa-surface); scroll-margin-top: 16px; }
+.sa-ws-panel .sa-h2 { margin-bottom: 12px; }
+.sa-ws-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.sa-ws-choice { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--sa-border-control); border-radius: 10px; cursor: pointer; font-size: 14px; }
+.sa-ws-choice .form-check-input { margin: 0; }
+.sa-ws-choice:has(input:checked) { border-color: var(--sa-ink); box-shadow: inset 0 0 0 1px var(--sa-ink); font-weight: 600; }
+/* Bootstrap's .form-check-input:focus removes the outline and the global rule removes its ring:
+   restore a visible keyboard focus on the radio and its choice. */
+.form-check-input:focus-visible { outline: 2px solid var(--sa-focus); outline-offset: 2px; }
+.sa-ws-choice:has(input:focus-visible) { outline: 2px solid var(--sa-focus); outline-offset: 2px; }
+.sa-ws-empty { display: grid; justify-items: center; gap: 8px; text-align: center; padding: 18vh 24px; color: var(--sa-muted); }
+.sa-ws-empty svg { width: 28px; height: 28px; }
+.sa-ws-actionbar { display: none; }
+
+/* Below 992px: the list or the selected case, one at a time (the URL decides). */
+@media (max-width: 991.98px) {
+  .sa-workspace--has-case .sa-ws-list { display: none; }
+  .sa-workspace:not(.sa-workspace--has-case) .sa-ws-case { display: none; }
+  .sa-ws-actionbar { position: sticky; bottom: 0; z-index: 5; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px -16px -32px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--sa-surface); border-top: 1px solid var(--sa-border); }
+  .sa-ws-actionbar .btn { min-height: 44px; }
+  .sa-ws-search-row .btn, .sa-ws-filter-actions .btn, .sa-pagination .btn, .sa-ws-panel .btn { min-height: 44px; }
+}
+/* 992px and wider: list and case side by side, each scrolling within the viewport. */
+@media (min-width: 992px) {
+  .sa-workspace { grid-template-columns: clamp(300px, 27vw, 360px) minmax(0, 1fr); height: 100vh; height: 100dvh; }
+  .sa-ws-list, .sa-ws-case { min-height: 0; overflow-y: auto; }
+  .sa-ws-list { border-right: 1px solid var(--sa-border); }
+  .sa-ws-back { display: none; }
+  .sa-ws-case-inner { padding: clamp(14px, 2.6vh, 22px) clamp(20px, 3vw, 36px) 40px; max-width: 1080px; }
+}
+/* 1360px and wider: the context becomes its own column beside the case (design plan 5). */
+@media (min-width: 1360px) {
+  .sa-ws-case-inner { grid-template-columns: minmax(0, 1fr) 280px; grid-template-areas: "back back" "msg msg" "head ctx" "body ctx"; column-gap: 32px; align-items: start; }
+  .sa-ws-case-inner > .sa-back { grid-area: back; }
+  .sa-ws-case-inner > .sa-messages { grid-area: msg; }
+  .sa-ws-case-head { grid-area: head; }
+  .sa-ws-case-body { grid-area: body; }
+  .sa-ws-context { grid-area: ctx; position: sticky; top: 0; flex-direction: column; padding: 16px; border: 1px solid var(--sa-border); border-radius: 14px; background: var(--sa-surface); }
+}
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }

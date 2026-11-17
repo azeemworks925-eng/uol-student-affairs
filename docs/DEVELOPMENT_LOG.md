@@ -21,9 +21,68 @@ Rules:
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O25, O30 to O34. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
-| Complaints | Part 1 (backend) merged into `main` through PR #7 (merge commit `06bbc2a`). Part 2 (student pages) on branch `feat/student-complaints-frontend`, awaiting review. Batch Advisor and Super Admin complaint screens are not built. |
+| Complaints | Part 1 (backend) merged through PR #7 (`06bbc2a`); Part 2 (student pages) through PR #8 (`0cc2013`); Part 3 specification through PR #10 (`ca07b44`). Part 3 (Batch Advisor workspace) on branch `feat/advisor-complaints-workspace`, awaiting review. Super Admin complaint screens are not built. |
 | Other product features | Student Voice, meetings, collective issues and the Super Admin analytics are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
+
+---
+
+## 2026-11-17 — Complaints Part 3: Batch Advisor complaints workspace
+
+**Context**
+
+- Branch `feat/advisor-complaints-workspace` from `main` at `ca07b44`, which includes the registration fix (PR #9, `28bfd1e`) and the approved specification (PR #10, `ca07b44`).
+- Implements `docs/technical/COMPLAINTS_PART3_SPEC.md` with the owner-approved decisions P3-1 to P3-8. There are no model or migration changes.
+
+**What was done**
+
+- One responsive workspace for Batch Advisors at `/advisor/complaints/` and `/advisor/complaints/<reference>/`, with POST routes for Respond and Update status. Details are in `docs/technical/COMPLAINTS.md` section 3.
+- **Access:** `batch_advisor_required` on every view. The list starts from `visible_complaints` (exact cohorts); every case, on GET and POST, is loaded with `get_visible_complaint` (the same 404 for an out-of-cohort reference as for an unknown one). The cohort filter accepts only the advisor's own assignments.
+- **List:**
+  - a true-count headline;
+  - search by reference, student name or SAP ID (P3-3);
+  - cohort, status (All by default, P3-4) and category filters, and a sort by latest activity or newest submitted;
+  - 20 per page, with the list state kept across links and redirects;
+  - factual "Cancellation requested" and "Reopened by student" labels (P3-2).
+- **Case:**
+  - Header, status journey and the student's original complaint.
+  - History newest first, with names and roles (P3-7; students keep oldest first). Owner changes are hidden (O27).
+  - Context: name and SAP ID, no email (P3-1); the cohort at submission only (P3-5); and the active advisors of that exact cohort.
+  - Separate Respond and Update status forms (DEC-305). The status form offers only the allowed transitions, requires a resolution note or rejection reason, and sends the status the advisor saw.
+- **`services.change_status(..., expected_status=None)` (P3-6):** if given, it is compared under the existing row lock, and a stale change is refused with code `stale_status`. Existing callers are unchanged.
+- **Navigation and overview:** the Batch Advisor "Complaints" rail and drawer item links to the workspace and stays current on its sub-pages. Each assigned-cohort card on the advisor overview opens the workspace filtered to that exact cohort (P3-8).
+- **Presentation:** `student_timeline` and the new `staff_timeline` share one event mapping; the student output is unchanged.
+- **Accessibility fixes found during this work:**
+  - The shared field include rendered help text with an id that did not match the `aria-describedby="<id>_helptext"` Django adds, and on errors the mixin replaced that reference. Help text is now linked, and stays linked alongside the error.
+  - Radio buttons had no visible keyboard focus, because Bootstrap's `.form-check-input:focus` removed the outline. Restored.
+  - Two Part 2 assertions were updated to the stricter, correct `aria-describedby` value.
+
+**Verification**
+
+- Tests: 45 new tests in `complaints/tests/test_advisor_workspace.py`, covering:
+  - access by role and state, and exact-cohort and cross-batch isolation;
+  - shared cohorts, and out-of-cohort references returning the same 404 on GET and both POSTs;
+  - forged cohort filters, search, filters, sorting, pagination and the list state;
+  - responses, allowed transitions and mandatory notes;
+  - stale `expected_status` in the view and the service;
+  - history order, hidden owner changes and the context panel;
+  - navigation and cohort links, and the absence of a queue, owner or cancellation controls;
+  - a real two-connection stale-status race on MySQL.
+
+  With the safeguard disabled, the four stale-status tests fail, including the MySQL race.
+- Results:
+  - 314/314 on MySQL 8.0.44 in two consecutive `--keepdb` runs; the focused advisor tests pass 45/45 on MySQL.
+  - 314 on SQLite with 2 skipped (the MySQL-only concurrency tests); 45 advisor tests, with 1 skipped.
+  - `check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: exit 0. `compileall`: OK. `git diff --check`: clean.
+- Browser: headless Chrome at 100% zoom, 10 workspace states × 6 viewports (1280×590, 1232×590, 1100×590, 1600×740, 1440×800, 360px) = 60/60 clean. The states were: the list, filters, case, cancellation case, closed case, both error states, keyboard focus, the advisor overview and no assignments. The checks covered overflow, clipped or covered content, fonts, outside requests, touch targets and focus.
+  - Part 2 student pages re-checked: 66/66 clean.
+  - Found and fixed: missing radio focus, truncated filter selects and search placeholder in the narrow list pane, the student name repeated in the header and context, and 41px buttons on phones.
+
+**Limitations**
+
+- O27, O28 and O33 remain open, as specified.
+- No seen/unseen tracking and no notifications (DEC-270).
+- Super Admin complaint oversight is Part 4.
 
 ---
 

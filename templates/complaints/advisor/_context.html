@@ -1,0 +1,19 @@
+{# Context: student identity and the exact cohort at submission (P3-1, P3-5). No owner (O27), no other complaints (DEC-305). #}
+<aside class="sa-ws-context" aria-labelledby="context-title">
+  <h2 class="visually-hidden" id="context-title">Context</h2>
+  <div class="sa-ws-context-item">
+    <span class="sa-label">Student</span>
+    <span class="sa-ws-context-value">{{ student_name }}</span>
+    {% if sap_id %}<span class="sa-small sa-muted">SAP ID <span class="sa-ref">{{ sap_id }}</span></span>{% endif %}
+  </div>
+  <div class="sa-ws-context-item">
+    <span class="sa-label">Cohort at submission</span>
+    <span class="sa-cohort">{{ complaint.batch }} · {{ complaint.semester }} · {{ complaint.section }}</span>
+  </div>
+  <div class="sa-ws-context-item">
+    <span class="sa-label">Batch Advisors of this cohort</span>
+    <ul class="sa-ws-advisors">
+      {% for advisor in cohort_advisors %}<li>{{ advisor.name }}{% if advisor.is_you %} <span class="sa-muted">(you)</span>{% endif %}</li>{% empty %}<li class="sa-muted">None currently assigned</li>{% endfor %}
+    </ul>
+  </div>
+</aside>
