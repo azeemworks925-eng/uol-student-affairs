@@ -10,5 +10,6 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     path("student/complaints/", include("complaints.urls")),
     path("advisor/complaints/", include("complaints.advisor_urls")),
+    path("super-admin/complaints/", include("complaints.admin_urls")),
     path("", include("accounts.urls")),
 ]

@@ -40,6 +40,12 @@ STUDENT_COMPLAINT_VIEWS = (
 )
 
 ADVISOR_COMPLAINT_VIEWS = ("advisor_complaint_detail", "advisor_complaint_respond", "advisor_complaint_status")
+SUPER_ADMIN_COMPLAINT_VIEWS = (
+    "super_admin_complaint_detail",
+    "super_admin_complaint_respond",
+    "super_admin_complaint_status",
+    "super_admin_complaint_owner",
+)
 
 # (group heading or None, items)
 NAVIGATION = {
@@ -66,7 +72,7 @@ NAVIGATION = {
     User.Role.SUPER_ADMIN: [
         ("Oversight", [
             NavItem("Overview", "grid", "super_admin_home"),
-            NavItem("Complaints", "file"),
+            NavItem("Complaints", "file", "super_admin_complaints", also_current=SUPER_ADMIN_COMPLAINT_VIEWS),
             NavItem("Collective Issues", "hand"),
             NavItem("Calendar", "calendar"),
         ]),

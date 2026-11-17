@@ -1,5 +1,5 @@
 {# Only the transitions the service allows from the status the advisor sees (DEC-221, P3-6). #}
-<form method="post" action="{% url 'advisor_complaint_status' complaint.reference %}{% if list_state %}?{{ list_state }}{% endif %}" novalidate data-once-submit data-status-form>
+<form method="post" action="{% url urls.status complaint.reference %}{% if list_state %}?{{ list_state }}{% endif %}" novalidate data-once-submit data-status-form>
   {% csrf_token %}
   {{ status_form.expected_status }}
   {% if error_panel == "status" %}<div class="sa-message sa-message--error mb-3" role="alert" tabindex="-1" data-error-focus>The status was not changed. {% if status_form.non_field_errors %}{{ status_form.non_field_errors|join:" " }}{% else %}Check the fields below.{% endif %}</div>{% endif %}

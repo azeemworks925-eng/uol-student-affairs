@@ -1,4 +1,4 @@
-{# Context: student identity and the exact cohort at submission (P3-1, P3-5). No owner (O27), no other complaints (DEC-305). #}
+{# Context: student identity and the exact cohort at submission (P3-1, P3-5); no other complaints (DEC-305). The responsible owner is shown in the Super Admin workspace only (DEC-310; the Batch Advisor workspace is unchanged from Part 3). #}
 <aside class="sa-ws-context" aria-labelledby="context-title">
   <h2 class="visually-hidden" id="context-title">Context</h2>
   <div class="sa-ws-context-item">
@@ -10,6 +10,12 @@
     <span class="sa-label">Cohort at submission</span>
     <span class="sa-cohort">{{ complaint.batch }} · {{ complaint.semester }} · {{ complaint.section }}</span>
   </div>
+  {% if workspace.department_wide %}
+  <div class="sa-ws-context-item">
+    <span class="sa-label">Responsible owner</span>
+    {% if owner %}<span class="sa-ws-context-value">{{ owner_label }}</span>{% if owner_no_longer_eligible %}<span class="sa-small sa-muted">No longer eligible: not an active advisor of this cohort.</span>{% endif %}{% else %}<span class="sa-ws-context-value">Unassigned</span>{% endif %}
+  </div>
+  {% endif %}
   <div class="sa-ws-context-item">
     <span class="sa-label">Batch Advisors of this cohort</span>
     <ul class="sa-ws-advisors">

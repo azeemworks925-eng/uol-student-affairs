@@ -1,8 +1,9 @@
 {% extends "layouts/app.html" %}
 {% load static %}
 {% comment %}
-  Batch Advisor complaints workspace (Complaints Part 3; COMPLAINTS_PART3_SPEC.md).
-  One template for every state: the URL selects a case, CSS decides the layout.
+  Staff complaints workspace: Batch Advisor (Complaints Part 3) and Super Admin (Part 4 Stage 1,
+  workspace.department_wide). One template for every state: the URL selects a case, CSS decides
+  the layout.
   Laptop: list | case (+ context). Below 992px: the list, or the selected case alone.
 {% endcomment %}
 {% block title %}{% if complaint %}{{ complaint.reference }} · {% endif %}Complaints · UOL Student Affairs{% endblock %}
@@ -12,11 +13,11 @@
 <div class="sa-workspace{% if complaint %} sa-workspace--has-case{% endif %}">
   <section class="sa-ws-list" aria-labelledby="ws-list-title">
     {% if not complaint %}{% include "includes/messages.html" %}{% endif %}
-    {% include "complaints/advisor/_list.html" %}
+    {% include "complaints/workspace/_list.html" %}
   </section>
   <section class="sa-ws-case" aria-labelledby="{% if complaint %}case-title{% else %}ws-empty-title{% endif %}">
     {% if complaint %}
-      {% include "complaints/advisor/_case.html" %}
+      {% include "complaints/workspace/_case.html" %}
     {% else %}
       <div class="sa-ws-empty">
         <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-file"/></svg>

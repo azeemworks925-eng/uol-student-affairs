@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 
-from complaints.advisor_views import cohort_value
+from complaints.workspace import cohort_value
 
 from .forms import StudentRegistrationForm
 from .identity import extract_sap_id
