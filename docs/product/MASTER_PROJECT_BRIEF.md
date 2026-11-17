@@ -7,8 +7,8 @@
 **Initial target:** Software Engineering Department
 **Project type:** Individual BS Software Engineering fourth-semester academic project
 **Repository:** https://github.com/azeemworks925-eng/uol-student-affairs
-**Current phase:** V1 product workflows confirmed. Django foundation created and tested locally. Product feature implementation not yet started.
-**Document status:** Reconciled on 2026-11-16. Living document.
+**Current phase:** V1 product workflows confirmed. Incremental implementation in progress: authentication, the application shell, complaints (Parts 1–4 Stage 4a) and in-app notifications are merged into `main`; Stage 4b analytics are specified, not implemented. See section 13.
+**Document status:** Reconciled on 2026-11-16; status, analytics decisions and resolved open items updated on 2026-11-18. Living document.
 
 This is the complete product and engineering brief. The authoritative list of decisions is `DECISIONS.md`; if the two disagree, `DECISIONS.md` wins. IDs in brackets (DEC, O) refer to that file.
 
@@ -165,7 +165,7 @@ Open technical items: domain enforcement and verification (O2), OAuth library an
 - There is no special routing hierarchy for complaints against administrators or the Super Admin in V1. (DEC-230)
 - Handling of a complaint about a student's own BA is deliberately outside current requirements. (DEC-231)
 
-Open workflow details: how the responsible BA is designated (O27); how a cancellation request is handled and recorded (O28).
+Resolved workflow details: a Super Admin designates the responsible owner manually (DEC-310); a cancellation request is recorded only (DEC-311); there is no response-required queue (DEC-312).
 
 ## 6.4 CR/GR collective issues
 
@@ -262,7 +262,11 @@ There are no general university or department announcements in V1. (DEC-083)
 - No individual student names appear in aggregate charts, and aggregate reporting must not expose individual identities. (DEC-090)
 - No meaningless decorative charts. (DEC-090)
 
-Open: privacy thresholds where small groups could reveal identities (O25).
+- Resolved means status Resolved; not resolved means Received, Under Review and Rejected, with rejected complaints identified separately. (DEC-313)
+- The Super Admin analytics use the current academic term's window, by submission date, with a setup state when no term is current. (DEC-314, DEC-316)
+- Cohorts with fewer than five active students are suppressed, with complementary suppression, and all figures are withheld when suppression cannot be made safe. (DEC-315, DEC-317 to DEC-319)
+- This protects the analytics output only; the Super Admin's authorised access to individual complaints is unchanged, so the analytics are not described as anonymous, and a privacy review is required before any pilot use. (DEC-320, DEC-322)
+- Full Stage 4b specification: `docs/technical/COMPLAINTS_PART4_SPEC.md` section 6. Not yet implemented.
 
 # 7. Scope Boundaries
 
@@ -456,6 +460,19 @@ The owner wants to understand each Git operation, not run commands blindly.
 
 Three things are kept distinct.
 
+The authoritative, dated status is the "Status at a glance" table in `DEVELOPMENT_LOG.md`. Summary on 2026-11-18:
+
+- Merged into `main` and verified locally (no deployment):
+  - Django foundation;
+  - authentication and account foundation (Google sign-in tested only with simulated Google responses);
+  - production frontend milestone 1;
+  - Complaints Parts 1–3;
+  - Complaints Part 4 Stages 1–4a: Super Admin workspace and owner assignment, category management, in-app notifications, academic terms and the term filter.
+- Specified, not implemented: Complaints Part 4 Stage 4b, the privacy-safe analytics on the Super Admin Overview (DEC-316 to DEC-322).
+- Not implemented: collective issues, Student Voice, meetings and the calendar, and Batch Advisor statistics.
+
+The original foundation record follows, kept for history.
+
 **1. Django foundation: created and tested locally**
 
 - Windows 11 development environment.
@@ -468,9 +485,9 @@ Three things are kept distinct.
 - Settings load secrets from `.env` using python-dotenv; `.env.example` exists with placeholders.
 - Django system check passed; database connection and migrations verified.
 
-**2. Product features: not yet implemented**
+**2. Product features** (historical; superseded by the summary above)
 
-The foundation is not a complete application. No business workflow or user-facing feature has been implemented.
+At the time of the foundation, no business workflow or user-facing feature had been implemented.
 
 **3. Commit and push status**
 
@@ -486,7 +503,7 @@ A proposed roadmap, not a fixed schedule.
 | 2. Development foundation | Environment, Django project, database, custom user model, secrets handling. | Created and tested locally. |
 | 3. System design | App structure, database schema, permission enforcement, state transitions, threat model. | Next (O20, O22). |
 | 4. Product design and UX | UOL brand research, user journeys, wireframes, design system, responsive review. | To do (O18). |
-| 5. Incremental implementation | One feature at a time. Each has confirmed requirements, acceptance criteria, an implementation plan, tests, a code review and updated documentation. | Not started. |
+| 5. Incremental implementation | One feature at a time. Each has confirmed requirements, acceptance criteria, an implementation plan, tests, a code review and updated documentation. | In progress (see section 13). |
 | 6. Quality assurance | Functional, permission, security, responsive, usability and regression testing. | Not started. |
 | 7. Demonstration and potential pilot | README, screenshots, setup instructions, architecture diagrams, demonstration. Any pilot requires approval from the appropriate university stakeholders. | Not started. |
 
@@ -507,12 +524,10 @@ Product workflows are settled. The complete list of remaining items is in `DECIS
 - Deployment, hosting, backups and recovery (O21).
 - Future MySQL 8.4 evaluation (O19).
 - Project licence (O23).
-- Privacy thresholds for small groups in analytics (O25).
 
 **Workflow details needing a short answer from the owner**
 
-- How the responsible or relevant BA is chosen when a section has several BAs (O27).
-- How a complaint cancellation request is handled and recorded (O28).
+- Which BA is relevant for collective issues, Student Voice and meeting requests when a cohort has several BAs (O27; resolved for complaints by DEC-310).
 - Meeting status names, and whether a student can cancel or ask to reschedule a confirmed meeting (O29).
 
 Open items are resolved when the work reaches them. They do not block features they do not affect.

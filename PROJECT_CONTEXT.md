@@ -1,7 +1,7 @@
 # UOL Student Affairs — Project Context
 
 **Purpose:** A compact working context for every collaborator (the owner, Claude, Claude Code, ChatGPT).
-**Last reconciled:** 2026-11-16
+**Last reconciled:** 2026-11-18 (status and resolved open items only)
 **Canonical location:** This file in the GitHub repository.
 
 Related documents:
@@ -20,7 +20,7 @@ Related documents:
 | Initial target | Software Engineering Department |
 | Project type | Individual BS Software Engineering fourth-semester project |
 | Repository | https://github.com/azeemworks925-eng/uol-student-affairs |
-| Phase | Requirements confirmed for V1 workflows. Django foundation created and tested locally. Product features not yet implemented. |
+| Phase | Requirements confirmed for V1 workflows. Incremental implementation in progress; see the "Status at a glance" table in `DEVELOPMENT_LOG.md`. |
 
 This is an independently developed academic project with the ambition of becoming suitable for a departmental pilot. It is not an officially commissioned, approved or deployed university system.
 
@@ -29,8 +29,8 @@ This is an independently developed academic project with the ambition of becomin
 | Area | Status |
 |---|---|
 | Django foundation | Created and tested locally (details below). |
-| Product features | Not implemented. No business workflow or user-facing feature exists yet. |
-| Commit and push status of the foundation | Not recorded in this document. Confirm with `git status` and `git log`, then replace this row with the actual state. |
+| Product features | Authentication, the application shell, complaints (Parts 1–4 Stage 4a) and in-app notifications are merged into `main`. Stage 4b analytics are specified (DEC-316 to DEC-322), not implemented. Collective issues, Student Voice and meetings are not implemented. |
+| Authoritative status | The dated "Status at a glance" table in `DEVELOPMENT_LOG.md`. |
 
 Foundation work performed locally:
 
@@ -158,12 +158,10 @@ Product workflows are settled. Do not assume answers to the following; full word
 - O21: Deployment, hosting, backups and recovery.
 - O19: Future MySQL 8.4 evaluation.
 - O23: Project licence.
-- O25: Privacy thresholds for small groups in analytics.
 
 **Workflow details needing a short answer from the owner**
 
-- O27: How the responsible or relevant BA is chosen when a section has several BAs.
-- O28: How a complaint cancellation request is handled and recorded.
+- O27: Which BA is relevant for collective issues, Student Voice and meeting requests (resolved for complaints by DEC-310).
 - O29: Meeting status names, and whether a student can cancel or ask to reschedule a confirmed meeting.
 
 ## 6. Technology stack
