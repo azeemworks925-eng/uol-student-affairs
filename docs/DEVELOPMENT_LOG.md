@@ -12,15 +12,80 @@ Rules:
 
 ---
 
-## Status at a glance (2026-11-16)
+## Status at a glance (2026-11-17)
 
 | Area | Status |
 |---|---|
 | V1 product workflows | Confirmed in `DECISIONS.md`. |
-| Django foundation | Complete and verified locally: custom user model, admin, email normalization, 32 account tests passing on MySQL 8.0.44 and SQLite. |
-| Authentication and account foundation | Implemented on branch `feat/auth-account-foundation` (PR #3). Reviewed and approved for merging by the owner on 2026-11-16. Google sign-in is tested with simulated Google responses only; it has not been verified with a real UOL account. |
-| Product features | Not implemented. |
-| Commit and push status of the foundation | Committed as `99b1ba2` ("feat: establish Django foundation and account system") on branch `chore/django-foundation` and pushed to `origin/chore/django-foundation`. Merged into `main` through PR #1 as merge commit `a1ed704` on 2026-11-16. |
+| Django foundation | Complete and verified locally. Merged into `main` through PR #1 (merge commit `a1ed704`). |
+| Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
+| Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O25, O30 to O34. |
+| Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
+| Product features | Complaints, Student Voice, meetings and the Super Admin analytics are not implemented. |
+| Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
+
+---
+
+## 2026-11-17 — Production frontend milestone 1 (PR #6)
+
+**Context**
+
+- Built from the approved Design D direction (DEC-300 to DEC-307) on the existing Django views. The backend, permissions and product scope were not changed.
+
+**What was done**
+
+- Self-hosted Inter and Newsreader (variable woff2, with their OFL licences) and vendored Bootstrap 5.3.3. Pages make no requests to outside sites.
+- Base, sign-in and application layouts using the Forest Light tokens, a skip link and the ink active-navigation indicator (DEC-301).
+- Role navigation from one context processor (`accounts/navigation.py`):
+  - Student: sidebar; on phones, a bottom bar with exactly four destinations and no "More" (DEC-304).
+  - Batch Advisor: 72px icon rail; drawer on phones.
+  - Super Admin: grouped sidebar with no Statistics destination (DEC-306); drawer on phones.
+  - Destinations whose module is not built yet are shown as unavailable ("Soon") and are not links.
+- Student Dashboard: date, exact cohort, greeting, a personal summary calculated from the student's own updates (`accounts/presentation.py`; "Nothing needs your attention today." when there are none, DEC-303), three Quick Access actions shown as unavailable until their modules exist, and empty states.
+- Batch Advisor and Super Admin overviews with empty states and no invented figures. The Super Admin page links to the existing admin pages for Students, Batch Advisors and Academic Structure. The DEC-281 analytics are not built yet.
+- Sign-in, sign-in denied and registration restyled. Registration shows the SAP ID taken from the email, and invalid fields carry `aria-invalid` and `aria-describedby`.
+- The django-allauth pages a user can reach (sign-out confirmation, sign-in cancelled, sign-in error, account inactive) use the portal layout; Django messages are shown on every page.
+- Newsreader + Inter follow the preferred direction in O30, which remains open. Only the Light theme is implemented (O34 open).
+
+**Review and merge**
+
+- A final review before merging found and fixed: messages missing on the sign-in pages, unstyled allauth pages, navigation landmarks and decorative icons, phone touch targets below 44px, the phone bottom bar floating on short pages, and two visual defects.
+- Merged into `main` by the owner on 2026-11-17 (00:35 Asia/Karachi) as merge commit `c9a4cd3972b238aa21a00b0e9f07b332d3b10129`, bringing in `7355fb4`, `fa3c240` and `4dc7efa`.
+
+**Verification (local, on the merged `main`)**
+
+- Tests: 170/170 passing on MySQL 8.0.44 (`manage.py test --keepdb`) and 170/170 on SQLite. These include 34 frontend tests.
+- `manage.py check`: no issues. `makemigrations --check --dry-run`: no changes. `migrate --check`: clean. `findstatic` finds the stylesheet, Bootstrap and the fonts.
+- Before merging, every page state was checked in headless Chrome at 100% zoom at 1280×590 (HP EliteBook 840 G8 in Opera, DEC-307), 1232×590, 1100×590, 1600×740, 1440×800 and 360px wide: no horizontal overflow, local fonts loaded, no outside network requests. Headless viewports approximate the device; the physical laptop was not used.
+
+**Not done / still unverified**
+
+- Sign-in with a real UOL Google account has not been tested; all OAuth tests use simulated Google responses.
+- Production deployment: static files need `collectstatic` and a serving setup, and `check --deploy` still reports the HTTPS settings (HSTS, SSL redirect, secure cookies) and `DEBUG` as unset for production. Nothing has been deployed.
+
+---
+
+## 2026-11-16 — Design phase: Forest palette and Design D
+
+**Context**
+
+- The owner reviewed the Frontend Design Research Report (kept outside the repository) and asked for rendered comparisons before choosing a palette or page designs.
+
+**What was done**
+
+- Palette: Forest and Indigo, light and dark, were compared in a development-only preview (PR #4). The comparison found that the Forest current-navigation tint and the Resolved badge are nearly identical in Forest Light, which led to the ink active-navigation indicator. The owner approved Forest (Light and Dark). PR #4 was later closed as obsolete without merging; its preview page is not in `main`.
+- Key pages: low-fidelity explorations and then Design D were prepared for the Student Dashboard, the Batch Advisor Complaints workspace and the Super Admin Overview (PR #5). The owner approved Design D as the visual reference for production.
+- Laptop zoom investigation: the earlier "too enlarged" feel at 100% zoom came from fixed pixel sizes composed for about 1440×900. The fix is fluid, height-bounded display sizes and container queries, and the HP EliteBook 840 G8 in Opera at 100% (about 1280×590) became the acceptance target.
+- Recorded DEC-300 to DEC-308 in `DECISIONS.md` (section 1.13) and the open items O30 to O34, with notes on O18 and O25. Written specification: `docs/design/DESIGN_PLAN.md`.
+
+**Documentation cleanup (2026-11-17, PR #5)**
+
+- On the owner's instruction, the design-phase HTML, CSS and JavaScript prototypes were removed from PR #5 and not replaced. `DESIGN_PLAN.md` is kept as the written production specification, with the Forest Dark values copied in from the palette comparison so DEC-301's fixed values stay recorded.
+- PR #5 was brought up to date with `main` by merging `main` into it (no rebase or force-push).
+
+**Not decided**
+
+- O25 (small-cohort privacy threshold), O30 (final typography), O31 (resolved vs not resolved), O32 (reporting window), O33 ("Waiting for you" events) and O34 (System theme option) remain open. Their recommendations are not decisions.
 
 ---
 
