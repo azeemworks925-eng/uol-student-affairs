@@ -14,6 +14,7 @@ from django.utils import timezone
 from accounts.models import StudentProfile, User
 
 from .models import Complaint, ComplaintCategory, ComplaintEvent, ComplaintSubcategory
+from .notifications import notify_student
 from .permissions import advisor_has_cohort, can_manage_complaint, is_complaint_owner
 
 Status = Complaint.Status
@@ -134,7 +135,9 @@ def change_status(actor, complaint, new_status, note="", *, expected_status=None
     old_status = complaint.status
     complaint.status = new_status
     _touch(complaint, "status")
-    _record(complaint, actor, Kind.STATUS_CHANGED, from_status=old_status, to_status=new_status, message=note)
+    event = _record(complaint, actor, Kind.STATUS_CHANGED, from_status=old_status, to_status=new_status, message=note)
+    # Same transaction: the student's notification commits or rolls back with the event (DEC-270).
+    notify_student(event)
     return complaint
 
 
@@ -148,7 +151,10 @@ def respond(actor, complaint, message):
     if not message:
         raise ValidationError({"message": "Write a response."})
     _touch(complaint)
-    return _record(complaint, actor, Kind.RESPONSE, message=message)
+    event = _record(complaint, actor, Kind.RESPONSE, message=message)
+    # Same transaction: the student's notification commits or rolls back with the event (DEC-270).
+    notify_student(event)
+    return event
 
 
 @transaction.atomic
