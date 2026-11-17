@@ -186,9 +186,30 @@ The department total `T` is the number of complaints in the reporting window. It
   - **Rule:** a real cohort with fewer than five active students (6.2) is suppressed, whatever its complaint count, including zero.
   - **Scope:** suppression applies to cohort-level values. The category and status chapters have no cohort breakdown.
 - **Complementary suppression:**
-  - **Requirement:** further cohort values are suppressed so that **no suppressed value can be reconstructed** from the displayed values. Those include every visible cell and the department total `T`, which appears in the summary and in chapters 2 and 3.
-  - **Minimum acceptance criteria:** a single suppressed cell, or a set of suppressed cells whose total can be inferred to be zero, never satisfies this requirement.
-  - **Engineering choices:** the algorithm and how complementary cells are chosen. The choice should be stable rather than dependent on small changes in counts. This does not remove every inference risk (6.7).
+  - **Requirement:** further cohort values are suppressed so that **no suppressed value can be reconstructed** from the complete displayed output of all three chapters, not just the cohort grid or the direct display of `T`.
+  - **`T` counts as known whenever chapter 2 or 3 is shown:**
+    - The department total `T` can be inferred even if it were not printed: the complete category counts add up to `T`, and so, independently, do the complete status counts. A count shown with its percentage of `T` also implies `T`.
+    - So whenever category or status counts are displayed, the safety test must treat `T` as known.
+  - **What the observer knows:** the safety test considers everything the analytics display together:
+    - every visible cohort cell;
+    - `T`, whether displayed directly or inferred as above;
+    - any other displayed aggregate that constrains cohort values (for example, a subtotal, if one were ever displayed);
+    - the facts that every count is a whole number of at least zero, and that a visible zero cell is exactly zero.
+
+    Together these form a set of equations and bounds on the suppressed values.
+  - **The test is uniqueness:** a suppressed cohort value is safe only if **more than one value for it is consistent with everything displayed**. It is unsafe if exactly one value is consistent, whether by subtraction from `T`, from the zero lower bound, from any other displayed equation, or from a combination of these.
+    - So hiding a second cohort is **not automatically sufficient**. Every hidden value must remain individually undeterminable.
+    - For example, two hidden cells whose combined total is zero are both determined: each must be 0.
+  - **No safe arrangement means withholding:** if no arrangement of complementary suppression makes every suppressed value safe, the analytics use the complete withheld state of DEC-319 (case (b) below). Chapters are never partially withheld.
+  - **Engineering choices:** the algorithm and how complementary cells are chosen. The algorithm must satisfy the uniqueness test above. The choice should be stable rather than dependent on small changes in counts. This does not remove every inference risk (6.7).
+  - **Worked examples** (the department-level chapters reveal `T`):
+
+    | Data (suppressed cohorts marked *) | What an observer can derive | Outcome |
+    |---|---|---|
+    | A* = 2, B = 3, C = 4; `T` = 9 | A = 9 − 3 − 4 = 2 | **Unsafe.** Hiding A alone is not allowed. |
+    | A* = 2, B* = 3 (complement), C = 4; `T` = 9 | Only A + B = 5. Six pairs fit: (0,5), (1,4), (2,3), (3,2), (4,1), (5,0) | **Safe.** Neither value is unique. |
+    | A* = 0, B = 0, C = 4; `T` = 4. Complement B chosen | A + B = 0, so A = 0 and B = 0 | **Unsafe.** Choosing C as the complement instead gives A + C = 4 with five pairs and is safe; B stays visible as 0. |
+    | A* = 3 is the only real cohort; `T` = 3 | A = `T` = 3, and no other cohort can be hidden | **No safe arrangement:** complete withheld state (DEC-319 (b)). |
 - **No hidden values in the page:** the analytics code passes the template only values that may be displayed. A suppressed value is `None`, or absent, and is never in the HTML, attributes, hidden fields, embedded data or text.
 - **Withheld state (DEC-319):**
   - **When:** all three analytics, the department totals and the takeaways are withheld if:
@@ -288,7 +309,12 @@ Analytics (Stage 4b; section 6):
 - Zero-complaint real cohorts differ from nonexistent cohorts; cohorts come from the real-cohort union (6.2).
 - Active categories with zero complaints are listed; inactive categories appear only with complaints in the window, labelled.
 - Cohorts below five active students, counted at page generation, are suppressed.
-- No suppressed value can be reconstructed from the displayed values (for example, an exhaustive check over small generated grids).
+- No suppressed value can be reconstructed from the complete displayed output of all three chapters, with `T` treated as known whenever category or status counts are shown (6.4). This is tested as a uniqueness check: an exhaustive check over small generated grids confirms that every suppressed value has more than one consistent value. It includes these deterministic cross-chapter cases:
+  - **One suppressed cohort with visible cohorts** (A* = 2, B = 3, C = 4): the category and status counts each add up to `T` = 9, so hiding A alone would reveal A = 2. The suppression must hide more, and the page must never display that arrangement.
+  - **Two suppressed cohorts with a non-zero combined total** (A* = 2, B* = 3, C = 4): only A + B = 5 is derivable, with more than one consistent value for each, so the arrangement is accepted.
+  - **Two suppressed cohorts with a combined total of zero** (A* = 0, B* = 0, C = 4): both values are forced to 0, so the arrangement is rejected as unsafe. Another complement is used, or the withheld state if none is safe.
+  - **A hidden value made unique by displayed equations or bounds:** the safety check is given an arrangement where one suppressed value has exactly one consistent value (for example, through an additional displayed equation such as a subtotal, or through the zero bound). The check must reject it.
+  - **No safe suppression possible** (one real cohort, suppressed, with `T` = 3): the complete withheld state is shown, with no analytics figures, totals, takeaways or drill-down links. It is identical to the zero-total withheld state.
 - No suppressed value appears anywhere in the page: links, URLs, attributes, hidden fields, embedded data or takeaways.
 - Primary and complementary suppression look the same.
 - Both withheld cases (6.4) show the same withheld state with no figures.
