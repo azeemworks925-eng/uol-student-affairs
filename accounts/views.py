@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 
+from complaints.analytics import build_overview
 from complaints.workspace import cohort_value
 
 from .forms import StudentRegistrationForm
@@ -97,7 +98,12 @@ def advisor_home(request):
 
 @super_admin_required
 def super_admin_home(request):
-    return render(request, "accounts/super_admin_home.html")
+    # The three DEC-281 analytics (Complaints Part 4 Stage 4b). Suppression is decided in
+    # complaints.analytics; the template receives displayable values only (DEC-318).
+    return render(request, "accounts/super_admin_home.html", {
+        "analytics": build_overview(request.user),
+        "term_admin_url": reverse("admin:academics_academicterm_changelist"),
+    })
 
 
 def admin_login_redirect(request):

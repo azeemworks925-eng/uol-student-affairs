@@ -1,6 +1,6 @@
 # Complaints — technical notes
 
-**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md (merged in PR #12). Part 4 Stage 1 (Super Admin complaint workspace and owner assignment) is merged through PR #14. Part 4 Stage 2 (category and subcategory management, section 6) is merged through PR #15. Part 4 Stage 3 (in-app notifications, section 7) is merged through PR #16 (`d857d27`). Part 4 Stage 4a (academic terms and the Super Admin term filter, section 8) is merged through PR #18 (`1809730`). Part 4 Stage 4b (analytics on the Super Admin Overview) is specified in COMPLAINTS_PART4_SPEC.md section 6 and summarised in section 9; it is **not implemented**. Stage 5 (final acceptance) is not started.
+**Status:** Parts 1–3 are merged into main (PRs #7–#11). Part 4 is specified in COMPLAINTS_PART4_SPEC.md (merged in PR #12). Part 4 Stage 1 (Super Admin complaint workspace and owner assignment) is merged through PR #14. Part 4 Stage 2 (category and subcategory management, section 6) is merged through PR #15. Part 4 Stage 3 (in-app notifications, section 7) is merged through PR #16 (`d857d27`). Part 4 Stage 4a (academic terms and the Super Admin term filter, section 8) is merged through PR #18 (`1809730`). Part 4 Stage 4b (analytics on the Super Admin Overview, section 9) is specified in COMPLAINTS_PART4_SPEC.md section 6 (merged in PR #19) and implemented on branch `feat/super-admin-analytics`, awaiting review. Stage 5 (final acceptance) is not started.
 **Decisions:** DEC-030, DEC-031, DEC-220 to DEC-230, and DEC-310 to DEC-322 in docs/decisions/DECISIONS.md. Complaint-specific portions of O27, O28 and O33 are resolved; see the decision register for remaining open items.
 
 ## 1. Backend (`complaints/`)
@@ -121,7 +121,7 @@ Part 4 covers the department-wide Super Admin complaint workspace with manual ow
 
 Cancellation requests remain record-only (DEC-311). There is no response-required classification or “Waiting for you” queue (DEC-312). Student-facing owner identities and owner-change events remain hidden. Student Voice, meetings and collective issues are not implemented by this complaints part; the notification foundation is designed to support their already-approved events when those modules are built.
 
-The specification was merged in PR #12. Stage 1 is described in section 5, Stage 2 in section 6, Stage 3 in section 7, Stage 4a in section 8 and the Stage 4b plan in section 9; Stage 4b and Stage 5 are not implemented.
+The specification was merged in PR #12. Stage 1 is described in section 5, Stage 2 in section 6, Stage 3 in section 7, Stage 4a in section 8 and Stage 4b in section 9 (awaiting review); Stage 5 is not started.
 
 ## 5. Super Admin complaint workspace and owner assignment (Part 4 Stage 1)
 
@@ -294,17 +294,42 @@ Academic terms, the current-term services and the reporting window are described
 - **Batch Advisor list unchanged:** it still uses `LIST_PARAMS` and `FILTER_PARAMS`. It has no term field; a forged `term` parameter is neither applied nor carried in links or redirects, and its SQL queries are identical with or without one. Student pages don't read `term`.
 - **No migration** in the complaints app: the filter uses the existing `created_at` column.
 
-## 9. Overview analytics (Part 4 Stage 4b): specified, not implemented
+## 9. Overview analytics (Part 4 Stage 4b)
 
-**Status:** the specification is final in COMPLAINTS_PART4_SPEC.md section 6 (DEC-316 to DEC-322). No analytics code exists yet: the Super Admin Overview still shows its placeholder headline. Nothing in this section has been implemented or tested.
+**Status:** implemented on branch `feat/super-admin-analytics`, awaiting review. The specification, COMPLAINTS_PART4_SPEC.md section 6 (DEC-316 to DEC-322), is authoritative; this section describes the implementation.
 
-**Summary** (the specification is authoritative):
-- **Window:** the current academic term only. The window is the existing `term_window()` rule, applied to `created_at`; with no current term, a setup state is shown.
-- **The three analytics:** cohort distribution, category distribution and resolved versus not resolved, on the existing Overview.
-- **Suppression:**
-  - cohorts with fewer than five active students (counted at page generation) are suppressed;
-  - complementary suppression prevents reconstruction;
-  - all figures are withheld when the total is zero with a suppressed cohort, or when safe complementary suppression is impossible.
+**Code**
+- **`complaints/analytics.py`:** queries, suppression and takeaways. `build_overview(user)` returns an `Overview` that holds **only values that may be displayed**. A suppressed cohort cell has no count and no URL, so no hidden value can reach the template, the response context, a link or an attribute.
+- **`accounts/views.py: super_admin_home`:** passes the overview to the template; access is unchanged (`super_admin_required`).
+- **`templates/accounts/super_admin_home.html`** and `static/css/app.css` (section "Super Admin Overview analytics"): the page itself, styled with existing tokens only.
+
+**States**
+- **setup:** no current term. Nothing is calculated, and the page links to the academic-term admin; there is no all-time fallback.
+- **withheld:** DEC-319. Only the term name and dates and one neutral explanation are shown, identical for both cases.
+- **ready:** the summary and the three chapters.
+
+**Queries.** All three analytics use the current term's window: `visible_complaints(user)` (every complaint for a Super Admin) filtered by `AcademicTerm.window()` on `created_at`. The page runs a fixed number of grouped queries, whatever the number of cohorts (a test checks this):
+- complaints per cohort, category and status;
+- advisor-assignment and student-profile cohorts;
+- active students per cohort;
+- batch, semester and section names;
+- categories.
+
+**Suppression** (`plan_suppression`, verified by `determined_keys`):
+- **Primary:** real cohorts with fewer than five active students.
+- **When the analytics are withheld:**
+  - if the total is zero, any primary suppression withholds them (DEC-319 (a));
+  - otherwise, if the only real cohort is suppressed, they are withheld too (DEC-319 (b)).
+- **Complementary cells:**
+  - The page reveals the total `T` through the category and status chapters. So the only equation an observer has over the hidden cells is that they sum to `T` minus the visible cells.
+  - **Known lower bounds:** a cohort that is real only because complaints were submitted in it this term (no student profile, no advisor assignment) visibly has at least one complaint, so its lower bound is 1; every other cohort's is 0.
+  - Each hidden value is undetermined exactly when at least two cells are hidden and their combined total exceeds the sum of their lower bounds by at least one.
+  - If the hidden cells sit at their lower bounds (for example, they add up to zero), the preferred cell with complaints above its own lower bound is added; if one cell is hidden alone, the preferred cell is added. If no such cell exists, the analytics are withheld (DEC-319 (b)).
+  - Preference is by active students (largest first), then academic order, not by complaint counts, so the choice is stable between visits. Complaint counts only decide whether a preferred cell is usable when the hidden cells sit at their lower bounds.
+  - Before anything is shown, the hidden set is checked with the general uniqueness test `determined_keys`. It also handles overlapping equations, such as subtotals, and answers "unsafe" when the enumeration would be too large.
+- **Tests:** they compare the result with an independent brute-force check on 3,000 generated grids.
+
+**Links.** Visible cells, category rows and the four status figures open the Super Admin complaint list with `cohort`, `category` or `status`, plus `term`. Hidden and nonexistent cells have no link.
 
 ### Privacy limitations and residual risks
 

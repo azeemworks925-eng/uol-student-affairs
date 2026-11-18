@@ -184,7 +184,9 @@ class SuperAdminHomeTests(TestCase):
                 self.assertEqual(self.client.get(url.replace("&amp;", "&")).status_code, 200)
 
     def test_empty_overview_has_no_invented_figures(self):
-        self.assertContains(self.response, "No complaints have been recorded yet.")
+        # No current academic term: the Stage 4b setup state, never all-time figures (DEC-316).
+        self.assertContains(self.response, "Set the current academic term to see this term’s figures.")
+        self.assertNotContains(self.response, 'class="sa-analytics"')
 
 
 class AuthLayoutTests(TestCase):

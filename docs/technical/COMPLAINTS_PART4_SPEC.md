@@ -1,9 +1,8 @@
 # Complaints Part 4 — Super Admin Oversight, Categories, Notifications and Analytics
 
-**Status:** Owner-approved scope and product decisions. Merged in PR #12. Stages 1–4a are implemented and merged (PRs #14, #15, #16 and #18). Section 6 is the final Stage 4b specification; Stage 4b is **not implemented**.
+**Status:** Owner-approved scope and product decisions. Merged in PR #12. Stages 1–4a are implemented and merged (PRs #14, #15, #16 and #18). Section 6 is the final Stage 4b specification (merged in PR #19); Stage 4b is implemented on branch `feat/super-admin-analytics`, awaiting review.
 **Builds on:** Complaints Parts 1–3 merged into main (PRs #7–#11).
 **Decisions:** DEC-310 to DEC-322 in docs/decisions/DECISIONS.md.
-**Stage 4b implementation must not begin until the section 6 update (DEC-316 to DEC-322) is reviewed and merged.**
 
 ## 1. Purpose and scope
 
@@ -104,7 +103,7 @@ The foundation should support future producers for the already-approved DEC-270 
 
 ## 6. Super Admin Overview analytics (Stage 4b)
 
-**Status:** final specification, not implemented. **Decisions:** DEC-090, DEC-205, DEC-228, DEC-281, DEC-306, DEC-313 to DEC-322. Where this section and `DECISIONS.md` disagree, `DECISIONS.md` wins.
+**Status:** final specification; implemented on branch `feat/super-admin-analytics`, awaiting review (see `COMPLAINTS.md` section 9). **Decisions:** DEC-090, DEC-205, DEC-228, DEC-281, DEC-306, DEC-313 to DEC-322. Where this section and `DECISIONS.md` disagree, `DECISIONS.md` wins.
 
 The analytics stay on the existing Super Admin Overview (`super_admin_home`), following DEC-306:
 - one written department summary, then three numbered chapters;

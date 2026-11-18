@@ -3,7 +3,7 @@
 **Status:** Complaints Part 4 Stage 4a. Implemented and merged into `main` through PR #18 (squash merge commit `1809730`, 2026-11-17), including the review fixes and migration `0003`.
 **Decisions:** DEC-314 (one named academic-term reporting window, by submission date), DEC-210 (academic records are kept, not deleted). Specification: `COMPLAINTS_PART4_SPEC.md` section 6.1.
 
-An academic term is the reporting window for the complaint analytics of Stage 4b (specified in `COMPLAINTS_PART4_SPEC.md` section 6, not implemented; DEC-316). This stage adds the term record, how the current term is chosen, the shared date-boundary rule, and a term filter on the Super Admin complaint list. It adds no analytics.
+An academic term is the reporting window for the complaint analytics of Stage 4b (specified in `COMPLAINTS_PART4_SPEC.md` section 6; implemented on branch `feat/super-admin-analytics`, awaiting review; DEC-316). This stage adds the term record, how the current term is chosen, the shared date-boundary rule, and a term filter on the Super Admin complaint list. It adds no analytics.
 
 ## 1. Model (`academics.AcademicTerm`)
 
