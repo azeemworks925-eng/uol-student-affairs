@@ -359,7 +359,7 @@ A student moved to another cohort loses access, as in section 7.1.
 **Decision (Proposed): lock the cohort's `academics.Section` row**, with `Section.objects.select_for_update().get(pk=section_id)`, as the **first** statement of every representation-related transaction.
 - **Always present:** every cohort references its section (`PROTECT`), and section rows are never deleted (DEC-210), so the lock target exists even before the cohort has representatives or students.
 - **No creation race:** nothing has to be created before it can be locked.
-- **Correctness:** every operation that can affect a cohort's representatives or membership takes the same section row first, so those operations are serialised.
+- **Correctness:** every operation that can affect a cohort's representatives, its membership **or its eligibility** takes the same section row first, so those operations are serialised. That includes activating or deactivating the cohort's `Batch`, `Semester` or `Section` (below).
 - **Trade-off, coarseness:**
   - the `Section` row is shared by every cohort with that section (for example "Section A" in every batch and semester), so unrelated cohorts are serialised too;
   - an admin edit of that `Section` entry also waits for, or blocks, these short transactions.
@@ -374,9 +374,16 @@ A student moved to another cohort loses access, as in section 7.1.
 - **Cost:** a new table and migration. It is not proposed for V1.
 
 **One global lock order.** Every operation takes locks in this order, which rules out deadlocks between them:
-1. **cohort locks** (the `Section` rows), in ascending section primary key, including the old and new cohorts of a cohort change;
-2. the **current `CohortRepresentation` rows** of those cohorts, in ascending primary key;
-3. the **`User` and `StudentProfile` rows** involved, in ascending primary key.
+1. **cohort locks** (the `Section` rows), in ascending section primary key, including the old and new cohorts of a cohort change. An academic-structure change takes **all** of them (below);
+2. the **`Batch` or `Semester` row** whose active state is being changed (academic-structure changes only; a Section's own row is already held from step 1);
+3. the **current `CohortRepresentation` rows** of those cohorts, in ascending primary key;
+4. the **`User` and `StudentProfile` rows** involved, in ascending primary key.
+
+Representation-related services never **lock** a `Batch` or `Semester` row. They only **read** its active state, with a plain read after their Section locks. So no transaction ever holds a Batch or Semester lock while waiting for a Section row: there is no reverse order, and no deadlock cycle between the two kinds of operation.
+
+**Re-check after locking.** After taking its Section locks, every representation-related service re-reads, under them, the active state of the relevant batch, semester and section, and applies DEC-323 and O45 to that fresh state.
+- **Eligibility:** appointing, replacing, raising and supporting need an active cohort.
+- **Registration:** it needs active entries, as the registration form already requires.
 
 A service that must first read a student's cohort to know which section to lock reads it, takes the lock, then **re-reads it under the lock**. If the cohort changed in between, it releases nothing early: it refuses with a conflict message ("This student's details changed at the same time. Please try again.") rather than acting on the wrong cohort.
 
@@ -388,6 +395,21 @@ A service that must first read a student's cohort to know which section to lock 
 | Deactivation or reactivation (`set_account_active`) | Section of the student's cohort; current period; user row; replacement candidate |
 | Cohort change (`update_student_profile`) | Sections of the old and new cohorts (ascending); their current periods; profile row; replacement candidate |
 | Closure | Taken inside the deactivation or cohort change that causes it, under the same locks |
+| Activate or deactivate a `Batch` or `Semester` | **All** Section rows, ascending; then that Batch or Semester row; then the update |
+| Activate or deactivate one or more `Section` entries | **All** Section rows, ascending (this includes the changed ones); then the update |
+
+**Academic-structure changes.** A cohort's eligibility depends on its `Batch` and `Semester` being active, as well as its `Section`. So changing their active state must be serialised against representation-related transactions through the same Section locks.
+- **Rule:** every change to the active state of a `Batch`, `Semester` or `Section` runs in one transaction that:
+  1. **first** locks **all** `Section` rows in ascending primary key (`Section.objects.select_for_update().order_by("pk")`, evaluated);
+  2. then changes the entry's `is_active`, inside that same transaction.
+- **Why all Section rows, not only the affected ones:**
+  - the set of sections used with a batch or semester is not stored anywhere. It would be computed from cohorts (profiles, assignments, periods, complaints), and a concurrent registration could add a cohort with a section outside the computed set. Locking all of them includes every affected section by definition;
+  - a list-editable admin save changes several entries in **one** transaction, in display (name) order. Locking all sections in ascending order before any change keeps the order consistent whatever rows are edited;
+  - academic-structure changes are rare administrative actions, and there are few sections. A Section's own change therefore locks its own row too, as part of the full set.
+- **No new product rule:** deactivating a batch, semester or section does **not** close or change representation periods. The cohort simply becomes inactive, and section 5.6 (O45) and DEC-323 apply unchanged. The lock only makes eligibility checks see a stable answer.
+- **Prerequisite (does not exist today):** `academics` has no service or explicit transaction boundary for active-state changes. They are made in the Django admin (`AcademicEntryAdmin`) on the change form and through the list-editable `is_active` column. Stage CI-1 must add:
+  - a service `academics.services.set_entry_active(entry, active, *, actor)` that takes the Section locks above and then saves;
+  - wiring `AcademicEntryAdmin.save_model` to it. Both the change form and the list-editable save call `save_model` inside Django's own `transaction.atomic()`, so the locks and the change share one transaction. Locking all sections on every call is idempotent within that transaction.
 
 **How the races resolve:**
 - **Two simultaneous first appointments:** both block on the section row. The second runs after the first commits, sees a current period, and is refused ("This cohort's representatives were just appointed"). The unique index on the current period is the database backstop.
@@ -396,6 +418,11 @@ A service that must first read a student's cohort to know which section to lock 
   - if the deactivation commits first, the appointment's re-validation finds the candidate inactive and refuses;
   - if the appointment commits first, the deactivation finds a represented, eligible cohort and needs a replacement, or is refused, or closes (fewer than two students).
 - **Two replacements of the same post:** serialised; the second is refused as stale (`expected_period`).
+- **First appointment against a `Batch` or `Semester` deactivation:**
+  - **if the appointment wins** (it holds the cohort's Section lock first): the deactivation waits for that lock and proceeds after the appointment commits. The cohort is then represented and inactive. Its period stays (section 5.6), and no new actions are allowed.
+  - **if the deactivation wins** (it holds all Section locks and commits first): the appointment acquires its Section lock afterwards, re-reads the batch and semester, finds the cohort inactive, and is refused.
+- **Appointment against a `Section` deactivation:** the same, with the Section row itself as the shared lock.
+- **Registration or cohort change against a deactivation:** the same serialisation. If the deactivation commits first, the registration or cohort change re-reads the entries under its lock and refuses an inactive target, exactly as the registration form already refuses inactive entries.
 
 **Database versus services.** The database guarantees the per-row rules in section 4.2. The cohort lock and the service checks guarantee the cross-row rules: no vacancy in a represented, eligible cohort, and every check seeing a stable membership.
 
@@ -600,7 +627,7 @@ These are reported, not resolved. The specification follows the confirmed decisi
   - **Support:** inserted in a savepoint and caught on the `UNIQUE (issue, student)` violation, so a double click or two tabs record one row and report "already supported".
   - **Status and response:** they lock the issue row; status actions use `expected_status`, and responses re-check that the issue is not Resolved (section 8).
   - **Support against closure:** support also locks the issue row and checks `first_response_at` under the lock, so no support lands after closure.
-  - **Representation:** every representation-related change takes the cohort lock (the `Section` row) first, then the current period, then user and profile rows, in one global order (section 5.7). Concurrent first appointments, replacements and membership changes are serialised; neither a duplicate nor a missing CR or GR can result.
+  - **Representation:** every representation-related change, and every change to a Batch, Semester or Section's active state, takes the Section-row locks first (academic-structure changes take all of them, in ascending order). Then come the Batch or Semester row being changed, the current period, and the user and profile rows, in one global order (section 5.7). Representation services only read Batch and Semester states after locking. Concurrent first appointments, replacements, membership changes and academic deactivations are serialised; neither a duplicate nor a missing CR or GR can result.
   - **Tests:** MySQL concurrency tests use separate connections, as for academic terms.
 - **Immutability** (application-level; see "Write protection" in section 4.2 for exactly what the database does and does not enforce):
   - protected querysets and instance guards on write-once fields;
@@ -653,6 +680,13 @@ These are reported, not resolved. The specification follows the confirmed decisi
     - a first appointment against the deactivation of one of its candidates, in both commit orders;
     - a first appointment against a cohort change moving a candidate out;
   - the lock order holds: a cohort change between two sections running against the opposite change finishes without deadlock;
+  - **academic-structure changes** (section 5.7):
+    - first appointment against `Batch` deactivation, in both commit orders: either represented then inactive, or refused;
+    - first appointment against `Semester` deactivation, in both commit orders;
+    - appointment (first appointment and replacement) against `Section` deactivation, in both commit orders;
+    - registration, and a cohort change, against the deactivation of the target batch, semester or section: refused if the deactivation commits first, otherwise completed before it;
+    - **no deadlock:** a `Batch` deactivation, a `Semester` deactivation and a list-editable save of several `Section` rows run together with two-section cohort changes, and all finish;
+    - deactivating a batch or semester leaves existing representation periods unchanged (no closure; O45 and DEC-323 unchanged);
   - two BAs acting on one issue (status against status, response against resolve);
   - support against the closing response.
 - **Notifications:** one per eligible student; not to the raiser, other cohorts or inactive students; none if the transaction rolls back; O51 tests only if approved.
@@ -673,6 +707,7 @@ These are reported, not resolved. The specification follows the confirmed decisi
      - `set_account_active` and `update_student_profile` with replacement, refusal and closure, and the cohort lock (section 5.7) added to them and to `register_student`;
      - the two admin `save_model` methods rewired to them, with the replacement field;
      - the authority checks and the consistency check;
+     - **prerequisite:** `academics.services.set_entry_active`, with `AcademicEntryAdmin.save_model` (change form and list-editable saves) rewired to it, so academic active-state changes take the Section locks (section 5.7). There is no model or migration change.
      - the BA "Representatives" and Super Admin "CR/GR Management" pages.
    - **Needs:** O45 and O52 (O35 and O55 are resolved by DEC-323).
    - **Independently useful:** representatives are recorded before issues exist.
