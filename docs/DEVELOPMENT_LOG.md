@@ -21,13 +21,35 @@ Rules:
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O30 and O34; O25 is resolved by DEC-315. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
-| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`); Stage 3 (in-app notifications) through PR #16 (`d857d27`). Stage 4a (academic terms and the Super Admin term filter) through PR #18 (`1809730`). Stage 4b (analytics) is specified (COMPLAINTS_PART4_SPEC.md section 6, DEC-316 to DEC-322) in a documentation PR awaiting review; it is not implemented. Stage 5 (final acceptance) is not started. |
-| Other product features | Student Voice, meetings, collective issues and the Super Admin analytics are not implemented. |
+| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`); Stage 3 (in-app notifications) through PR #16 (`d857d27`). Stage 4a (academic terms and the Super Admin term filter) through PR #18 (`1809730`). Stage 4b (analytics) is specified (COMPLAINTS_PART4_SPEC.md section 6, DEC-316 to DEC-322; PR #19, `b7d48a9`) and implemented on branch `feat/super-admin-analytics`, awaiting review. Stage 5 (final acceptance) is not started. |
+| Other product features | Student Voice, meetings and collective issues are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
 
 ---
 
-## 2026-11-18 — Complaints Part 4 Stage 4b: analytics specification finalised (awaiting review)
+## 2026-11-18 — Complaints Part 4 Stage 4b: Super Admin Overview analytics (awaiting review)
+
+Branch `feat/super-admin-analytics`, created from `main` at `b7d48a9` (PR #19, the Stage 4b specification, merged on 2026-11-18 at 00:16 Asia/Karachi). **It is not merged.** Technical notes: `docs/technical/COMPLAINTS.md` section 9.
+
+- **What it adds:** the three DEC-281 analytics on the existing Super Admin Overview, for the current academic term only:
+  - cohort map, category share, and resolved versus not resolved;
+  - a setup state when no term is current;
+  - one withheld state for both DEC-319 cases.
+
+  There is no new route, model, migration or dependency.
+- **Privacy is decided in `complaints/analytics.py`:**
+  - primary suppression under five active students;
+  - complementary suppression judged against everything displayed, with `T` known through the category and status chapters;
+  - a uniqueness check before display;
+  - hidden cells reach the template with no count and no URL.
+- **Operational access unchanged:** the Super Admin complaint list and its filters are untouched (DEC-320). The page does not describe the analytics as anonymous.
+- **Overview test changed:** `accounts/tests/test_frontend.py` expected the old placeholder headline. It now expects the setup state.
+- **Pre-existing issue fixed on this page:** the Overview's Manage buttons were 41px tall on phones; they are now at least 44px.
+- **Verification:** recorded in the PR description. These are local runs; there is no hosted CI.
+
+---
+
+## 2026-11-18 — Complaints Part 4 Stage 4b: analytics specification finalised (merged in PR #19)
 
 Documentation only, on branch `docs/stage-4b-analytics-spec` from `main` at `1809730`. No application code, templates, CSS, migrations or dependencies changed. **The analytics are not implemented.** Implementation can start once this documentation PR is reviewed and merged.
 
