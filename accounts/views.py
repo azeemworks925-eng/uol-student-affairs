@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
@@ -47,6 +48,11 @@ def student_register(request):
             # A concurrent submission registered first; the one-profile-per-user constraint
             # kept the data consistent, so the student is already registered.
             pass
+        except ValidationError as error:
+            # An entry was deactivated after the form was shown (checked under the cohort lock).
+            form.add_error(None, error.messages)
+            return render(request, "accounts/register.html",
+                          {"form": form, "sap_id": extract_sap_id(request.user.email)}, status=400)
         return redirect("home")
     return render(request, "accounts/register.html", {"form": form, "sap_id": extract_sap_id(request.user.email)})
 

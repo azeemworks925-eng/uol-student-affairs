@@ -1,0 +1,68 @@
+{% extends "layouts/app.html" %}
+{% load static %}
+{% comment %}
+  Representatives (Batch Advisor) and CR/GR Management (Super Admin): Collective Issues CI-1
+  (COLLECTIVE_ISSUES_SPEC.md sections 5.5, 9.2, 9.3; DEC-016, DEC-245, DEC-323).
+  There is no remove control: a post changes only by replacement or swap.
+{% endcomment %}
+{% block title %}{% if scope.name == "admin" %}CR/GR Management{% else %}Representatives{% endif %} · UOL Student Affairs{% endblock %}
+{% block page_class %} sa-page--wide{% endblock %}
+{% block content %}
+<header class="sa-page-head sa-page-head--split">
+  <div>
+    <span class="sa-eyebrow">{% if scope.name == "admin" %}People{% else %}Your cohorts{% endif %}</span>
+    <h1 class="sa-display">{% if scope.name == "admin" %}CR/GR Management{% else %}Representatives{% endif %}</h1>
+    <p class="sa-lede">
+      {% if total %}{{ total }} cohort{{ total|pluralize }}: {{ represented }} represented, {{ awaiting }} awaiting representatives{% if inactive %}, {{ inactive }} inactive{% endif %}.{% else %}No cohorts yet.{% endif %}
+      <span class="soft">Each cohort has one CR (Class Representative) and one GR (Girls Representative). Once appointed, a post is never left empty: it can only be replaced or swapped.</span>
+    </p>
+  </div>
+</header>
+
+{% if breaches %}
+<section class="sa-rep-breach" role="alert" aria-labelledby="breach-title">
+  <h2 class="sa-h2" id="breach-title">{{ breaches|length }} cohort{{ breaches|length|pluralize }} need{{ breaches|length|pluralize:"s," }} attention</h2>
+  <p class="sa-small mb-2">These cohorts' current CR or GR is no longer an active student of the cohort. The portal never makes this change itself; replace the representative named below.</p>
+  <ul class="sa-rep-breach-list">
+    {% for period, posts in breaches %}
+    <li><a href="#cohort-{{ period.batch_id }}-{{ period.semester_id }}-{{ period.section_id }}">{{ period.batch }} · {{ period.semester }} · {{ period.section }}</a>: {% for post in posts %}{% if post == "cr" %}CR{% else %}GR{% endif %}{% if not forloop.last %} and {% endif %}{% endfor %}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if filters %}
+<form method="get" class="sa-rep-filters" aria-label="Filter cohorts">
+  {% for field in filters %}
+  <div><label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}</div>
+  {% endfor %}
+  <div class="sa-rep-filter-actions">
+    <button type="submit" class="btn btn-sa-secondary">Apply</button>
+    {% if filtered %}<a class="btn btn-sa-secondary" href="{% url scope.list_url_name %}">Clear</a>{% endif %}
+  </div>
+</form>
+{% endif %}
+
+{% if cards %}
+<ol class="sa-rep-list" data-focus-invalid>
+  {% for card in cards %}
+  <li>{% include "accounts/representatives/_card.html" %}</li>
+  {% endfor %}
+</ol>
+{% elif total %}
+<div class="sa-empty">
+  <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-users"/></svg>
+  <div><p class="title">No cohorts match these filters.</p><p class="sa-small mb-0"><a href="{% url scope.list_url_name %}">Show all cohorts</a></p></div>
+</div>
+{% else %}
+<div class="sa-empty">
+  <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-users"/></svg>
+  {% if scope.name == "admin" %}
+  <div><p class="title">No cohorts exist yet.</p><p class="sa-muted sa-small">A cohort appears when students register or a Batch Advisor is assigned to it.</p></div>
+  {% else %}
+  <div><p class="title">No cohorts are assigned to you yet.</p><p class="sa-muted sa-small">The Super Admin assigns cohorts. Their representatives appear here.</p></div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

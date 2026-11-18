@@ -76,7 +76,8 @@ NAVIGATION = {
             NavItem("Collective Issues", "hand"),
             NavItem("Student Voice", "voice"),
             NavItem("Meetings", "calendar"),
-            NavItem("Representatives", "users"),
+            NavItem("Representatives", "users", "advisor_representatives",
+                    also_current=("advisor_representatives_appoint", "advisor_representatives_replace")),
             NavItem("Statistics", "chart"),
         ]),
     ],
@@ -91,7 +92,8 @@ NAVIGATION = {
         ("People", [
             NavItem("Students", "user", "admin:accounts_studentprofile_changelist"),
             NavItem("Batch Advisors", "users", "admin:accounts_user_changelist", {"role__exact": User.Role.BATCH_ADVISOR}),
-            NavItem("CR/GR Management", "badge"),
+            NavItem("CR/GR Management", "badge", "super_admin_representatives",
+                    also_current=("super_admin_representatives_appoint", "super_admin_representatives_replace")),
         ]),
         ("Configuration", [
             NavItem("Academic Structure", "layers", "admin:app_list", kwargs={"app_label": "academics"}),
