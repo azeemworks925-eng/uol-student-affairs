@@ -3,7 +3,7 @@
 **Status:** Draft for review. **Not approved, not implemented.** Nothing in this document is a product decision until the owner approves it.
 **Builds on:** `main` at `0df6dd4` (Complaints Parts 1–4, notifications, academic terms and Super Admin analytics merged).
 **Governing decisions (already CONFIRMED):** DEC-016, DEC-040, DEC-205, DEC-210, DEC-212, DEC-240 to DEC-247, DEC-270, DEC-282, DEC-300 to DEC-304, DEC-307 in `docs/decisions/DECISIONS.md`.
-**Open decisions:** section 12 (registered as O35 to O54 in `DECISIONS.md`). Section 13 lists conflicts between this task's brief and confirmed decisions.
+**Open decisions:** section 12 (registered as O35 to O55 in `DECISIONS.md`). Section 13 lists conflicts between this task's brief and confirmed decisions.
 
 Labels used below:
 - **Confirmed (DEC-n):** an approved decision; it must be implemented as written.
@@ -28,7 +28,7 @@ A **collective issue** is a concern raised on behalf of a whole section by its C
 | Editing after submission | Original kept; information added | **Locked**: no edit or delete by CR/GR (DEC-242); by staff, proposed none (O54) | — |
 
 **In V1 (all Confirmed unless marked):**
-- representative assignment management (DEC-245);
+- management of each cohort's CR and GR, with no vacancies (DEC-016, DEC-245; section 5);
 - raising an issue (DEC-040);
 - the section noticeboard on the student Home (DEC-241, DEC-282, DEC-303);
 - support (DEC-241);
@@ -41,8 +41,8 @@ A **collective issue** is a concern raised on behalf of a whole section by its C
 ## 2. Confirmed requirements (from DECISIONS.md and the approved brief)
 
 1. **Representatives are permissions, not accounts:** CR and GR are permissions on existing student accounts. There is no new role, account type or login (DEC-016). `User.role` is unchanged.
-2. **Exactly one of each per cohort:** every section has exactly one CR and one GR (DEC-016). "Section" means the exact batch + semester + section cohort (DEC-205).
-3. **Identical and limited:** CR and GR have identical permissions and keep their normal student permissions. A student holds at most one representative assignment, for one section (DEC-240).
+2. **Exactly one of each per cohort:** every section has exactly one CR and one GR (DEC-016). "Section" means the exact batch + semester + section cohort (DEC-205). The owner restated on 2026-11-18 that **vacant posts are not allowed**. How the system keeps this rule, and the one point it cannot enforce on its own, are in section 5.1 (O35, O55).
+3. **Identical and limited:** CR and GR have identical permissions and keep their normal student permissions. A student holds at most one representative post, for one section (DEC-240).
 4. **Who appoints them:** Batch Advisors assign and replace the CR and GR of their assigned cohorts; the Super Admin can also manage them (DEC-245).
 5. **Raising:** either representative can independently raise a collective issue for their own section (DEC-040).
 6. **Supporting** (DEC-241):
@@ -65,7 +65,7 @@ A **collective issue** is a concern raised on behalf of a whole section by its C
     - before supporting, the page shows "Support can't be withdrawn." and the button "Support this issue"; afterwards, "You support this";
     - representatives are shown by name and role only;
     - collective issues are not part of the personal summary.
-14. **Deactivation:** deactivating a student revokes their representative permissions and preserves history (DEC-212).
+14. **Deactivation:** deactivating a student revokes their representative permissions and preserves history (DEC-212). Under DEC-016 this may not leave a post vacant: a replacement is appointed in the same transaction, or the deactivation is refused (section 5.4).
 15. **Academic structure:** it is dynamic. Deactivated entries keep their historical records (DEC-020, DEC-210). Nothing assumes particular section names.
 16. **Support integrity:** support uniqueness is enforced by the database. Other cohorts have no visibility or interaction. A Resolved status needs a resolution note (brief items 6, 8 and 11).
 
@@ -84,9 +84,9 @@ A **collective issue** is a concern raised on behalf of a whole section by its C
 | See status | O39 | Yes | No | Yes | No | Yes |
 | See the official response and resolution note | **No** (DEC-243) | Yes (O37) | No | Yes | No | Yes |
 | Change status and respond | No | No | No | **Yes** | No | O44 (default: no) |
-| Assign or replace the cohort's CR/GR | No | No | No | **Yes** (DEC-245) | No | **Yes** (DEC-245) |
+| Appoint the cohort's CR and GR (both together), or replace one or both | No | No | No | **Yes** (DEC-245) | No | **Yes** (DEC-245) |
 
-**Inactive cohorts.** In a cohort whose batch, semester or section is inactive, the rows that start something new (raise, support, assign or replace a representative) are refused; viewing follows the rows above. See section 5.6 (O45).
+**Inactive cohorts.** In a cohort whose batch, semester or section is inactive, the rows that start something new (raise, support, appoint or replace representatives) are refused; viewing follows the rows above. See section 5.6 (O45).
 
 **Every row is enforced on the server.** Querysets start from a permission-scoped function (section 7.1), and every action is re-checked in the service layer.
 
@@ -100,7 +100,7 @@ A **collective issue** is a concern raised on behalf of a whole section by its C
   - POST/Redirect/GET;
   - `AccessibleErrorsMixin`;
   - the shared workspace layout CSS.
-- **Representative assignments live in `accounts`.** They are a permission on a student account (DEC-016), they are managed with other account data, and the deactivation and cohort-change hooks are in `accounts` (section 5.4).
+- **Cohort representation lives in `accounts`.** CR and GR are a permission on student accounts (DEC-016), managed with other account data, and the account and profile services that must keep the posts filled are in `accounts` (section 5.4).
 - **No change to `complaints`,** except that no code is shared through it.
 - **No new dependency.**
 
@@ -108,31 +108,37 @@ A **collective issue** is a concern raised on behalf of a whole section by its C
 
 All cohort references are `ForeignKey(..., on_delete=PROTECT)` to `academics.Batch`, `Semester` and `Section` (DEC-210).
 
-**`accounts.RepresentativeAssignment`.** History is kept: an assignment is ended, never deleted.
+**`accounts.CohortRepresentation`.** One row per **period** during which a cohort has a given CR and GR. History is kept: a period is ended, never deleted or edited. A change of CR, GR or both ends the current period and starts a new one.
 
 | Field | Notes |
 |---|---|
-| `student` | FK `User` (PROTECT). The role must be student (model `clean()` and service). |
-| `batch`, `semester`, `section` | The exact cohort the student represents |
-| `kind` | `cr` or `gr` |
-| `is_active` | `TRUE` while in force, `NULL` once ended (never `FALSE`; see constraints) |
-| `assigned_by`, `assigned_at` | Who appointed the student, and when |
-| `ended_by` (nullable), `ended_at` (nullable), `end_reason` (nullable) | `end_reason` is one of `replaced`, `removed`, `student_deactivated`, `cohort_changed` |
+| `batch`, `semester`, `section` | The exact cohort |
+| `cr`, `gr` | FK `User` (PROTECT), **both `NOT NULL`**. Students of that cohort when the period starts (service). |
+| `is_active` | `TRUE` for the cohort's current period, `NULL` once ended (never `FALSE`) |
+| `started_by`, `started_at` | Who appointed this pair, and when |
+| `ended_by`, `ended_at`, `end_reason` (all nullable) | `end_reason` is one of `cr_replaced`, `gr_replaced`, `both_replaced`, `cohort_closed` (section 5.4, O55), or `student_deactivated` / `cohort_changed` (inactive cohorts only, section 5.6) |
 
-**Database constraints:**
-- `UNIQUE (batch, semester, section, kind, is_active)`: at most one active CR and one active GR per cohort.
-- `UNIQUE (student, is_active)`: at most one active assignment per student (DEC-240).
-- `CHECK (is_active IS NULL OR is_active IN (TRUE))`.
-- `CHECK ((is_active IS NULL) = (ended_at IS NOT NULL))`.
+Each period names **both** posts, rather than storing one row per post: a row can't exist with only one post filled, so the database itself rules out a half-filled representation.
+
+**Database constraints** (MySQL and SQLite):
+- `cr` and `gr` are `NOT NULL`, and `CHECK (cr_id <> gr_id)`: every period has two different representatives.
+- `UNIQUE (batch, semester, section, is_active)`: at most one current period per cohort.
+- `UNIQUE (cr, is_active)` and `UNIQUE (gr, is_active)`: a student is CR of at most one current period, and GR of at most one.
+- `CHECK (is_active IS NULL OR is_active IN (TRUE))` and `CHECK ((is_active IS NULL) = (ended_at IS NOT NULL))`.
 
 MySQL ignores conditional unique constraints, so they are not used; this is the same nullable-marker technique `academics.AcademicTerm` uses (ACADEMIC_TERMS.md section 1).
+
+**What the database does not guarantee.** These need the services in section 5:
+- that one student is not CR in one cohort's period and GR in another's (the service checks the student is a member of exactly that cohort);
+- that a represented, active cohort keeps a current period through every change (a cross-row rule);
+- that every active cohort has a period at all.
 
 **`collective_issues.CollectiveIssue`.** Write-once content.
 
 | Field | Notes |
 |---|---|
 | `reference` | Unique, for example `CI-2026-00042`, generated like complaint references (O47) |
-| `batch`, `semester`, `section` | The cohort, copied from the raiser's assignment at publication; never changes |
+| `batch`, `semester`, `section` | The cohort, copied from the raiser's current representation period at publication; never changes |
 | `raised_by` | FK `User` (PROTECT); kept even if they stop being a representative or are deactivated |
 | `raised_as` | `cr` or `gr` at publication (historical label) |
 | `title` | `CharField(max_length=120)`; 5–120 characters (database check below) |
@@ -143,7 +149,7 @@ MySQL ignores conditional unique constraints, so they are not used; this is the 
 | `resolved_at` | Nullable; set once, when the issue is resolved |
 | `created_at`, `updated_at` | |
 
-**`collective_issues.Support`:** `issue` (FK, PROTECT), `student` (FK `User`, PROTECT) and `created_at`, with `UNIQUE (issue, student)`. **Insert-only.** Rows can't be deleted or updated (DEC-241: no withdrawal).
+**`collective_issues.Support`:** `issue` (FK, PROTECT), `student` (FK `User`, PROTECT) and `created_at`, with `UNIQUE (issue, student)` in the database. Support is never withdrawn (DEC-241): the application never updates or deletes these rows. That is enforced by the ORM and the services (see "Write protection"), not by the database.
 
 **`collective_issues.IssueEvent`.** Append-only history.
 
@@ -193,93 +199,141 @@ MySQL ignores conditional unique constraints, so they are not used; this is the 
 
 So **an issue can never be stored as Resolved without a valid resolution note**, whatever ORM code runs: the database refuses it. The matching history event is guaranteed by the service transaction, not by the database. Raw SQL can bypass the service, but not the check constraints.
 
-**Write protection.** It follows the complaint models:
-- a protected queryset refuses `update()`, `bulk_update`, `delete()` and upserts;
-- instance `save()` refuses changes to write-once fields (title, description, cohort, raiser, `raised_as`);
+**Write protection** follows the complaint models. These are **application** protections (ORM and services); the database does not refuse an `UPDATE` or `DELETE` issued directly in SQL, because portable enforcement would need triggers:
+- a protected queryset refuses `update()`, `bulk_update`, `delete()` and upserts on issues, support, events and representation periods;
+- instance `save()` refuses changes to write-once fields (title, description, cohort, raiser, `raised_as`; the people and cohort of a representation period);
+- `PROTECT` foreign keys stop a referenced user, cohort entry or issue from being deleted through the ORM;
+- no route, form or admin action edits or deletes these records;
 - status, `first_response_at`, `resolution_note` and `resolved_at` are changed only by services, under a row lock, and each is written once (a resolved issue never changes again);
-- `Support` and `IssueEvent` are insert-only;
-- raw SQL is outside what the ORM can protect.
+- `Support` and `IssueEvent` are insert-only in the application, and a representation period is only ever ended (its `is_active`, `ended_*` fields), never edited otherwise;
+- raw SQL or a database administrator can still modify rows; the database check and unique constraints above still apply to them.
 
 **Indexes:**
 - `CollectiveIssue (batch, semester, section, status)`;
 - `CollectiveIssue (batch, semester, section, -created_at)`;
 - `Support (issue)` (covered by the unique index).
 
-**Migrations:** `accounts/000N_representativeassignment` (additive: a new table) and `collective_issues/0001_initial` (additive: new tables with the checks above). Neither alters an existing table or changes existing data.
+**Migrations:** `accounts/000N_cohortrepresentation` (additive: a new table) and `collective_issues/0001_initial` (additive: new tables with the checks above). Neither alters an existing table or changes existing data.
 
-## 5. Representative assignments
+## 5. Cohort representation (CR and GR)
 
-### 5.1 Who manages them (DEC-245)
-- **A Batch Advisor:** for each **exact** cohort they are assigned to (DEC-205), on a portal page (section 9.2, "Representatives").
-- **The Super Admin:** for any cohort, on the "CR/GR Management" page (section 9.3).
-- **Never:** students, BAs of other cohorts and inactive users.
+### 5.1 The rule, and how it is kept
+**Confirmed:** every section has exactly one CR and one GR (DEC-016). The owner restated on 2026-11-18 that vacant posts are not allowed. A student holds at most one post (DEC-240).
 
-### 5.2 Rules (services, under row locks)
-- **Assign:** the student must be:
-  - an active user with the student role and a student profile;
-  - currently in that **exact** cohort;
-  - free of any other active assignment (DEC-240).
-- **Replace:** assigning a new CR (or GR) to a cohort that has one ends the old assignment (`replaced`) and creates the new one, in one transaction. The service locks the cohort's active assignment rows (`SELECT … FOR UPDATE`, in a fixed order) and the student's own. The two unique indexes are the final safeguard; an `IntegrityError` becomes a form error, never a 500.
-- **Remove:** ends the assignment (`removed`) and leaves the post vacant. Vacancies are allowed (O35), because the system can't create a representative where none has been chosen.
-- **Moving one student between posts:** the same student can't be CR and GR at once, or represent two cohorts. To move a student from CR to GR, end the first assignment.
+**What the system cannot do by itself.**
+- **Cohorts appear one student at a time:** a cohort comes into existence when its first student self-registers (DEC-012, DEC-201), and students join one at a time.
+- **Two students are needed:** a student holds one post, so a cohort can hold both posts only once it has two active students.
+- **Entries are shared:** a `Batch`, `Semester` or `Section` entry is shared by many cohorts, so "activating a section" is not an event that can wait for one cohort's appointments.
+
+So the system can neither appoint at the moment a cohort appears nor stop it from appearing.
+
+**Proposed rule (O35, O55):**
+- **Represented:** a cohort is *represented* from the moment a Batch Advisor or the Super Admin appoints its CR and GR **together, in one action**.
+- **The invariant:** from then on, while the cohort is active (its batch, semester and section are all active), it **always has exactly one CR and one GR**. Every operation that would end a post either appoints a replacement in the same transaction, or is refused. There is no "remove" operation.
+- **Awaiting representatives:** a cohort that has never been represented, or whose representation was closed, is shown to its Batch Advisors and the Super Admin as needing appointments. Until then no collective issue can be raised there, because there is nobody to raise it.
+- **Closure:** representation of an active cohort ends only when the cohort can no longer hold both posts, that is, when it would have fewer than two active students. This is an explicit, recorded closure in the same transaction as the change that causes it (section 5.4), never a silent vacancy.
+
+| Guarantee | Database | Service (one transaction, row locks) |
+|---|---|---|
+| A representation period names both a CR and a GR, who are different people | **Yes**: `cr`/`gr` `NOT NULL`, `CHECK (cr_id <> gr_id)` | Also validates |
+| At most one current period per cohort | **Yes**: unique index | Locks the cohort's current period |
+| A student holds at most one post | **Partly**: unique indexes stop a student being CR (or GR) of two current periods | **Yes**: the student must be a member of exactly that cohort, and hold no other post |
+| A represented, active cohort always has both posts | **No**: it spans rows and operations; it would need triggers | **Yes**: replacement in the same transaction, or refusal (sections 5.2 and 5.4) |
+| Every active cohort is represented | **No** | **No**, by itself: cohorts awaiting representatives are surfaced as a task (O55) |
+
+### 5.2 Operations (services; one `transaction.atomic()`, rows locked)
+Only the cohort's Batch Advisors and the Super Admin may run these (DEC-245). None of them is allowed in an inactive cohort (section 5.6, O45).
+- **Appoint representatives:** the CR and GR are chosen together, for a cohort that is active and currently awaiting representatives. Both must:
+  - be active students currently in that **exact** cohort;
+  - be different people;
+  - hold no other post.
+
+  This creates the cohort's current period.
+- **Replace the CR, the GR, or both:** the new person must meet the same rules, and may not be the other current representative unless both posts change (a swap). In one transaction:
+  1. lock the cohort's current period (`select_for_update`);
+  2. check that it is the period the page showed (`expected_period`), so a stale page is refused;
+  3. end it (`is_active = NULL`, reason `cr_replaced`, `gr_replaced` or `both_replaced`);
+  4. insert the new period, keeping the unchanged representative.
+
+  The end happens before the insert because MySQL checks unique indexes row by row. Other transactions see either the old period or the new one, never neither: the row is locked until commit, and an uncommitted change is invisible to them. If anything fails, everything rolls back and the original period stays current.
+- **Remove a representative without a replacement:** **not offered, and refused by the service** (DEC-016).
+- **Close representation:** no manual action. It happens only as part of section 5.4, when the cohort would fall below two active students.
+
+**Safety net:** the unique indexes catch anything that gets past the locks; an `IntegrityError` becomes a form error, never a server error.
 
 ### 5.3 Authority checks (defence in depth)
 Two checks exist, deliberately separate. Both are evaluated on every request, from the database, never from session or cached state.
 
 - **Representative of the cohort** (`current_representative(user)`; used for *viewing* the private side, section 7.5). All of these must hold:
   - the user is active, with the student role and a student profile;
-  - they have an active assignment;
-  - the assignment's batch, semester and section **equal their current profile cohort**.
+  - the user is the CR or GR of a current representation period;
+  - that period's batch, semester and section **equal the user's current profile cohort**.
 - **May act as representative** (`can_act_as_representative(user)`; used for *new actions*, for example raising an issue). The check above, **and** the cohort's batch, semester and section are all **active** (DEC-020, DEC-210; O45).
 
-The checks are a backstop for section 5.4. If a future code path changed a student's activity or cohort without the services (for example, the shell), a moved or deactivated student would still have no representative power, and an inactive cohort could not be used to raise anything.
+The checks are a backstop for section 5.4. If a future code path changed a student's activity or cohort without the services (for example, the shell), the moved or deactivated student would have no representative power. The check doesn't fill the post, however: a consistency query that lists represented, active cohorts whose current period names an ineligible student is part of the tests and of the Super Admin's CR/GR Management page (section 9.3), so any such breach is visible.
 
-### 5.4 Lifecycle: one service boundary (DEC-212; DEC-021 manual promotion)
+### 5.4 Lifecycle: one service boundary (DEC-212, DEC-016; DEC-021 manual promotion)
 **Today** (on `main`):
 - account changes are saved by `UserAdmin.save_model`, and profile changes by `StudentProfileAdmin.save_model`;
 - `accounts.services.record_profile_changes()` only writes `StudentProfileChange` audit rows. It does **no** representative work;
 - no other code path changes `is_active` or a student's cohort: the admin has no list-editable columns or bulk actions for them.
 
-**Proposed** (Stage CI-1). The business rules live in reusable services in `accounts.services`. Every caller uses them: the admin now, and any portal management page later.
+**Proposed** (Stage CI-1). The rules live in reusable services in `accounts.services`. Every caller uses them: the admin now, and any portal management page later.
 
-- **`set_account_active(user, active, *, actor)`.** In one `transaction.atomic()`:
-  1. lock the user row (`select_for_update`);
-  2. apply `is_active`;
-  3. when deactivating, end the user's active assignment with reason `student_deactivated`, `ended_by = actor` (DEC-212);
-  4. refuse to deactivate the last active Super Admin (the existing rule, moved from the admin form into the service).
+- **`set_account_active(user, active, *, actor, replacement=None)`.** In one `transaction.atomic()`:
+  1. lock the user row, and the current period of any active, represented cohort in which the user holds a post;
+  2. refuse to deactivate the last active Super Admin (the existing rule, moved from the admin form into the service);
+  3. apply `is_active`.
 
-  Reactivation sets `is_active` only and **never** restores an ended assignment; a new appointment is needed.
-- **`update_student_profile(profile, changes, *, actor)`.** In one `transaction.atomic()`:
-  1. lock the profile row;
-  2. apply and save the changes;
-  3. call `record_profile_changes()` for the audit (unchanged);
-  4. if the batch, semester or section changed, end any active assignment with reason `cohort_changed`.
+  When deactivating a CR or GR of an active, represented cohort, step 3 is preceded by one of:
+  - **with `replacement`** (an eligible student of that cohort): the post is replaced as in section 5.2, reason `cr_replaced` or `gr_replaced`;
+  - **without `replacement`, while the cohort would keep at least two active students:** the operation is **refused** with a message naming the post, for example "This student is the GR of Fall 2024 · Semester 4 · Section A. Choose a new GR first, or in the same change.";
+  - **without `replacement`, when the cohort would be left with fewer than two active students** (so no replacement can exist): the period ends with reason `cohort_closed` and the cohort is awaiting representatives (O55).
 
-  Every semester promotion therefore leaves the posts vacant until a BA or the Super Admin appoints again (O35, O46).
-- **Atomicity:** each service is atomic on its own. When an admin form calls it, it runs as a savepoint inside the admin's own transaction. An exception in any step rolls back the account or profile change, the audit rows and the assignment change together.
-- **Admin wiring:** `UserAdmin.save_model` and `StudentProfileAdmin.save_model` are changed to call these services instead of saving directly. This is the only change to existing admin behaviour, and existing account and audit tests must keep passing.
-- **History:** ended assignments are never deleted. Issues keep `raised_by` and `raised_as` whatever happens to the account (brief A).
-- **Backstop:** the authority checks in section 5.3 still refuse representative actions if any future path bypasses these services.
+  Reactivation sets `is_active` only and **never** restores an old post; a new appointment is needed.
+- **`update_student_profile(profile, changes, *, actor, replacement=None)`.** In one `transaction.atomic()`:
+  1. lock the profile row and the current periods of the old and new cohorts, in a fixed order;
+  2. if the student is a CR or GR of an active, represented cohort and the batch, semester or section changes, apply the same three cases as above (replace, refuse or close) for the **old** cohort;
+  3. apply and save the changes;
+  4. call `record_profile_changes()` for the audit (unchanged).
+
+  Students arriving in a cohort never change its posts.
+- **Membership changes lock the period:** any service that changes who belongs to a represented cohort locks that cohort's current period first. That covers deactivation, reactivation, a cohort change in or out, and new registration, where `register_student` gains this lock. So the "is there an eligible replacement?" and "fewer than two students?" checks see a stable membership.
+- **Atomicity:** each service is atomic. Inside an admin form it runs as a savepoint in the admin's transaction. Any failure rolls back the account or profile change, the audit rows and the representation change together; the original period stays current.
+- **Admin wiring:** `UserAdmin.save_model` and `StudentProfileAdmin.save_model` call these services instead of saving directly. When the student holds a post in an active, represented cohort, the change form shows a **"New CR/GR for <cohort>" field**, limited to eligible students of that cohort.
+  - If the field is left empty, the save is refused with the message above, except in the closure case.
+  - This is the only change to existing admin behaviour, and existing account and audit tests must keep passing.
+- **Promotion in practice** (DEC-021, manual):
+  - moving the students of a represented cohort one by one requires replacing a representative whenever one of them moves while others remain;
+  - moving them last closes the old cohort's representation when it would drop below two students;
+  - the new cohort is awaiting representatives until both are appointed.
+
+  This is extra work for the person promoting; section 12 (O55) lists it as a consequence to accept.
+- **History:** ended periods are never deleted. Issues keep `raised_by` and `raised_as` whatever happens to the account (brief A).
 
 ### 5.5 Proposed UI behaviour
-Each cohort card shows its two posts: CR and GR, each with a name or "Vacant".
-- **Assign:** a select listing only the eligible students of that exact cohort, by name and SAP ID.
-- **Ending a post:** "Replace" and "Remove" actions. Removal is confirmed before it takes effect.
-- **History:** a collapsible list of past assignments.
+Each cohort card (Batch Advisor "Representatives", Super Admin "CR/GR Management") shows:
+- **Represented:** the CR and the GR by name and SAP ID, with **"Replace CR"**, **"Replace GR"** and **"Swap CR and GR"** actions. Each opens a form limited to eligible students of that exact cohort and carries `expected_period`. There is **no "Remove"** action.
+- **Awaiting representatives:** a clear notice ("This cohort needs a CR and a GR") and one **"Appoint CR and GR"** form with two required choices.
+  - If the cohort has fewer than two eligible students, the form explains why appointment isn't possible yet.
+- **History:** a collapsible list of past periods: who, from when, until when, and why it ended.
 
 ### 5.6 Inactive academic entries: historical visibility versus new actions (O45)
-A cohort is **inactive** when its batch, semester or section is inactive. Records are never deleted or hidden because an entry was deactivated (DEC-210).
+A cohort is **inactive** when its batch, semester or section is inactive. Records are never deleted or hidden because an entry was deactivated (DEC-210). The no-vacancy invariant applies to **active** cohorts only, and representatives are never appointed to inactive cohorts.
 
 | | Cohort active | Cohort inactive (recommended O45 default) |
 |---|---|---|
-| Appoint or replace a representative | Allowed (section 5.2) | **Refused** |
+| Appoint or replace representatives | Allowed (section 5.2) | **Refused** |
+| A representative is deactivated or moves cohort | Replacement in the same transaction, or refused, or closure (section 5.4) | The current period ends (`student_deactivated` or `cohort_changed`); no replacement is required or possible |
 | Raise an issue | Current representative | **Refused** (`can_act_as_representative` fails) |
 | Support an issue | Students of the cohort, while open (O38) | **Refused**; existing support stays and still counts |
-| BA: mark under review, respond, resolve | Allowed (section 8) | **Allowed**, so that issues already raised can still be answered and closed |
+| BA: mark under review, respond, resolve | Allowed (section 8) | **Allowed**, so issues already raised can still be answered and closed |
 | View issues, support counts, history | Per sections 3 and 7.1 | **Unchanged**: still readable by those with historical access (below) |
-| View private responses and notes | Current representatives (O37), BAs, Super Admin | **Unchanged** (viewing uses `current_representative`, which does not require active entries) |
+| View private responses and notes | Current representatives (O37), BAs, Super Admin | **Unchanged** while the period is current (viewing uses `current_representative`, which doesn't require active entries) |
 
-Who keeps historical access to an inactive cohort's issues:
+**Reactivating an entry:** cohorts whose period is still current are represented again immediately. Cohorts whose period ended while inactive become awaiting representatives. Reactivation itself isn't blocked, because entries are shared by many cohorts (O55).
+
+**Who keeps historical access to an inactive cohort's issues:**
 - the Super Admin;
 - Batch Advisors whose `AdvisorAssignment` for that exact cohort still exists (deactivating an academic entry doesn't remove advisor assignments);
 - students whose current profile cohort is still that cohort;
@@ -289,7 +343,7 @@ A student moved to another cohort loses access, as in section 7.1.
 
 ## 6. Raising an issue (DEC-040, DEC-242)
 
-**Who:** the cohort's current CR or GR (section 5.3). The issue's cohort is always taken from the assignment and never from request data.
+**Who:** the cohort's current CR or GR (section 5.3). The issue's cohort is always taken from the representative's current period and never from request data.
 
 **Fields:**
 
@@ -326,7 +380,7 @@ The review step re-posts the same fields and keeps no server-side draft. Publish
 ### 7.2 Section noticeboard (Home, DEC-282 "Section Updates", DEC-303)
 - **What it lists:** the cohort's issues that are **open for support** (no official response yet; O36), newest first. Each card shows the title, a description excerpt, the raiser's name and role ("Ayesha Khan · CR"; DEC-303), the date and the support count.
 - **Support:** "Support can't be withdrawn." appears before the button "Support this issue" (a POST). Afterwards, "You support this" is shown, with no undo.
-- **Empty state:** "No open issues in your section." It explains that the CR or GR raises issues for the cohort (the existing text).
+- **Empty state:** "No open issues in your section." It explains that the CR or GR raises issues for the cohort (the existing text). If the cohort is awaiting representatives, it says instead: "Your section's CR and GR haven't been appointed yet. Collective issues start once they are."
 - **Excluded:** collective issues are not part of the personal summary (DEC-303).
 
 ### 7.3 Issue page, for every student of the cohort (`/student/section-issues/<reference>/`)
@@ -405,7 +459,7 @@ The page lives at `/advisor/collective-issues/` and uses the same split-pane lay
 `/advisor/representatives/` shows the advisor's assigned cohorts and their CR/GR posts (section 5.5).
 
 ### 9.3 CR/GR Management (Super Admin)
-`/super-admin/representatives/` covers every cohort, with filters for batch, semester, section and vacancies. It uses the same actions and history as section 5.5.
+`/super-admin/representatives/` covers every cohort, with filters for batch, semester, section and **awaiting representatives**. It uses the same actions and history as section 5.5, and also lists any represented, active cohort whose current period names an ineligible student (the consistency check of section 5.3), which should never happen.
 
 All three destinations already exist in the navigation as unavailable entries ("Collective Issues", "Representatives", "CR/GR Management"; `accounts/navigation.py`). Implementation enables them.
 
@@ -420,7 +474,7 @@ All three destinations already exist in the navigation as unavailable entries ("
 - **Not proposed:**
   - notifications to BAs or the Super Admin for new issues or support (the workspaces show them, consistent with complaints);
   - notifications for each support;
-  - notifications for assignment changes.
+  - notifications for representative changes.
 
 ## 11. Explicit exclusions (V1)
 
@@ -446,9 +500,9 @@ Each is registered in `DECISIONS.md` section 5.2. For each, the recommended defa
 | ID | Question | Impact | Recommended default |
 |---|---|---|---|
 | O27 (existing) | Which BA handles a cohort's collective issues when several are assigned? | Routing and responsibility | **All BAs of the exact cohort** see and act on its issues, with no owner designation. This matches DEC-310's principle that all of a cohort's advisors keep their rights. |
-| O35 | DEC-016 says "exactly one CR and one GR". May a post be vacant? | Every promotion and every removal | **Yes.** The database enforces *at most* one per post; vacancies are shown as "Vacant" and can only be filled by a person. |
+| O35 | How the system keeps DEC-016's exactly one CR and one GR. The owner restated on 2026-11-18 that **vacant posts are not allowed**. | Appointing, replacing, deactivation, cohort changes, promotion | **No vacancies.** Both posts are appointed together. A post is changed only by replacement in one transaction, never removed. A lifecycle change to a representative needs a replacement in the same transaction, or is refused (section 5). Database constraints guarantee that a period names both posts; the services guarantee that a represented, active cohort always has a current period. |
 | O36 | What closes an issue for support and takes it off home pages ("after the advisor responds", DEC-243)? | Noticeboard, support window | **The first official response or the resolution note,** whichever comes first (section 8). A status change to Under Review alone does not close it. |
-| O37 | Do the CR and GR of a cohort see each other's issues and responses, and those raised by a predecessor? Does a former representative keep access? | Privacy of responses | **The current CR and GR see all of the cohort's issues and responses.** Access follows the *current* assignment; a former representative becomes a normal student again. |
+| O37 | Do the CR and GR of a cohort see each other's issues and responses, and those raised by a predecessor? Does a former representative keep access? | Privacy of responses | **The current CR and GR see all of the cohort's issues and responses.** Access follows the *current* period; a former representative becomes a normal student again. |
 | O38 | Can students support after the issue is closed for support? | Support counts | **No.** Support is accepted only while the issue is open for support; the count then stays frozen. |
 | O39 | Do non-representative students see the issue's status (Received, Under Review or Resolved)? | Transparency versus DEC-243's privacy | **No.** Students see only "Open for support" or "Support closed". Status, response and note are for the representatives, the cohort's BAs and the Super Admin. |
 | O40 | Who may see *who* supported an issue? | Student privacy | **Nobody in the interface.** Counts only, for everyone. Support rows exist for integrity and are visible to database administrators only. |
@@ -456,7 +510,7 @@ Each is registered in `DECISIONS.md` section 5.2. For each, the recommended defa
 | O42 | Categories for collective issues? | Form, filters | **None in V1.** Title and description only. |
 | O43 | Duplicate handling | Noise on the noticeboard | **A non-blocking notice** listing the cohort's open issues; never block. |
 | O44 | May the Super Admin respond or change status, as for complaints (DEC-228)? | Oversight scope | **Read-only in V1.** DEC-247 grants oversight; DEC-228's power to act is complaint-specific. |
-| O45 | What may happen in a cohort whose batch, semester or section is inactive? | Historical cohorts | **No new assignments, issues or support.** BAs may still mark under review, respond and resolve existing issues. All existing records stay readable to those with historical access (section 5.6). |
+| O45 | What may happen in a cohort whose batch, semester or section is inactive? | Historical cohorts | **No new appointments, issues or support.** A representative's deactivation or move ends the period without a replacement. BAs may still mark under review, respond and resolve existing issues. All existing records stay readable to those with historical access (section 5.6). |
 | O46 | Where do representatives find their raise and private views, given DEC-304's four phone destinations? | Navigation | **Inside Home** (noticeboard actions) and the section issues pages reached from it. No new destination. |
 | O47 | Reference format | Support and oversight | **`CI-<year>-<5 digits>`,** like complaints. |
 | O48 | A limit on how many issues a representative can raise | Spam versus legitimate use | **None in V1;** revisit if misuse appears. |
@@ -466,6 +520,7 @@ Each is registered in `DECISIONS.md` section 5.2. For each, the recommended defa
 | O53 | DEC-244: are "update the status" and "provide a short official response" one combined action or separate ones, and may there be several responses? | BA workflow, when support closes | **Three separate actions** (section 8): Mark under review (no response needed), Send official response (status unchanged, several allowed until resolved) and Resolve (note required, counts as a response). |
 | O54 | May anyone (BA or Super Admin) edit or delete a published issue? DEC-242 covers only CR/GR. | Immutability, moderation (O50) | **No one,** in V1: no edit or delete route exists. |
 | O52 | "GR" meaning (section 13) | Labels throughout the interface | **Keep DEC-016: Girls Representative.** The interface shows "CR" and "GR" with that expansion in help text. No gender data is recorded or checked; appointing the GR is an administrative judgement. |
+| O55 | Which cohorts must have representatives, given that cohorts appear through self-registration one student at a time, need two active students to hold both posts, and share academic entries with other cohorts (section 5.1)? | DEC-016 in practice; collective issues availability | **A cohort must keep both posts from the moment both are first appointed, while it is active.** Until then it is "awaiting representatives" (surfaced to BAs and the Super Admin; no issues can be raised). Representation closes, recorded, only when the cohort would fall below two active students. Consequences to accept: new cohorts can't raise issues until appointed, and promotions may need replacements or closures (section 5.4). |
 
 ## 13. Conflicts between the brief and confirmed decisions
 
@@ -480,22 +535,22 @@ These are reported, not resolved. The specification follows the confirmed decisi
 - **Exact cohort isolation:**
   - every query starts from `visible_issues(user)`;
   - every action re-checks scope in its service;
-  - a cohort is never accepted from request data: issue creation uses the assignment, and filters only narrow the scoped set (forged cohort values are ignored, as in the complaint workspaces).
+  - a cohort is never accepted from request data: issue creation uses the representative's current period, and filters only narrow the scoped set (forged cohort values are ignored, as in the complaint workspaces).
 - **IDOR:** references are looked up only within the visible set, so an unknown reference and one out of scope give the same 404.
 - **Methods:** state changes are POST with CSRF; GET never changes data. Every page requires login, and inactive users are signed out by the existing backend.
 - **Concurrency:**
   - **Support:** inserted in a savepoint and caught on the `UNIQUE (issue, student)` violation, so a double click or two tabs record one row and report "already supported".
   - **Status and response:** they lock the issue row; status actions use `expected_status`, and responses re-check that the issue is not Resolved (section 8).
   - **Support against closure:** support also locks the issue row and checks `first_response_at` under the lock, so no support lands after closure.
-  - **Assignments:** they lock the affected rows, in a fixed order.
+  - **Representation:** replacements and appointments lock the cohort's current period and check `expected_period`. Lifecycle changes lock the affected periods (old cohort, then new, in a fixed order) and membership changes lock the period first (section 5.4). Concurrent replacements of the same post are serialised, and the later one is refused as stale; neither can leave the cohort without, or with two, CRs or GRs.
   - **Tests:** MySQL concurrency tests use separate connections, as for academic terms.
-- **Immutability:**
+- **Immutability** (application-level; see "Write protection" in section 4.2 for exactly what the database does and does not enforce):
   - protected querysets and instance guards on write-once fields;
   - insert-only `Support` and `IssueEvent`;
   - no delete permission in any admin;
   - `PROTECT` foreign keys throughout.
 - **Database guarantees versus service guarantees:** see "Enforcement layers" (section 4.2). In particular, a resolved issue always has a resolution note (database check). The matching event is guaranteed by the service transaction.
-- **Lifecycle:** the `set_account_active` and `update_student_profile` services (section 5.4) and the two authority checks (section 5.3). Inactive cohorts allow no new actions, and keep their history readable (section 5.6).
+- **Lifecycle and DEC-016:** the `set_account_active` and `update_student_profile` services (section 5.4) keep both posts filled: replacement in the same transaction, refusal, or recorded closure below two students. The two authority checks (section 5.3) are the backstop. Inactive cohorts allow no new actions and keep their history readable (section 5.6).
 - **Privacy:**
   - responses and resolution notes never appear in student pages or student notifications;
   - supporter identities never appear;
@@ -504,24 +559,36 @@ These are reported, not resolved. The specification follows the confirmed decisi
 ## 15. Test strategy
 
 - **Models and migrations:**
-  - each check verified with raw SQL on MySQL and SQLite: one active CR/GR per cohort, one active assignment per student, unique support, title and description lengths (including multibyte text at the limits), resolution consistency, resolved-was-answered, and the event message checks;
+  - each check verified with raw SQL on MySQL and SQLite: a representation period can't lack a CR or a GR, or name the same student twice; one current period per cohort; a student can't be CR (or GR) of two current periods; unique support; title and description lengths (including multibyte text at the limits); resolution consistency; resolved-was-answered; and the event message checks;
   - protected querysets;
   - migrations reverse and re-apply.
 - **Services:**
-  - assign, replace and remove, with every eligibility rule;
-  - `set_account_active` and `update_student_profile`: the assignment ends with the right reason, and history is kept;
-  - **rollback together:** a failure injected after the assignment ends, and one injected after the profile is saved, leave the account, profile, audit rows and assignment all unchanged;
-  - reactivation does not restore an assignment;
+  - **no vacancy, ever:**
+    - appointing requires both posts in one action, for an active cohort awaiting representatives;
+    - replacing a CR, a GR, both, or swapping is atomic: no read, from another connection, can observe the cohort without its current period;
+    - removing without a replacement is refused;
+    - every eligibility rule (active student, exact cohort, no other post, different people);
+  - **lifecycle:**
+    - deactivating a CR or GR without a replacement is refused, and with a valid replacement both happen together;
+    - the same for a cohort change;
+    - closure, recorded, only when the cohort would fall below two active students;
+    - in inactive cohorts the period ends without a replacement;
+  - **rollback:** a failure injected after the old period ends, after the new period is inserted, and after the profile is saved leaves the original CR and GR current, and the account, profile and audit rows unchanged;
+  - reactivation never restores a post;
+  - history: every ended period remains, with its people, dates and reason;
+  - the last-active-Super-Admin rule still holds;
   - the admin forms use the services, and existing account and audit tests still pass;
   - both authority checks when the services are bypassed (raw update of `is_active` or the profile cohort);
-  - inactive cohorts: assign, raise and support are refused; BA actions are allowed; history stays readable (section 5.6);
-  - raising: the cohort comes from the assignment, validation, the lock;
+  - inactive cohorts: appointing, replacing, raising and support are refused; BA actions are allowed; history stays readable (section 5.6);
+  - raising: the cohort comes from the current period; validation; the lock; refused in cohorts awaiting representatives;
   - support: once, closed after the first response, idempotent repeats;
   - the section 8 action table, row by row: Mark under review, responses (several, status unchanged, the first closes support), Resolve (note required, counts as a response); stale and post-resolution actions are refused; Resolved is final.
 - **Permissions:** the full matrix of section 3, for every route. Includes forged references, forged cohort filters and IDOR attempts, other cohorts, other BAs, inactive users and former representatives.
 - **Concurrency (MySQL only, separate connections):**
   - simultaneous support by one student;
-  - simultaneous replacement of the same post;
+  - simultaneous replacement of the same post (exactly one succeeds; the other is refused as stale; never two or zero CRs);
+  - a replacement against the deactivation of the replacement candidate;
+  - a deactivation against a registration into the same cohort (the fewer-than-two check sees a stable membership);
   - two BAs acting on one issue (status against status, response against resolve);
   - support against the closing response.
 - **Notifications:** one per eligible student; not to the raiser, other cohorts or inactive students; none if the transaction rolls back; O51 tests only if approved.
@@ -535,9 +602,15 @@ These are reported, not resolved. The specification follows the confirmed decisi
 
 ## 16. Implementation plan (PR-sized stages)
 
-1. **Stage CI-1: representative assignments.**
-   - **Contents:** the `accounts.RepresentativeAssignment` model and its migration; the assignment services; `set_account_active` and `update_student_profile`, with the two admin `save_model` methods rewired to them; the authority checks; the BA "Representatives" and Super Admin "CR/GR Management" pages.
-   - **Needs:** O35, O45, O52.
+1. **Stage CI-1: cohort representation.**
+   - **Contents:**
+     - the `accounts.CohortRepresentation` model and its migration;
+     - the appoint and replace services (no remove);
+     - `set_account_active` and `update_student_profile` with replacement, refusal and closure, and the period lock added to `register_student`;
+     - the two admin `save_model` methods rewired to them, with the replacement field;
+     - the authority checks and the consistency check;
+     - the BA "Representatives" and Super Admin "CR/GR Management" pages.
+   - **Needs:** O35, O45, O52, O55.
    - **Independently useful:** representatives are recorded before issues exist.
 2. **Stage CI-2: raising, the noticeboard and support.**
    - **Contents:** the `collective_issues` app with models, the migration, `visible_issues`, the raise flow with review step, the Home noticeboard, the section issues list and issue pages, support, and the DEC-270 notification.
@@ -552,11 +625,11 @@ Each stage adds only additive migrations and changes no existing data. Complaint
 ## 17. Proposed decision entries (for DECISIONS.md, after approval)
 
 **Not approved.** If the owner approves this specification, these become CONFIRMED entries with new DEC numbers. Until then they are tracked as the open items above.
-- **Placement:** representative assignments are history-keeping records in `accounts`. At most one active CR and one active GR per cohort and one active assignment per student, enforced by the database. Vacancies are allowed. An assignment ends automatically, through the `set_account_active` and `update_student_profile` services, when the student is deactivated or changes cohort (O35).
+- **Representation:** each cohort's CR and GR are recorded as history-keeping periods in `accounts`, each naming both posts. While a cohort is active and represented it always has exactly one CR and one GR: posts change only by replacement in one transaction, are never removed, and lifecycle changes need a replacement or are refused. Cohorts awaiting representatives are surfaced until both are appointed (O35, O55).
 - **Visibility:** collective issues are visible to the issue's exact cohort, its BAs and the Super Admin. Students see title, description, raiser (name and role), date, support count and the support state; status, responses and notes are for representatives, BAs and the Super Admin (O37, O39).
 - **Support:** support is accepted while an issue is open for support, until the first official response or resolution note (O36, O38). Counts only; supporter identities are never shown (O40).
 - **Raising:** a review step with a required lock confirmation, no stored drafts, no categories, and a non-blocking duplicate notice (O41 to O43).
 - **Statuses and actions:** three separate BA actions: Mark under review, Send official response (several allowed) and Resolve (note required, counts as a response). Received → Under Review → Resolved, or Received → Resolved; Resolved is final (O49, O53).
 - **Lock:** nobody edits or deletes a published issue (O54).
-- **Inactive cohorts:** no new assignments, issues or support; BAs may still close existing issues; history stays readable (O45).
+- **Inactive cohorts:** no new appointments, issues or support; a representative's departure ends the period; BAs may still close existing issues; history stays readable (O45).
 - **Super Admin:** read-only oversight in V1 (O44).
