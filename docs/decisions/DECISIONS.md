@@ -128,6 +128,7 @@ Rules for every collaborator (human or AI):
 |---|---|
 | DEC-070 (revised) | Notifications are in-app only. There are no email notifications in V1. |
 | DEC-270 | Notification events include: complaint status changes and advisor responses; official answers to Student Voice questions; meeting confirmation, rescheduling and cancellation; new CR/GR issues in the student's section; and (DEC-325) BA responses or resolution of a collective issue for its current CR and GR. Notifications link to the relevant record. |
+| DEC-325 | Collective Issues notification (resolves O51). When a BA records an official response or resolves an issue, notify the cohort's current CR and GR in-app with a link to the issue. The notification is sent to the representatives current at the time of the BA action; a resolution creates one notification for that action, not a duplicate response notification. Confirmed by the owner on 2026-11-18. |
 | DEC-311 | A student's complaint cancellation request is recorded only. It does not change status, cancel or delete the complaint, or trigger an approval/decline workflow. |
 
 ### 1.9 Analytics and dashboards
