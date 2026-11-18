@@ -449,7 +449,7 @@ The review step re-posts the same fields and keeps no server-side draft. Publish
 
 **Duplicates** (O43). Nothing is blocked; separate issues may be similar. The form shows the cohort's issues that are still open for support (reference and title) as a non-blocking notice: "Your section already has these open issues. Supporting one may be better than raising another." This mirrors DEC-225's spirit for complaints. A per-representative rate limit is not proposed (O48).
 
-**Locked after publication.** There is no edit or delete route for CR/GR (DEC-242), and this specification proposes none for anyone else (O54). The issue page says: "Published issues are locked: they can't be edited or removed." Corrections are made by raising a new issue.
+**Locked after publication.** There is no edit or delete route for any role (DEC-242, DEC-324). The issue page says: "Published issues are locked: they can't be edited or removed." Corrections are made by raising a new issue.
 
 ## 7. Student experience
 
@@ -509,7 +509,7 @@ The page lives at `/advisor/collective-issues/` and uses the same split-pane lay
   - the full content and the support count (no supporter identities; O40);
   - the history, newest first;
   - separate panels for the three actions of the table below (no combined form; O53).
-- **Actions** (DEC-243, DEC-244). DEC-244 says the BA "can update the status and provide a short official response". It does not say whether these are one action or two, or whether there may be more than one response. **This is recorded as O53**; the table below is its recommended default. There are three separate actions, and every one is private to the cohort's representatives, BAs and the Super Admin:
+- **Actions** (DEC-243, DEC-244, DEC-324). The approved workflow has three separate actions, and every one is private to the cohort's representatives, BAs and the Super Admin:
 
   | Action | Allowed from | Input | Effect, in one transaction with the issue row locked | Closes support? |
   |---|---|---|---|---|
@@ -564,7 +564,7 @@ All three destinations already exist in the navigation as unavailable entries ("
 ## 11. Explicit exclusions (V1)
 
 - Comments, discussion or chat (DEC-241, DEC-052).
-- Editing or deleting a published issue by CR/GR (DEC-242), and, as proposed, by anyone (O54); drafts stored on the server.
+- Editing or deleting a published issue by anyone (DEC-242, DEC-324); drafts stored on the server.
 - Withdrawing or changing support (DEC-241). The brief asked "if removal is appropriate"; it isn't.
 - Showing supporter identities.
 - Visibility for, or interaction from, other cohorts.
@@ -686,7 +686,7 @@ These are reported, not resolved. The specification follows the confirmed decisi
     - deactivating a batch or semester leaves existing representation periods unchanged (no closure; O45 and DEC-323 unchanged);
   - two BAs acting on one issue (status against status, response against resolve);
   - support against the closing response.
-- **Notifications:** one per eligible student; not to the raiser, other cohorts or inactive students; none if the transaction rolls back; O51 tests only if approved.
+- **Notifications:** one per current CR/GR for each BA official-response or resolution action (DEC-325); never to the raiser solely by virtue of raising the issue, other cohorts or inactive students; none if the transaction rolls back. Test that a resolution emits one notification, not duplicate response and resolution notifications.
 - **Privacy:** response text, resolution notes and supporter identities are absent from every student page, the student response context and student notifications.
 - **Frontend:**
   - every page and state at 1280×590, 1232×590, 1100×590, 1600×740, 1440×800 and 360px (DEC-307);
