@@ -95,6 +95,7 @@ Rules for every collaborator (human or AI):
 | DEC-244 | Statuses are Received, Under Review and Resolved. The BA can update the status and provide a short official response. A resolution note is mandatory and private to CR/GR. |
 | DEC-246 | CR/GR cannot see individual complaints, private Student Voice submissions or other students' meeting details. |
 | DEC-247 | The Super Admin has department-wide oversight of collective issues. |
+| DEC-323 | How DEC-016's exactly one CR and one GR applies to cohorts (resolves O35 and O55). A cohort awaiting its first appointment may temporarily have no CR or GR. Both representatives are appointed together, which needs at least two eligible active students; until then the cohort is labelled "Awaiting representatives" and collective issues cannot be raised in it. Once both are appointed, the cohort can never have a vacant post while it remains eligible (its batch, semester and section active, with at least two active students): any representative's departure results in an atomic replacement, refusal of the underlying change, or closure. Closure is permitted only when a represented cohort falls below two active students; it is recorded, and the cohort returns to Awaiting representatives. Inactive cohorts remain historical (O45). Confirmed by the owner on 2026-11-18. |
 
 ### 1.6 Student Voice
 
@@ -298,3 +299,24 @@ These are gaps found while reconciling, not reopened decisions. Each needs a sho
 | O31 | Resolved by DEC-313. |
 | O32 | Resolved by DEC-314. |
 | O33 | Resolved by DEC-312: no response-required classification or "Waiting for you" queue is added. |
+| O35 | Resolved by DEC-323: a represented, eligible cohort can never have a vacant CR or GR post; any departure results in an atomic replacement, refusal or the recorded closure case. |
+| O36 | Collective issues: what closes an issue for support and removes it from home pages (DEC-243 "after the advisor responds")? Recommended: the first official response or resolution note; Under Review alone does not. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O37 | Collective issues: do the current CR and GR see all of their cohort's issues and private responses, including a predecessor's, and does a former representative keep access? Recommended: current representatives see all; access follows the current assignment. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O38 | Collective issues: can students support an issue after it is closed for support? Recommended: no; the count is then frozen. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O39 | Collective issues: do non-representative students see the issue's status? Recommended: no; only "Open for support" or "Support closed". Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O40 | Collective issues: who may see which students supported an issue? Recommended: nobody in the interface; counts only. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O41 | Collective issues: drafts or immediate publication? Recommended: no stored drafts; a review step with a required confirmation that the issue will be locked. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O42 | Collective issues: categories? Recommended: none in V1. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O43 | Collective issues: duplicate handling? Recommended: a non-blocking notice listing the cohort's open issues. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O44 | Collective issues: may the Super Admin respond or change status, or is oversight (DEC-247) read-only? Recommended: read-only in V1. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O45 | Collective issues: what may happen in a cohort whose batch, semester or section is inactive? Recommended: no new appointments, issues or support; a representative's departure ends the period without a replacement; BAs may still answer and close existing issues; existing records stay readable to those with historical access. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` sections 5.6 and 12. |
+| O46 | Collective issues: where representatives raise issues and read private responses, given DEC-304's four phone destinations? Recommended: inside Home and the section issues pages reached from it. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O47 | Collective issues: reference format? Recommended: CI-<year>-<5 digits>. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O48 | Collective issues: a limit on how many issues a representative may raise? Recommended: none in V1. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O49 | Collective issues: reopening a Resolved issue, or a Rejected status? Recommended: neither in V1. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O50 | Collective issues: moderation of abusive or wrong content, given that nobody can edit or delete? Recommended: none in V1, recorded as a risk. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O51 | Collective issues: notify the current CR/GR when a BA responds or resolves (not in DEC-270's list)? Recommended: yes, if approved. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O52 | "GR": the Collective Issues brief says "General Representative"; DEC-016 says Girls Representative. Recommended: keep DEC-016 unless the owner changes it. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O53 | Collective issues: DEC-244 says the BA "can update the status and provide a short official response". Are these one combined action or separate ones, and may there be several responses? Recommended: three separate actions (mark under review; send official response, status unchanged, several allowed until resolved; resolve with a required note that counts as a response). Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` sections 8 and 12. |
+| O54 | Collective issues: DEC-242 forbids editing and deletion by CR/GR. May a Batch Advisor or the Super Admin edit or delete a published issue? Recommended: no one, in V1. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` sections 6, 12 and 13. |
+| O55 | Resolved by DEC-323: the "Awaiting representatives" exception before the first appointment, and recorded closure when a represented cohort falls below two active students, are approved. |
