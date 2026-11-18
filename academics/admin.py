@@ -4,11 +4,20 @@ from django.http import HttpResponseRedirect
 
 from . import services
 from .models import AcademicTerm, Batch, ProtectedTermError, Section, Semester
+from .services import set_entry_active
 
 
 class AcademicEntryAdmin(admin.ModelAdmin):
     list_filter = ("is_active",)
     list_editable = ("is_active",)
+
+    def save_model(self, request, obj, form, change):
+        # Active-state changes (change form and list-editable saves, both inside Django's own
+        # transaction) go through set_entry_active, which takes every Section lock first in
+        # ascending order (COLLECTIVE_ISSUES_SPEC.md section 5.7).
+        if change and "is_active" in form.changed_data:
+            set_entry_active(obj, obj.is_active, actor=request.user)
+        super().save_model(request, obj, form, change)
 
     def has_delete_permission(self, request, obj=None):
         # DEC-210: entries are deactivated, never deleted, to preserve history.

@@ -224,3 +224,149 @@ class StudentProfileChange(models.Model):
 
     def __str__(self):
         return f"{self.profile.sap_id}: {self.field_name} changed"
+
+
+# ---------------------------------------------------------------------------------------------
+# Cohort representation: CR and GR (Collective Issues CI-1; COLLECTIVE_ISSUES_SPEC.md section 4.2
+# and section 5; DEC-016, DEC-212, DEC-245, DEC-323, DEC-324; one post per student: DEC-240)
+# ---------------------------------------------------------------------------------------------
+
+REPRESENTATION_WRITE_MESSAGE = (
+    "Representation periods change only through accounts.services: they are created, and the "
+    "current one is ended, never edited or deleted."
+)
+
+
+REPRESENTATION_END_REASONS = (
+    "cr_replaced", "gr_replaced", "both_replaced", "cohort_closed", "student_deactivated", "cohort_changed",
+)
+
+
+class ProtectedRepresentationError(Exception):
+    """Raised when code tries to edit or delete a representation period outside the services."""
+
+
+class RepresentationQuerySet(models.QuerySet):
+    """Periods are history: the ORM refuses bulk edits and deletes (application-level
+    protection; raw SQL is outside it, but the database constraints still apply). The services
+    end a period with `_end_current`, which only touches the current row's ending fields."""
+
+    def update(self, **kwargs):
+        raise ProtectedRepresentationError(REPRESENTATION_WRITE_MESSAGE)
+
+    update.alters_data = True
+
+    def bulk_update(self, objs, fields, batch_size=None):
+        raise ProtectedRepresentationError(REPRESENTATION_WRITE_MESSAGE)
+
+    bulk_update.alters_data = True
+
+    def delete(self):
+        raise ProtectedRepresentationError(REPRESENTATION_WRITE_MESSAGE)
+
+    delete.alters_data = True
+    delete.queryset_only = True
+
+    def bulk_create(self, objs, batch_size=None, ignore_conflicts=False, update_conflicts=False,
+                    update_fields=None, unique_fields=None):
+        objs = list(objs)
+        if update_conflicts or any(obj.is_active is not True or obj.ended_at for obj in objs):
+            raise ProtectedRepresentationError(REPRESENTATION_WRITE_MESSAGE)
+        return super().bulk_create(objs, batch_size=batch_size, ignore_conflicts=ignore_conflicts)
+
+    bulk_create.alters_data = True
+
+    def current(self):
+        return self.filter(is_active=True)
+
+    def _end_current(self, *, reason, ended_by, ended_at):
+        """For accounts.services only, while it holds the cohort lock and this row's lock."""
+        # The base QuerySet.update: this class's own update() refuses every caller.
+        return models.QuerySet.update(
+            self.filter(is_active=True), is_active=None, ended_at=ended_at, ended_by=ended_by, end_reason=reason
+        )
+
+
+class CohortRepresentation(models.Model):
+    """One period during which a cohort (exact batch + semester + section, DEC-205) has a given
+    CR and GR. A change of CR, GR or both ends the current period and starts a new one; ended
+    periods are kept as history.
+
+    Each period names **both** posts, so the database itself rules out a half-filled
+    representation (`cr` and `gr` are NOT NULL and different). `is_active` is TRUE for the
+    cohort's current period and NULL once ended (never FALSE): a plain unique index then allows
+    one current period per cohort and one current CR (and GR) post per student on MySQL and
+    SQLite alike (MySQL ignores conditional unique constraints). That a represented, eligible
+    cohort always keeps a current period is a cross-row rule kept by accounts.services (DEC-323).
+    """
+
+    class EndReason(models.TextChoices):
+        CR_REPLACED = "cr_replaced", "CR replaced"
+        GR_REPLACED = "gr_replaced", "GR replaced"
+        BOTH_REPLACED = "both_replaced", "CR and GR replaced"
+        COHORT_CLOSED = "cohort_closed", "Fewer than two active students"
+        STUDENT_DEACTIVATED = "student_deactivated", "Representative deactivated (inactive cohort)"
+        COHORT_CHANGED = "cohort_changed", "Representative changed cohort (inactive cohort)"
+
+    batch = models.ForeignKey("academics.Batch", on_delete=models.PROTECT, related_name="+")
+    semester = models.ForeignKey("academics.Semester", on_delete=models.PROTECT, related_name="+")
+    section = models.ForeignKey("academics.Section", on_delete=models.PROTECT, related_name="+")
+    cr = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", verbose_name="CR")
+    gr = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+", verbose_name="GR")
+    is_active = models.BooleanField(null=True, default=True, editable=False)
+    started_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    started_at = models.DateTimeField(auto_now_add=True)
+    ended_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    ended_at = models.DateTimeField(null=True, blank=True)
+    end_reason = models.CharField(max_length=30, choices=EndReason.choices, blank=True)
+
+    objects = RepresentationQuerySet.as_manager()
+
+    class Meta:
+        ordering = ["-started_at", "-pk"]
+        constraints = [
+            models.CheckConstraint(condition=~models.Q(cr=models.F("gr")), name="representation_cr_gr_different"),
+            models.UniqueConstraint(
+                fields=["batch", "semester", "section", "is_active"], name="representation_one_current_per_cohort"
+            ),
+            models.UniqueConstraint(fields=["cr", "is_active"], name="representation_one_current_cr_post"),
+            models.UniqueConstraint(fields=["gr", "is_active"], name="representation_one_current_gr_post"),
+            # Explicit IN (TRUE): on SQLite, Q(is_active=True) is a bare truthiness test.
+            models.CheckConstraint(
+                condition=models.Q(is_active__isnull=True) | models.Q(is_active__in=[True]),
+                name="representation_current_true_or_null",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    # is_active IS NOT NULL is explicit: a CHECK passes when its expression is
+                    # NULL, and "NULL IN (TRUE)" is NULL, not FALSE.
+                    models.Q(is_active__isnull=False, is_active__in=[True], ended_at__isnull=True, end_reason="")
+                    | models.Q(is_active__isnull=True, ended_at__isnull=False, end_reason__in=REPRESENTATION_END_REASONS)
+                ),
+                name="representation_ending_consistent",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.batch} · {self.semester} · {self.section}: CR {self.cr}, GR {self.gr}"
+
+    @property
+    def cohort(self):
+        return (self.batch_id, self.semester_id, self.section_id)
+
+    def save(self, *args, **kwargs):
+        # Only inserts of a new current period are allowed here; ending goes through
+        # RepresentationQuerySet._end_current inside accounts.services.
+        if not self._state.adding or self.pk is not None:
+            raise ProtectedRepresentationError(REPRESENTATION_WRITE_MESSAGE)
+        if self.is_active is not True or self.ended_at or self.end_reason:
+            raise ProtectedRepresentationError(REPRESENTATION_WRITE_MESSAGE)
+        kwargs["force_insert"] = True
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ProtectedRepresentationError(REPRESENTATION_WRITE_MESSAGE)

@@ -1,0 +1,115 @@
+{# One cohort: its CR and GR, the allowed actions and the history of representation periods. #}
+<article class="sa-rep-card{% if card.state == 'awaiting' %} sa-rep-card--awaiting{% endif %}" id="{{ card.anchor }}" aria-labelledby="{{ card.anchor }}-title">
+  <header class="sa-rep-head">
+    <div class="sa-rep-titles">
+      <h2 class="sa-rep-title" id="{{ card.anchor }}-title">{{ card.label }}</h2>
+      <p class="sa-small sa-muted mb-0">{{ card.active_students }} active student{{ card.active_students|pluralize }}</p>
+    </div>
+    {% if card.state == "represented" %}<span class="sa-flag">Represented</span>
+    {% elif card.state == "awaiting" %}<span class="sa-flag sa-flag--awaiting">Awaiting representatives</span>
+    {% else %}<span class="sa-flag sa-flag--muted">Inactive</span>{% endif %}
+  </header>
+
+  {% if card.period %}
+  <dl class="sa-rep-posts">
+    <div class="sa-rep-post">
+      <dt><abbr title="Class Representative">CR</abbr><span class="sa-muted"> · Class Representative</span></dt>
+      <dd><span class="sa-rep-name">{{ card.period.cr.get_full_name }}</span> <span class="sa-ref">{{ card.period.cr.student_profile.sap_id }}</span></dd>
+    </div>
+    <div class="sa-rep-post">
+      <dt><abbr title="Girls Representative">GR</abbr><span class="sa-muted"> · Girls Representative</span></dt>
+      <dd><span class="sa-rep-name">{{ card.period.gr.get_full_name }}</span> <span class="sa-ref">{{ card.period.gr.student_profile.sap_id }}</span></dd>
+    </div>
+  </dl>
+  <p class="sa-small sa-muted mb-0">Since {{ card.period.started_at|date:"j M Y" }}{% if card.period.started_by %} · appointed by {{ card.period.started_by.get_full_name }}{% endif %}</p>
+  {% endif %}
+
+  {% if card.state == "inactive" %}
+  <p class="sa-rep-note">This cohort is inactive. Its records are kept, but no one can be appointed or replaced here.</p>
+
+  {% elif card.state == "represented" %}
+  <div class="sa-rep-actions">
+    {% with form=card.forms.cr %}
+    <details class="sa-rep-action"{% if card.open_form == "cr" %} open{% endif %}>
+      <summary class="btn btn-sa-secondary btn-sm">Replace CR</summary>
+      <div class="sa-rep-action-body">
+        {% if card.candidates %}
+        <form method="post" action="{% url scope.replace_url_name card.cohort.key 'cr' %}" novalidate data-once-submit>
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+          {{ form.expected_period }}
+          {% include "includes/form_field.html" with field=form.person hide_optional=True %}
+          <button type="submit" class="btn btn-sa-primary btn-sm" data-submit-label="Replacing…">Replace CR</button>
+        </form>
+        {% else %}
+        <p class="sa-small mb-0">No other active student of this cohort is free to take the post.</p>
+        {% endif %}
+      </div>
+    </details>
+    {% endwith %}
+    {% with form=card.forms.gr %}
+    <details class="sa-rep-action"{% if card.open_form == "gr" %} open{% endif %}>
+      <summary class="btn btn-sa-secondary btn-sm">Replace GR</summary>
+      <div class="sa-rep-action-body">
+        {% if card.candidates %}
+        <form method="post" action="{% url scope.replace_url_name card.cohort.key 'gr' %}" novalidate data-once-submit>
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+          {{ form.expected_period }}
+          {% include "includes/form_field.html" with field=form.person hide_optional=True %}
+          <button type="submit" class="btn btn-sa-primary btn-sm" data-submit-label="Replacing…">Replace GR</button>
+        </form>
+        {% else %}
+        <p class="sa-small mb-0">No other active student of this cohort is free to take the post.</p>
+        {% endif %}
+      </div>
+    </details>
+    {% endwith %}
+    <details class="sa-rep-action"{% if card.open_form == "swap" %} open{% endif %}>
+      <summary class="btn btn-sa-secondary btn-sm">Swap CR and GR</summary>
+      <div class="sa-rep-action-body">
+        <form method="post" action="{% url scope.replace_url_name card.cohort.key 'swap' %}" data-once-submit>
+          {% csrf_token %}
+          {{ card.forms.swap.expected_period }}
+          <p class="sa-small">{{ card.period.cr.get_full_name }} becomes the GR and {{ card.period.gr.get_full_name }} becomes the CR.</p>
+          <button type="submit" class="btn btn-sa-primary btn-sm" data-submit-label="Swapping…">Swap posts</button>
+        </form>
+      </div>
+    </details>
+  </div>
+
+  {% else %}
+  <div class="sa-rep-awaiting">
+    <p class="sa-rep-note">This cohort needs a CR and a GR. They are appointed together, and from then on neither post can be left empty. Until then, no collective issue can be raised here.</p>
+    {% if card.candidates|length >= 2 %}
+    {% with form=card.forms.appoint %}
+    <form method="post" action="{% url scope.appoint_url_name card.cohort.key %}" class="sa-rep-appoint" novalidate data-once-submit>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+      <div class="sa-rep-appoint-fields">
+        {% include "includes/form_field.html" with field=form.cr hide_optional=True %}
+        {% include "includes/form_field.html" with field=form.gr hide_optional=True %}
+      </div>
+      <button type="submit" class="btn btn-sa-primary" data-submit-label="Appointing…">Appoint CR and GR</button>
+    </form>
+    {% endwith %}
+    {% else %}
+    <p class="sa-small mb-0"><strong>Not possible yet:</strong> appointing needs at least two active students of this cohort who hold no other post{% if card.candidates %}; there is {{ card.candidates|length }}{% else %}; there are none{% endif %}.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if card.history %}
+  <details class="sa-rep-history">
+    <summary>History <span class="sa-muted">({{ card.history|length }} period{{ card.history|length|pluralize }})</span></summary>
+    <ol class="sa-rep-history-list">
+      {% for period in card.history %}
+      <li>
+        <span class="who">CR {{ period.cr.get_full_name }} · GR {{ period.gr.get_full_name }}</span>
+        <span class="sa-small sa-muted">{{ period.started_at|date:"j M Y" }} – {% if period.is_active %}now{% else %}{{ period.ended_at|date:"j M Y" }} · {{ period.get_end_reason_display }}{% endif %}</span>
+      </li>
+      {% endfor %}
+    </ol>
+  </details>
+  {% endif %}
+</article>

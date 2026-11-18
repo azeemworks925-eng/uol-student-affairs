@@ -510,3 +510,42 @@ a.sa-cat-name:hover { color: var(--sa-accent); }
 .sa-notify-time { font-size: 13px; color: var(--sa-muted); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+
+/* ---------- Representatives / CR/GR Management (Collective Issues CI-1) ----------
+   Cohort cards on existing tokens only. "Awaiting representatives" is an ink-outlined label,
+   never a status colour (DEC-301). No remove control exists (DEC-323). */
+.sa-rep-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: 16px; margin: 20px 0 0; padding: 0; }
+.sa-rep-card { display: grid; align-content: start; gap: 14px; height: 100%; padding: 18px 20px; border: 1px solid var(--sa-border); border-radius: 16px; background: var(--sa-surface); scroll-margin-top: 80px; }
+.sa-rep-card--awaiting { border-color: var(--sa-border-control); border-style: dashed; }
+.sa-rep-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 12px; }
+.sa-rep-titles { min-width: 0; }
+.sa-rep-title { font: 600 1.0625rem/1.35 var(--sa-ui); margin: 0 0 2px; overflow-wrap: anywhere; }
+.sa-flag--awaiting { border-color: var(--sa-ink); font-weight: 600; }
+.sa-rep-posts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 10px; margin: 0; }
+.sa-rep-post { min-width: 0; padding: 12px 14px; border: 1px solid var(--sa-border); border-radius: 12px; background: var(--sa-canvas); }
+.sa-rep-post dt { font-size: 12px; font-weight: 600; letter-spacing: .02em; color: var(--sa-ink); margin-bottom: 4px; }
+.sa-rep-post dt abbr { text-decoration: none; border: 0; cursor: help; }
+.sa-rep-post dd { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.sa-rep-name { font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.sa-rep-note { margin: 0; font-size: 14px; color: var(--sa-ink); }
+.sa-rep-actions { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
+.sa-rep-action { min-width: 0; }
+.sa-rep-action[open] { flex: 1 1 100%; }
+.sa-rep-action > summary { list-style: none; min-height: 44px; display: inline-flex; align-items: center; }
+.sa-rep-action > summary::-webkit-details-marker { display: none; }
+.sa-rep-action-body { margin-top: 10px; padding: 14px; border: 1px solid var(--sa-border); border-radius: 12px; background: var(--sa-canvas); }
+.sa-rep-action-body .btn { min-height: 44px; }
+.sa-rep-awaiting { display: grid; gap: 12px; }
+.sa-rep-appoint-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 0 12px; }
+.sa-rep-appoint .btn { min-height: 44px; }
+.sa-rep-history { border-top: 1px solid var(--sa-border); padding-top: 10px; }
+.sa-rep-history > summary { min-height: 44px; display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+.sa-rep-history-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 8px; }
+.sa-rep-history-list li { display: grid; gap: 2px; padding-left: 12px; border-left: 2px solid var(--sa-border); }
+.sa-rep-history-list .who { font-size: 14px; overflow-wrap: anywhere; }
+.sa-rep-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); align-items: end; gap: 10px 12px; margin-top: 16px; padding: 14px 16px; border: 1px solid var(--sa-border); border-radius: 14px; background: var(--sa-surface); }
+.sa-rep-filters .form-label { font-size: 13px; margin-bottom: 4px; }
+.sa-rep-filter-actions { display: flex; gap: 8px; }
+.sa-rep-filter-actions .btn { min-height: 44px; }
+.sa-rep-breach { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--sa-border-strong); border-left: 3px solid var(--sa-negative); border-radius: 12px; background: var(--sa-surface); }
+.sa-rep-breach-list { margin: 0; padding-left: 18px; font-size: 14px; }

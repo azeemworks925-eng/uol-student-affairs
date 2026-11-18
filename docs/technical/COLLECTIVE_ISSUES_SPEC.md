@@ -1,6 +1,6 @@
 # Collective Issues V1 — specification (CR/GR)
 
-**Status:** Product decisions approved on 2026-11-18 (DEC-323 to DEC-325); **not implemented**. The technical design remains a specification for implementation and review. Product requirements are authoritative as recorded in `DECISIONS.md`.
+**Status:** Product decisions approved on 2026-11-18 (DEC-323 to DEC-325). **Stage CI-1 (cohort representation, section 16) is implemented on branch `feat/collective-issues-ci-1-representation`, awaiting review; CI-2 to CI-4 are not implemented.** The technical design remains a specification for implementation and review. Product requirements are authoritative as recorded in `DECISIONS.md`.
 **Builds on:** `main` at `0df6dd4` (Complaints Parts 1–4, notifications, academic terms and Super Admin analytics merged).
 **Governing decisions (already CONFIRMED):** DEC-016, DEC-040, DEC-205, DEC-210, DEC-212, DEC-240 to DEC-247, DEC-270, DEC-282, DEC-300 to DEC-304, DEC-307, **DEC-323** (CR/GR representation lifecycle), **DEC-324** (Collective Issues V1 product rules) and **DEC-325** (representative response notifications) in `docs/decisions/DECISIONS.md`.
 **Decision traceability:** section 12 records the remaining O27 scope and the resolution of O35, O36–O55. The collective-issue portion of O27 is resolved by DEC-324; O27 remains open for Student Voice and meeting requests. Section 13 records brief differences already settled by confirmed decisions.

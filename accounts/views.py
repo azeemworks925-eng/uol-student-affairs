@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
@@ -16,7 +17,7 @@ from .identity import extract_sap_id
 from .models import StudentProfile, User
 from .permissions import batch_advisor_required, student_required, super_admin_required
 from .presentation import first_name, greeting, personal_summary
-from .services import register_student
+from .services import AlreadyRegistered, register_student
 
 ROLE_HOME_URL_NAMES = {
     User.Role.STUDENT: "student_home",
@@ -43,10 +44,15 @@ def student_register(request):
     if request.method == "POST" and form.is_valid():
         try:
             register_student(request.user, **form.cleaned_data)
-        except IntegrityError:
-            # A concurrent submission registered first; the one-profile-per-user constraint
-            # kept the data consistent, so the student is already registered.
+        except (IntegrityError, AlreadyRegistered):
+            # A concurrent submission registered first (seen under the locks, or kept out by the
+            # one-profile-per-user constraint), so the student is already registered.
             pass
+        except ValidationError as error:
+            # An entry was deactivated after the form was shown (checked under the cohort lock).
+            form.add_error(None, error.messages)
+            return render(request, "accounts/register.html",
+                          {"form": form, "sap_id": extract_sap_id(request.user.email)}, status=400)
         return redirect("home")
     return render(request, "accounts/register.html", {"form": form, "sap_id": extract_sap_id(request.user.email)})
 

@@ -19,7 +19,7 @@ the IntegrityError is caught here, and CurrentTermConflict is raised for the cal
 
 from django.db import IntegrityError, transaction
 
-from .models import AcademicTerm
+from .models import AcademicTerm, Batch, Section, Semester
 
 
 class CurrentTermConflict(Exception):
@@ -92,3 +92,29 @@ def clear_current_term(expected=ANY):
     if previous is not None:
         previous._mark_current_flag(None)
     return previous, changed
+
+
+# ---------------------------------------------------------------------------------------------
+# Academic entry active state (Collective Issues CI-1; COLLECTIVE_ISSUES_SPEC.md section 5.7)
+# ---------------------------------------------------------------------------------------------
+
+@transaction.atomic
+def set_entry_active(entry, active, *, actor=None):
+    """Activate or deactivate a Batch, Semester or Section in one transaction.
+
+    A cohort's eligibility depends on all three entries, so this takes the cohort locks used by
+    every representation-related transaction: first **all** Section rows in ascending primary
+    key (the set of sections used with a batch or semester isn't stored, and a list-editable
+    admin save changes several entries in display order), then the Batch or Semester row being
+    changed. Representation services never lock Batch or Semester rows, so there is no reverse
+    order. Deactivation closes nothing: the cohort simply becomes inactive (DEC-323, DEC-324).
+    """
+    if not isinstance(entry, (Batch, Semester, Section)):
+        raise TypeError("set_entry_active takes a Batch, Semester or Section.")
+    list(Section.objects.select_for_update().order_by("pk"))
+    model = type(entry)
+    if model is not Section:
+        model.objects.select_for_update().filter(pk=entry.pk).get()
+    entry.is_active = active
+    model.objects.filter(pk=entry.pk).update(is_active=active)
+    return entry
