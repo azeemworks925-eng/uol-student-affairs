@@ -1,13 +1,130 @@
 {% extends "layouts/app.html" %}
-{# Super Admin overview, Design D (DEC-302, DEC-306). The three DEC-281 analytics arrive with the complaints module. #}
+{% comment %}
+  Super Admin Overview, Design D (DEC-302, DEC-306), with the three DEC-281 analytics
+  (Complaints Part 4 Stage 4b; COMPLAINTS_PART4_SPEC.md section 6).
+  Every value comes from complaints.analytics, which decides suppression first: a hidden cohort
+  arrives here with no count and no URL, so nothing about it can be printed (DEC-318).
+  States: "setup" (no current term), "withheld" (DEC-319, identical in both cases), "ready".
+{% endcomment %}
 {% block title %}Overview · UOL Student Affairs{% endblock %}
 {% block page_class %} sa-page--wide{% endblock %}
 {% block content %}
+{% with a=analytics %}
 <header class="sa-masthead">
   <span class="sa-eyebrow">Software Engineering · overview</span>
-  <h1 class="sa-display">No complaints have been recorded yet.</h1>
-  <p class="sa-lede">Once complaints exist, this page shows <span class="soft">distribution by section, category share and resolved vs not resolved, each with a written takeaway.</span></p>
+  {% if a.state == "setup" %}
+  <h1 class="sa-display">Set the current academic term to see this term’s figures.</h1>
+  <p class="sa-lede">The Overview reports one academic term at a time, counted by submission date. <span class="soft">It never shows all-time figures.</span></p>
+  <p class="sa-masthead-action"><a class="btn btn-sa-primary" href="{{ term_admin_url }}">Set the current term</a></p>
+  {% elif a.state == "withheld" %}
+  <h1 class="sa-display">Figures for {{ a.term.name }} are withheld.</h1>
+  <p class="sa-lede"><span class="sa-nowrap">{{ a.term.dates_label }}.</span> <span class="soft">Showing this term’s figures could identify students in small cohorts, so the totals and all three analytics are hidden. They appear once they can be shown safely.</span></p>
+  {% else %}
+  <h1 class="sa-display">{{ a.headline }}</h1>
+  <p class="sa-lede"><span class="sa-nowrap">{{ a.term.dates_label }}</span><span class="soft">, counted by submission date.</span></p>
+  {% endif %}
 </header>
+
+{% if a.state == "ready" %}
+<div class="sa-analytics">
+  <section class="sa-chapter" aria-labelledby="chapter-cohorts">
+    <div class="sa-chapter-head">
+      <span class="sa-chapter-no" aria-hidden="true">01</span>
+      <h2 class="sa-h2" id="chapter-cohorts">Distribution by section</h2>
+    </div>
+    <p class="sa-takeaway">{{ a.cohort_takeaway }}</p>
+    {% if a.rows %}
+    <div class="sa-map-wrap">
+      <table class="sa-map">
+        <caption class="visually-hidden">Complaints submitted in {{ a.term.name }} by cohort, in academic order.</caption>
+        <thead>
+          <tr><th scope="col">Semester and batch</th>{% for section in a.sections %}<th scope="col">{{ section }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+          {% for row in a.rows %}
+          <tr>
+            <th scope="row"><span class="sem">{{ row.semester }}</span> <span class="batch">{{ row.batch }}</span></th>
+            {% for cell in row.cells %}
+            <td data-section="{{ cell.section }}">
+              {% if cell.state == "count" %}
+              <a class="sa-cell sa-cell--count" href="{{ cell.url }}"><span class="visually-hidden">{{ cell.label }}: </span><span class="n">{{ cell.count }}</span><span class="visually-hidden"> complaint{{ cell.count|pluralize }}</span></a>
+              {% elif cell.state == "zero" %}
+              <a class="sa-cell sa-cell--zero" href="{{ cell.url }}"><span class="visually-hidden">{{ cell.label }}: </span>No complaints</a>
+              {% elif cell.state == "hidden" %}
+              <span class="sa-cell sa-cell--hidden"><span class="visually-hidden">{{ cell.label }}: </span>Hidden</span>
+              {% else %}
+              <span class="sa-cell sa-cell--none"><span class="visually-hidden">{{ cell.label }}: no such cohort</span></span>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <ul class="sa-map-key" aria-label="Key">
+      <li><span class="sa-cell sa-cell--zero sa-cell--key" aria-hidden="true"></span>No complaints this term</li>
+      <li><span class="sa-cell sa-cell--hidden sa-cell--key" aria-hidden="true"></span>Hidden for privacy</li>
+      <li><span class="sa-cell sa-cell--none sa-cell--key" aria-hidden="true"></span>No such cohort</li>
+    </ul>
+    {% endif %}
+  </section>
+
+  <section class="sa-chapter" aria-labelledby="chapter-categories">
+    <div class="sa-chapter-head">
+      <span class="sa-chapter-no" aria-hidden="true">02</span>
+      <h2 class="sa-h2" id="chapter-categories">Category share</h2>
+    </div>
+    <p class="sa-takeaway">{{ a.category_takeaway }}</p>
+    <ul class="sa-shares" aria-describedby="categories-denominator">
+      {% for category in a.categories %}
+      <li>
+        <a class="sa-share" href="{{ category.url }}">
+          <span class="label">{{ category.label }}{% if category.inactive %} <span class="sa-muted">(inactive)</span>{% endif %}</span>
+          <span class="figure"><b>{{ category.count }}</b>{% if category.percent_label %} <span class="sa-muted">{{ category.percent_label }}</span>{% endif %}</span>
+          <span class="track" aria-hidden="true"><span class="fill" style="width: {{ category.percent|default:0 }}%"></span></span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="sa-small sa-muted sa-denominator" id="categories-denominator">Share of all {{ a.total }} complaint{{ a.total|pluralize }} submitted in {{ a.term.name }}.</p>
+  </section>
+
+  <section class="sa-chapter" aria-labelledby="chapter-status">
+    <div class="sa-chapter-head">
+      <span class="sa-chapter-no" aria-hidden="true">03</span>
+      <h2 class="sa-h2" id="chapter-status">Resolved vs not resolved</h2>
+    </div>
+    <p class="sa-takeaway">{{ a.status_takeaway }}</p>
+    {% if a.total %}
+    <div class="sa-stack" aria-hidden="true">
+      {% if a.resolved.count %}<span class="seg seg--resolved" style="flex-grow: {{ a.resolved.count }}"></span>{% endif %}
+      {% for part in a.not_resolved_parts %}{% if part.count %}<span class="seg seg--{{ part.tone }}" style="flex-grow: {{ part.count }}"></span>{% endif %}{% endfor %}
+    </div>
+    {% endif %}
+    <div class="sa-status-groups">
+      <div class="sa-status-group">
+        <a class="sa-status-line" href="{{ a.resolved.url }}">
+          <span class="sa-status sa-status--resolved">{{ a.resolved.label }}</span>
+          <span class="figure"><b>{{ a.resolved.count }}</b>{% if a.resolved.percent_label %} <span class="sa-muted">{{ a.resolved.percent_label }}</span>{% endif %}</span>
+        </a>
+      </div>
+      <div class="sa-status-group">
+        <p class="sa-status-total"><span class="name">{{ a.not_resolved.label }}</span> <span class="figure"><b>{{ a.not_resolved.count }}</b>{% if a.not_resolved.percent_label %} <span class="sa-muted">{{ a.not_resolved.percent_label }}</span>{% endif %}</span></p>
+        <ul class="sa-status-parts">
+          {% for part in a.not_resolved_parts %}
+          <li><a class="sa-status-line" href="{{ part.url }}"><span class="sa-status sa-status--{{ part.tone }}">{{ part.label }}</span><span class="figure"><b>{{ part.count }}</b>{% if part.percent_label %} <span class="sa-muted">{{ part.percent_label }}</span>{% endif %}</span></a></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    <p class="sa-small sa-muted sa-denominator">Of all {{ a.total }} complaint{{ a.total|pluralize }} submitted in {{ a.term.name }}, by their status today. Rejected complaints are not resolved, but they are closed: they are not awaiting action.</p>
+  </section>
+
+  <p class="sa-small sa-muted sa-analytics-note">Cohorts with fewer than five active students are shown as Hidden, together with any cohort hidden alongside them so their figures cannot be worked out from the totals. Category and status figures cover the whole department. Each figure opens the matching complaints.</p>
+</div>
+{% endif %}
+{% endwith %}
 
 <nav class="sa-goto" aria-label="Manage">
   <span class="sa-small sa-muted">Manage</span>
