@@ -16,6 +16,7 @@ from .representation import (  # noqa: F401  (the representation operations are 
     appoint_representatives,
     cohort_is_active,
     current_post_of,
+    lock_all_sections,
     lock_current_periods,
     lock_sections,
     lock_users,
@@ -25,6 +26,7 @@ from .representation import (  # noqa: F401  (the representation operations are 
 )
 
 LAST_SUPER_ADMIN = "The last active Super Admin cannot be deactivated."
+INACTIVE_ACCOUNT = "This account is not active, so it cannot be registered."
 INACTIVE_TARGET = "Choose an active batch, semester and section."
 PROFILE_FIELDS = ("batch", "semester", "section")
 
@@ -33,23 +35,37 @@ class BootstrapError(Exception):
     pass
 
 
+class AlreadyRegistered(ValueError):
+    """The student already has a profile (registration is one-time, DEC-202)."""
+
+
 @transaction.atomic
 def register_student(user, *, full_name, batch, semester, section):
     """Complete a student's one-time registration after their first Google sign-in."""
     if not user.is_student:
         raise ValueError("Only student accounts can register a student profile.")
     if StudentProfile.objects.filter(user=user).exists():
-        raise ValueError("This student has already registered.")
+        raise AlreadyRegistered("This student has already registered.")
     # The cohort lock (spec 5.7): registration changes the cohort's membership, so it is
-    # serialised with appointments, departures and academic deactivations of this cohort.
+    # serialised with appointments, departures and academic deactivations of this cohort, and
+    # with deactivation of an unregistered student (which locks every Section). Then the User
+    # row (step 4), re-read under the lock: the caller's instance may be stale.
     cohort = Cohort(batch.pk, semester.pk, section.pk)
     lock_sections([cohort.section_id])
     if not cohort_is_active(cohort):
         raise ValidationError(INACTIVE_TARGET)
-    user.full_name = full_name.strip()
-    user.full_clean()
-    user.save(update_fields=["full_name"])
-    profile = StudentProfile(user=user, batch=batch, semester=semester, section=section)
+    fresh = lock_users([user.pk])[user.pk]
+    if not fresh.is_active:
+        raise ValidationError(INACTIVE_ACCOUNT)
+    if not fresh.is_student:
+        raise ValueError("Only student accounts can register a student profile.")
+    if StudentProfile.objects.filter(user_id=fresh.pk).exists():
+        raise AlreadyRegistered("This student has already registered.")
+    fresh.full_name = full_name.strip()
+    fresh.full_clean()
+    fresh.save(update_fields=["full_name"])
+    user.full_name = fresh.full_name
+    profile = StudentProfile(user=fresh, batch=batch, semester=semester, section=section)
     profile.full_clean(exclude=["sap_id"])
     profile.save()
     return profile
@@ -106,12 +122,21 @@ def set_account_active(user, active, *, actor, replacement=None):
     uid = user.pk
     profile_section = StudentProfile.objects.filter(user_id=uid).values_list("section_id", flat=True).first()
     held = current_post_of(uid)
-    sections = {profile_section, held.section_id if held else None}
-    lock_sections(sections)
+    # An unregistered student has no known cohort, and a concurrent registration may be choosing
+    # one: lock every Section (still step 1, ascending), which covers whichever Section that
+    # registration locks. The profile is re-read below; a registration that committed first is
+    # simply the account's current state (its cohort is among the locked Sections).
+    unregistered = profile_section is None and User.objects.filter(pk=uid, role=User.Role.STUDENT).exists()
+    if unregistered:
+        lock_all_sections()
+    else:
+        sections = {profile_section, held.section_id if held else None}
+        lock_sections(sections)
     # Re-read under the cohort locks; refuse rather than act on a cohort that just changed.
     held = current_post_of(uid)
-    if StudentProfile.objects.filter(user_id=uid).values_list("section_id", flat=True).first() != profile_section or (
-            held is not None and held.section_id not in sections):
+    if not unregistered and (
+            StudentProfile.objects.filter(user_id=uid).values_list("section_id", flat=True).first() != profile_section
+            or (held is not None and held.section_id not in sections)):
         raise ValidationError(DETAILS_CHANGED)
     if held is not None:
         held = lock_current_periods([held.pk]).get(held.pk)

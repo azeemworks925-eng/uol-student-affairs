@@ -33,6 +33,7 @@ from .representation import (
     Cohort,
     appoint_representatives,
     can_manage_cohort,
+    current_holder_ids,
     eligible_candidates,
     replace_representatives,
     representation_breaches,
@@ -157,7 +158,9 @@ def _cards(scope, user, cohorts):
                 .select_related("student_profile").order_by("full_name", "email"))
     periods = list(CohortRepresentation.objects.filter(batch_id__in={c.batch_id for c in cohorts})
                    .select_related("cr__student_profile", "gr__student_profile", "ended_by", "started_by"))
-    holders = {p.cr_id for p in periods if p.is_active} | {p.gr_id for p in periods if p.is_active}
+    # Global, not just this page's cohorts: a student may hold a post in a cohort this page
+    # doesn't show (another advisor's), and must not be offered as a candidate here.
+    holders = current_holder_ids()
     members, history, current = {}, {}, {}
     for student in students:
         members.setdefault(Cohort.of(student.student_profile), []).append(student)

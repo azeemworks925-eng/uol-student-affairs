@@ -3,7 +3,8 @@ Cohort representation: each cohort's CR and GR (Collective Issues CI-1).
 
 Specification: docs/technical/COLLECTIVE_ISSUES_SPEC.md sections 5.1 to 5.7. Decisions: DEC-016
 (exactly one CR and one GR), DEC-205 (exact cohort), DEC-240 (one post per student), DEC-245 (who
-manages them), DEC-323 (no vacancy once represented; "Awaiting representatives"; closure).
+manages them), DEC-212 (account lifecycle), DEC-323 (no vacancy once represented; "Awaiting
+representatives"; closure), DEC-324 (the approved Collective Issues V1 product rules).
 
 Every operation here runs inside one transaction and takes locks in the global order of
 spec 5.7, which rules out deadlocks:
@@ -87,6 +88,12 @@ def lock_sections(section_ids):
     ids = sorted({pk for pk in section_ids if pk is not None})
     if ids:
         list(Section.objects.select_for_update().filter(pk__in=ids).order_by("pk"))
+
+
+def lock_all_sections():
+    """Step 1 when the cohort is not known in advance: every Section row, ascending primary key.
+    A superset of any single cohort lock, so it serialises with every cohort operation."""
+    list(Section.objects.select_for_update().order_by("pk"))
 
 
 def lock_current_periods(period_ids):
@@ -317,10 +324,15 @@ def representation_breaches():
     return breaches
 
 
+def current_holder_ids():
+    """Every student holding a current CR or GR post, in any cohort (one query)."""
+    return {pk for pair in Period.objects.current().order_by().values_list("cr_id", "gr_id") for pk in pair}
+
+
 def eligible_candidates(cohort):
     """Students who could take a post in this cohort now: active, in this exact cohort, holding
     no current post anywhere. For display only; the services re-check under their locks."""
-    holders = {pk for pair in Period.objects.current().order_by().values_list("cr_id", "gr_id") for pk in pair}
+    holders = current_holder_ids()
     return (active_members(cohort).exclude(pk__in=holders)
             .select_related("student_profile").order_by("full_name", "email"))
 

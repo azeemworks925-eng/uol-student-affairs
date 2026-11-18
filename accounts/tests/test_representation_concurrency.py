@@ -156,6 +156,30 @@ class RepresentationRaceTests(TransactionTestCase):
         self.assertEqual(second[0], "ok")
         self.assertEqual(self.current(self.away_cohort).gr_id, newcomer.pk)
 
+    # ---- 2b. registration against deactivation of the unregistered account ----------------------
+
+    def test_deactivation_of_unregistered_student_then_registration(self):
+        newcomer = self.new_user()
+        # Deactivation has no known cohort, so it holds every Section lock; the registration
+        # waits on its Section, then re-reads the User row under its lock and is refused.
+        second = self.race(self.deactivate(newcomer), self.register(newcomer, self.section_a))
+        self.assertEqual(second[0], "refused", second)
+        self.assertIn(services.INACTIVE_ACCOUNT, second[1].messages)
+        self.assertFalse(self.u(newcomer).is_active)
+        self.assertFalse(StudentProfile.objects.filter(user=newcomer).exists())
+        self.assertEqual(self.u(newcomer).full_name, "")  # nothing partially saved
+
+    def test_registration_then_deactivation_of_the_new_student(self):
+        newcomer = self.new_user()
+        # Registration holds Section A; the deactivation (locking every Section) waits, then sees
+        # the committed profile and deactivates a registered, non-representative student.
+        second = self.race(self.register(newcomer, self.section_a), self.deactivate(newcomer))
+        self.assertEqual(second[0], "ok", second)
+        self.assertFalse(self.u(newcomer).is_active)
+        self.assertEqual(self.u(newcomer).full_name, "New Student")
+        self.assertTrue(StudentProfile.objects.filter(user=newcomer, **self.cohort.filter()).exists())
+        self.assertIsNone(self.current())  # posts untouched
+
     # ---- 3. first appointment against candidate deactivation ------------------------------------
 
     def test_appointment_against_candidate_deactivation_deactivation_first(self):

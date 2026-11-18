@@ -1,6 +1,6 @@
 """CR/GR cohort representation (Collective Issues CI-1; COLLECTIVE_ISSUES_SPEC.md section 5;
-DEC-016, DEC-212, DEC-240, DEC-245, DEC-323). The multi-connection MySQL races are in
-test_representation_concurrency."""
+DEC-016, DEC-212, DEC-245, DEC-323, DEC-324; one post per student: DEC-240). The
+multi-connection MySQL races are in test_representation_concurrency."""
 
 import itertools
 from unittest import mock
@@ -367,6 +367,66 @@ class AcademicStructureTests(RepresentationTestCase):
         self.assertEqual(current(self.cohort).pk, period.pk)
         self.assertFalse(Semester.objects.get(pk=self.a["semester"].pk).is_active)
 
+    def test_registration_of_an_inactive_account_is_refused(self):
+        user = User.objects.create_user(email=f"{next(_sap)}@student.uol.edu.pk", full_name="")
+        stale = User.objects.get(pk=user.pk)  # the caller's instance still says active
+        User.objects.filter(pk=user.pk).update(is_active=False)
+        with self.assertRaisesMessage(ValidationError, services.INACTIVE_ACCOUNT):
+            services.register_student(stale, full_name="New", batch=self.a["batch"], semester=self.a["semester"],
+                                      section=self.a["section"])
+        self.assertFalse(StudentProfile.objects.filter(user=user).exists())
+        self.assertEqual(User.objects.get(pk=user.pk).full_name, "")
+
+    def test_registration_rechecks_role_under_the_lock(self):
+        user = User.objects.create_user(email=f"{next(_sap)}@student.uol.edu.pk", full_name="")
+        stale = User.objects.get(pk=user.pk)
+        User.objects.filter(pk=user.pk).update(role=User.Role.BATCH_ADVISOR)
+        with self.assertRaises(ValueError):
+            services.register_student(stale, full_name="New", batch=self.a["batch"], semester=self.a["semester"],
+                                      section=self.a["section"])
+        self.assertFalse(StudentProfile.objects.filter(user=user).exists())
+
+    def test_registration_rechecks_the_profile_after_locking(self):
+        user = User.objects.create_user(email=f"{next(_sap)}@student.uol.edu.pk", full_name="")
+        real_lock_users = services.lock_users
+
+        def concurrent_registration_commits_first(ids):
+            # Simulates a registration that committed while this one waited for its locks.
+            StudentProfile.objects.create(user=user, batch=self.a["batch"], semester=self.a["semester"],
+                                          section=self.a["other_section"])
+            return real_lock_users(ids)
+
+        with mock.patch("accounts.services.lock_users", side_effect=concurrent_registration_commits_first):
+            with self.assertRaises(services.AlreadyRegistered):
+                services.register_student(user, full_name="Second", batch=self.a["batch"],
+                                          semester=self.a["semester"], section=self.a["section"])
+        # The simulated profile shares this test's transaction, so the refusal rolls it back too;
+        # what matters is that no second profile or name change was written.
+        self.assertFalse(StudentProfile.objects.filter(user=user, section=self.a["section"]).exists())
+        self.assertEqual(User.objects.get(pk=user.pk).full_name, "")
+
+    def test_registration_uses_the_locked_user_row(self):
+        user = User.objects.create_user(email=f"{next(_sap)}@student.uol.edu.pk", full_name="")
+        stale = User.objects.get(pk=user.pk)
+        User.objects.filter(pk=user.pk).update(is_staff=True)  # changed elsewhere meanwhile
+        profile = services.register_student(stale, full_name="  New Student ", batch=self.a["batch"],
+                                            semester=self.a["semester"], section=self.a["section"])
+        fresh = User.objects.get(pk=user.pk)
+        self.assertEqual((fresh.full_name, fresh.is_staff), ("New Student", True))  # nothing overwritten
+        self.assertEqual(stale.full_name, "New Student")
+        self.assertEqual(profile.user_id, user.pk)
+
+    def test_deactivating_an_unregistered_student_locks_every_section(self):
+        user = User.objects.create_user(email=f"{next(_sap)}@student.uol.edu.pk", full_name="")
+        with mock.patch("accounts.services.lock_all_sections", wraps=rep.lock_all_sections) as locked:
+            services.set_account_active(user, False, actor=self.admin)
+        locked.assert_called_once()
+        self.assertFalse(User.objects.get(pk=user.pk).is_active)
+        with mock.patch("accounts.services.lock_all_sections") as locked:
+            services.set_account_active(self.s[4], False, actor=self.admin)  # registered: its cohort only
+            services.set_account_active(self.outsider, False, actor=self.admin)  # staff: unchanged
+        locked.assert_not_called()
+
     def test_registration_into_an_inactive_cohort_is_refused(self):
         user = User.objects.create_user(email=f"{next(_sap)}@student.uol.edu.pk", full_name="")
         set_entry_active(self.a["section"], False, actor=self.admin)
@@ -566,6 +626,33 @@ class ManagementPageTests(RepresentationTestCase):
         self.assertContains(self.client.get(reverse("advisor_home")), self.url("advisor"))
         self.client.force_login(self.admin)
         self.assertContains(self.client.get(reverse("super_admin_home")), self.url("super_admin"))
+
+    def test_advisor_candidates_exclude_holders_of_unassigned_cohorts(self):
+        # A post in cohort B (not this advisor's) held by a student who is now in cohort A: an
+        # inconsistent state (the breach panel shows it), set up by bypassing the services.
+        away2 = student(self.other, "Away Two")
+        rep.appoint_representatives(self.admin, self.other_cohort, cr=self.away, gr=away2)
+        StudentProfile.objects.filter(user=self.away).update(batch=self.a["batch"])
+        period = self.appoint()
+        self.client.force_login(self.advisor)
+        page = self.client.get(self.url("advisor"))
+        [card] = page.context["cards"]
+        self.assertEqual(card.cohort, self.cohort)
+        self.assertNotIn(self.away.pk, [s.pk for s in card.candidates])
+        self.assertIn(self.s[2].pk, [s.pk for s in card.candidates])
+        for post in ("cr", "gr"):
+            choices = [value for value, _ in card.forms[post].fields["person"].choices]
+            self.assertNotIn(self.away.pk, [getattr(v, "value", v) for v in choices])
+        self.assertNotContains(page, "Away Student")
+        # The service, not the choice list, is the boundary: a forged submission is refused.
+        anchor = "cohort-" + self.cohort.key.replace(".", "-")
+        forged = self.client.post(self.url("advisor", "_replace", self.cohort.key, "cr"),
+                                  {f"{anchor}-cr-person": self.away.pk, f"{anchor}-cr-expected_period": period.pk})
+        self.assertEqual(forged.status_code, 400)
+        self.assertEqual(current(self.cohort).pk, period.pk)
+        with self.assertRaises(ValidationError):
+            rep.replace_representatives(self.advisor, self.cohort, expected_period=period.pk, cr=self.away)
+        self.assertEqual((current(self.cohort).cr_id, current(self.cohort).gr_id), (self.s[0].pk, self.s[1].pk))
 
     def test_page_queries_do_not_grow_with_cohorts(self):
         self.client.force_login(self.admin)

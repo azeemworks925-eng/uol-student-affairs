@@ -17,7 +17,7 @@ from .identity import extract_sap_id
 from .models import StudentProfile, User
 from .permissions import batch_advisor_required, student_required, super_admin_required
 from .presentation import first_name, greeting, personal_summary
-from .services import register_student
+from .services import AlreadyRegistered, register_student
 
 ROLE_HOME_URL_NAMES = {
     User.Role.STUDENT: "student_home",
@@ -44,9 +44,9 @@ def student_register(request):
     if request.method == "POST" and form.is_valid():
         try:
             register_student(request.user, **form.cleaned_data)
-        except IntegrityError:
-            # A concurrent submission registered first; the one-profile-per-user constraint
-            # kept the data consistent, so the student is already registered.
+        except (IntegrityError, AlreadyRegistered):
+            # A concurrent submission registered first (seen under the locks, or kept out by the
+            # one-profile-per-user constraint), so the student is already registered.
             pass
         except ValidationError as error:
             # An entry was deactivated after the form was shown (checked under the cohort lock).
