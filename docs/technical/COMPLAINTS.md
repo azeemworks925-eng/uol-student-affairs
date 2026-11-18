@@ -321,9 +321,11 @@ Academic terms, the current-term services and the reporting window are described
   - if the total is zero, any primary suppression withholds them (DEC-319 (a));
   - otherwise, if the only real cohort is suppressed, they are withheld too (DEC-319 (b)).
 - **Complementary cells:**
-  - The page reveals the total `T` through the category and status chapters. So the only equation an observer has over the hidden cells is that they sum to `T` minus the visible cells. Each hidden value is undetermined exactly when at least two cells are hidden and their combined total is at least one.
-  - If the hidden cells add up to zero, the preferred cell with complaints is added; if one cell is hidden alone, the preferred cell is added.
-  - Preference is by active students (largest first), then academic order. It never depends on complaint counts, so the choice is stable between visits.
+  - The page reveals the total `T` through the category and status chapters. So the only equation an observer has over the hidden cells is that they sum to `T` minus the visible cells.
+  - **Known lower bounds:** a cohort that is real only because complaints were submitted in it this term (no student profile, no advisor assignment) visibly has at least one complaint, so its lower bound is 1; every other cohort's is 0.
+  - Each hidden value is undetermined exactly when at least two cells are hidden and their combined total exceeds the sum of their lower bounds by at least one.
+  - If the hidden cells sit at their lower bounds (for example, they add up to zero), the preferred cell with complaints above its own lower bound is added; if one cell is hidden alone, the preferred cell is added. If no such cell exists, the analytics are withheld (DEC-319 (b)).
+  - Preference is by active students (largest first), then academic order, not by complaint counts, so the choice is stable between visits. Complaint counts only decide whether a preferred cell is usable when the hidden cells sit at their lower bounds.
   - Before anything is shown, the hidden set is checked with the general uniqueness test `determined_keys`. It also handles overlapping equations, such as subtotals, and answers "unsafe" when the enumeration would be too large.
 - **Tests:** they compare the result with an independent brute-force check on 3,000 generated grids.
 

@@ -47,6 +47,17 @@ Branch `feat/super-admin-analytics`, created from `main` at `b7d48a9` (PR #19, t
 - **Pre-existing issue fixed on this page:** the Overview's Manage buttons were 41px tall on phones; they are now at least 44px.
 - **Verification:** recorded in the PR description. These are local runs; there is no hosted CI.
 
+**Adversarial privacy review (before independent review)**
+
+- **Defect found and fixed (medium):**
+  - **How it leaked:** a cohort that is real only because complaints were submitted in it this term (no student profile, no advisor assignment) shows on the map that it has at least one complaint. Paired with a zero-complaint complement, the hidden pair's total of 1 then pinned both values. This was reproduced through the real Overview.
+  - **Fix:** such cohorts carry a known lower bound of 1. The uniqueness test now works on the slack above the lower bounds. Complements are chosen to restore slack, and the analytics are withheld if none can.
+- **Regression tests:** one page-level test (it fails on the earlier code) and two pure-function tests. The exhaustive check over generated grids now includes lower bounds.
+- **Leak test hardened:** the HTML leak test could match a hidden count against a database id inside a link (ids keep growing on a kept MySQL test database), and failed once by chance. It now requires the page's links to be exactly the expected figure links, and searches every other text and attribute for hidden values.
+- **Wording:**
+  - the Overview's privacy note no longer reads as an absolute guarantee (DEC-322);
+  - COMPLAINTS.md now says complaint counts can decide whether a preferred complement is usable.
+
 ---
 
 ## 2026-11-18 — Complaints Part 4 Stage 4b: analytics specification finalised (merged in PR #19)

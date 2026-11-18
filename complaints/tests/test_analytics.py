@@ -38,20 +38,22 @@ IN_TERM = datetime(2026, 10, 15, 12, tzinfo=KHI)
 # An independent check: which hidden values does the page determine uniquely?
 # ---------------------------------------------------------------------------------------------
 
-def brute_force_determined(hidden_counts, total, visible_counts):
-    """Enumerate every non-negative assignment of the hidden cells consistent with what the page
-    shows (the visible cells and the total T, which the category and status chapters reveal)."""
+def brute_force_determined(hidden_counts, total, visible_counts, lower_bounds=None):
+    """Enumerate every assignment of the hidden cells consistent with what the page shows: the
+    visible cells, the total T (which the category and status chapters reveal), and each cell's
+    known lower bound (0, or 1 for a cohort that appears only because of its complaints)."""
+    lower = lower_bounds or {}
     keys = sorted(hidden_counts)
     remainder = total - sum(visible_counts.values())
     seen = {k: set() for k in keys}
     for values in product(range(remainder + 1), repeat=len(keys)):
-        if sum(values) == remainder:
+        if sum(values) == remainder and all(v >= lower.get(k, 0) for k, v in zip(keys, values)):
             for k, v in zip(keys, values):
                 seen[k].add(v)
     return {k for k in keys if len(seen[k]) <= 1}
 
 
-def safe_arrangement_exists(cells):
+def safe_arrangement_exists(cells, lower_bounds=None):
     primary = {k for k, (_, s) in cells.items() if s < MIN_ACTIVE_STUDENTS}
     total = sum(n for n, _ in cells.values())
     others = [k for k in cells if k not in primary]
@@ -59,7 +61,7 @@ def safe_arrangement_exists(cells):
         for extra in combinations(others, size):
             hidden = primary | set(extra)
             visible = {k: cells[k][0] for k in cells if k not in hidden}
-            if not brute_force_determined({k: cells[k][0] for k in hidden}, total, visible):
+            if not brute_force_determined({k: cells[k][0] for k in hidden}, total, visible, lower_bounds):
                 return True
     return False
 
@@ -67,14 +69,37 @@ def safe_arrangement_exists(cells):
 class SuppressionExamplesTests(SimpleTestCase):
     """The worked examples of spec 6.4 and the deterministic cases of section 8."""
 
-    def plan(self, cells):
+    def plan(self, cells, lower_bounds=None):
         order = sorted(cells, key=lambda k: (-cells[k][1], k))
-        return plan_suppression(cells, order)
+        return plan_suppression(cells, order, lower_bounds)
 
-    def assert_safe(self, cells, hidden):
+    def assert_safe(self, cells, hidden, lower_bounds=None):
         total = sum(n for n, _ in cells.values())
         visible = {k: cells[k][0] for k in cells if k not in hidden}
-        self.assertEqual(brute_force_determined({k: cells[k][0] for k in hidden}, total, visible), set())
+        self.assertEqual(
+            brute_force_determined({k: cells[k][0] for k in hidden}, total, visible, lower_bounds), set()
+        )
+
+    def test_a_cohort_known_to_have_complaints_is_not_pinned_by_its_lower_bound(self):
+        # Review regression: X appears only because of its complaints, so X >= 1. Pairing X (1)
+        # with a zero-complaint complement would show X + Y = 1, forcing X = 1 and Y = 0.
+        lower = {"X": 1}
+        self.assertEqual(brute_force_determined({"X": 1, "Y": 0}, 6, {"Z": 5}, lower), {"X", "Y"})
+        self.assertEqual(determined_keys({"X": 1, "Y": 0}, [{"X", "Y"}], lower), {"X", "Y"})
+        cells = {"X": (1, 0), "Y": (0, 40), "Z": (5, 30)}
+        hidden = self.plan(cells, lower)
+        self.assertEqual(hidden, frozenset({"X", "Z"}))
+        self.assert_safe(cells, hidden, lower)
+
+    def test_lower_bounds_in_overlapping_equations(self):
+        lower = {"A": 1, "B": 1}
+        self.assertEqual(determined_keys({"A": 1, "B": 1, "C": 0}, [{"A", "B", "C"}, {"A", "C"}], lower), {"A", "B", "C"})
+        self.assertEqual(determined_keys({"A": 2, "B": 1, "C": 1}, [{"A", "B", "C"}, {"A", "C"}], lower), {"B"})
+
+    def test_no_safe_arrangement_when_every_cell_sits_at_its_lower_bound(self):
+        # Two complaint-only cohorts with one complaint each, and nothing else with complaints.
+        lower = {"X": 1, "W": 1}
+        self.assertIsNone(self.plan({"X": (1, 0), "W": (1, 9), "Y": (0, 40)}, lower))
 
     def test_no_small_cohort_hides_nothing(self):
         self.assertEqual(self.plan({"A": (2, 9), "B": (3, 5)}), frozenset())
@@ -148,16 +173,18 @@ class SuppressionExamplesTests(SimpleTestCase):
         for case in range(3000):
             size = rng.randint(1, 5)
             cells = {f"K{i}": (rng.randint(0, 4), rng.choice((0, 2, 4, 5, 6, 9))) for i in range(size)}
-            with self.subTest(case=case, cells=cells):
-                hidden = self.plan(cells)
+            # Some cohorts with complaints are real only through them: a known lower bound of 1.
+            lower = {k: 1 for k, (n, s) in cells.items() if n and s == 0 and rng.random() < 0.6}
+            with self.subTest(case=case, cells=cells, lower=lower):
+                hidden = self.plan(cells, lower)
                 primary = {k for k, (_, s) in cells.items() if s < MIN_ACTIVE_STUDENTS}
                 total = sum(n for n, _ in cells.values())
                 if hidden is None:
                     self.assertTrue(primary)
-                    self.assertTrue(total == 0 or not safe_arrangement_exists(cells))
+                    self.assertTrue(total == 0 or not safe_arrangement_exists(cells, lower))
                 else:
                     self.assertTrue(primary <= hidden)
-                    self.assert_safe(cells, hidden)
+                    self.assert_safe(cells, hidden, lower)
                     if not primary:
                         self.assertEqual(hidden, frozenset())
 
@@ -430,9 +457,19 @@ class PrivacyLeakTests(OverviewTestCase):
             self.assertFalse(any(isinstance(item, str) and value in item for item in found))
 
     def test_no_hidden_value_in_the_html(self):
-        _, region = self.overview()
+        overview, region = self.overview()
+        # Every link is one of the expected figure links: visible cells, categories and statuses.
+        # (Links carry database ids, which on a kept MySQL test database can equal any number.)
+        expected_links = {c.url for r in overview.rows for c in r.cells if c.url}
+        expected_links |= {c.url for c in overview.categories}
+        expected_links |= {overview.resolved.url} | {p.url for p in overview.not_resolved_parts}
+        links = {href.replace("&amp;", "&") for href in re.findall(r'href="([^"]*)"', region)}
+        self.assertEqual(links, expected_links)
+        self.assertEqual(len([c for r in overview.rows for c in r.cells if c.url]), 1)  # only the visible cohort
+        # Everything else on the page (text and every other attribute) never shows a hidden value.
+        without_links = re.sub(r'href="[^"]*"', "", region)
         for number in self.hidden_values:
-            self.assertIsNone(re.search(rf"\b{number}\b", region), number)
+            self.assertIsNone(re.search(rf"\b{number}\b", without_links), number)
         for cohort in (self.small, self.complement):
             self.assertNotIn(f"cohort={cohort_value(*(part.pk for part in cohort))}", region)
         self.assertIn(f"cohort={cohort_value(*(part.pk for part in self.visible))}", region)
@@ -463,6 +500,30 @@ class PrivacyLeakTests(OverviewTestCase):
                          "Fall 2024 · Semester 5 · Section B has the most complaints among the cohorts shown: 12 complaints.")
         self.assertIn("Hidden for privacy", region)
         self.assertNotIn("anonym", region.lower())
+
+
+class ComplaintOnlyCohortTests(OverviewTestCase):
+    """Review regression: a cohort with no students or advisor, real only through this term's
+    complaints, shows on the map that it has at least one complaint."""
+
+    def test_its_lower_bound_cannot_pin_the_hidden_values(self):
+        make_term()
+        old = Batch.objects.create(name="Fall 2019", is_active=False)
+        complement = make_students(self.cohort(), 9)  # most students: the usual complement, 0 complaints
+        other = make_students(self.cohort(batch="other_batch", section="other_section"), 6)
+        add_complaints(other[0], (old, self.a["semester"], self.a["section"]), self.cat_main, 1)
+        add_complaints(other[0], self.cohort(batch="other_batch", section="other_section"), self.cat_main, 5)
+        overview, region = self.overview()
+        self.assertEqual(overview.state, "ready")
+        cells = {c.label: c for r in overview.rows for c in r.cells}
+        hidden = {label for label, c in cells.items() if c.state == "hidden"}
+        visible = {label: c.count for label, c in cells.items() if c.count is not None}
+        true_counts = {"Fall 2019 · Semester 4 · Section A": 1, "Spring 2025 · Semester 4 · Section B": 5}
+        self.assertEqual(hidden, set(true_counts))
+        lower = {"Fall 2019 · Semester 4 · Section A": 1}
+        self.assertEqual(brute_force_determined(true_counts, overview.total, visible, lower), set())
+        self.assertEqual(cells["Fall 2024 · Semester 4 · Section A"].state, "zero")
+        self.assertNotIn("cohort=" + cohort_value(old.pk, self.a["semester"].pk, self.a["section"].pk), region)
 
 
 class WithheldStateTests(OverviewTestCase):

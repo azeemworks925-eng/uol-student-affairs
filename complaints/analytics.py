@@ -16,11 +16,13 @@ there is no all-time fallback. States:
 
 Privacy (DEC-315, DEC-318, DEC-319). The observer of the page knows every visible cohort cell
 and the department total T (printed, and also the sum of the category counts and of the status
-counts), and that counts are whole numbers of at least zero. The only displayed equation over
-the hidden cohort values is therefore that they add up to T minus the visible cells. A hidden
-value is safe when more than one value for it is consistent with that (the uniqueness test of
-spec 6.4), which for one equation means at least two hidden cells with a combined total of at
-least one. `plan_suppression` chooses the hidden set; `determined_keys` is the general
+counts), and that counts are whole numbers of at least zero. A cohort that is real only
+because complaints were submitted in it this term (no student profile, no advisor assignment)
+is also known to have at least one complaint: its presence on the map says so. The only
+displayed equation over the hidden cohort values is that they add up to T minus the visible
+cells. A hidden value is safe when more than one value for it is consistent with all of that
+(the uniqueness test of spec 6.4), which for one equation means at least two hidden cells whose
+combined total exceeds the sum of their known lower bounds by at least one. `plan_suppression` chooses the hidden set; `determined_keys` is the general
 uniqueness check it is verified against before anything is shown.
 
 Not here, by decision: a term selector or comparison (DEC-316), Batch Advisor statistics
@@ -56,38 +58,42 @@ ENUMERATION_LIMIT = 200_000  # beyond this, the general uniqueness check answers
 # Suppression (pure functions, no database access)
 # ---------------------------------------------------------------------------------------------
 
-def determined_keys(hidden_counts, equations):
+def determined_keys(hidden_counts, equations, lower_bounds=None):
     """The hidden keys whose value an observer can determine uniquely.
 
     `hidden_counts` maps each hidden key to its true count. `equations` lists sets of hidden keys
-    whose combined total the observer can infer from the page. The observer also knows that every
-    count is a whole number of at least zero. A key that appears in no equation is unconstrained,
-    so it is never determined.
+    whose combined total the observer can infer from the page. `lower_bounds` maps keys to a
+    minimum the observer knows (default 0; for example 1 for a cohort that appears only because
+    of its complaints). A key that appears in no equation is unconstrained, so it is never
+    determined.
 
-    Disjoint equations have an exact answer: a group is safe when it has at least two keys and a
-    total of at least one. Overlapping equations are checked by exhaustive enumeration; if that
+    Disjoint equations have an exact answer: a group is safe when it has at least two keys and
+    its total exceeds the sum of their lower bounds by at least one (every key can then take its
+    lower bound or more). Overlapping equations are checked by exhaustive enumeration; if that
     would be too large, every constrained key is reported as determined, so the caller withholds.
     """
+    lower = lower_bounds or {}
     equations = [frozenset(keys) for keys in equations if keys]
     constrained = set().union(*equations) if equations else set()
     disjoint = sum(len(keys) for keys in equations) == len(constrained)
     if disjoint:
         determined = set()
         for keys in equations:
-            if len(keys) < 2 or sum(hidden_counts[k] for k in keys) == 0:
+            slack = sum(hidden_counts[k] - lower.get(k, 0) for k in keys)
+            if len(keys) < 2 or slack == 0:
                 determined |= keys
         return determined
 
     keys = sorted(constrained, key=repr)
     totals = [(eq, sum(hidden_counts[k] for k in eq)) for eq in equations]
-    bounds = {k: min(total for eq, total in totals if k in eq) for k in keys}
+    bounds = {k: (lower.get(k, 0), min(total for eq, total in totals if k in eq)) for k in keys}
     size = 1
     for k in keys:
-        size *= bounds[k] + 1
+        size *= max(bounds[k][1] - bounds[k][0] + 1, 1)
         if size > ENUMERATION_LIMIT:
-            return set(keys)
+            return set(keys)  # fail closed
     seen = {k: set() for k in keys}
-    for values in product(*(range(bounds[k] + 1) for k in keys)):
+    for values in product(*(range(bounds[k][0], bounds[k][1] + 1) for k in keys)):
         assignment = dict(zip(keys, values))
         if all(sum(assignment[k] for k in eq) == total for eq, total in totals):
             for k in keys:
@@ -95,17 +101,19 @@ def determined_keys(hidden_counts, equations):
     return {k for k in keys if len(seen[k]) <= 1}
 
 
-def plan_suppression(cells, order):
+def plan_suppression(cells, order, lower_bounds=None):
     """Choose the cohort cells to hide (DEC-315, DEC-318, DEC-319).
 
     `cells` maps each real cohort key to `(complaints, active_students)`. `order` is the stable
     preference for complementary cells (every key, most preferred first): it does not depend on
-    complaint counts, so the same complement is chosen while it stays usable.
+    complaint counts, so the same complement is chosen while it stays usable. `lower_bounds`
+    maps keys to the minimum the observer knows (see `determined_keys`).
 
     Returns the frozenset of hidden keys, or None when the analytics must be withheld:
     (a) the total is zero and a cohort needs primary suppression, or (b) no complementary
     arrangement makes every hidden value safe.
     """
+    lower = lower_bounds or {}
     primary = {key for key, (_, students) in cells.items() if students < MIN_ACTIVE_STUDENTS}
     if not primary:
         return frozenset()
@@ -113,15 +121,17 @@ def plan_suppression(cells, order):
     if total == 0:
         return None  # DEC-319 (a)
 
+    def slack(key):
+        return cells[key][0] - lower.get(key, 0)
+
     hidden = set(primary)
-    hidden_total = sum(cells[key][0] for key in hidden)
     candidates = [key for key in order if key in cells and key not in hidden]
-    if hidden_total == 0:
-        # Hidden cells adding up to zero would all be known to be zero: add the first preferred
-        # cell that has complaints (one exists, because the total is not zero).
-        complement = next((key for key in candidates if cells[key][0] > 0), None)
+    if sum(slack(key) for key in hidden) == 0:
+        # Every hidden cell would be known to sit at its lower bound (for example, cells adding
+        # up to zero): add the first preferred cell with complaints above its own lower bound.
+        complement = next((key for key in candidates if slack(key) > 0), None)
         if complement is None:
-            return None
+            return None  # DEC-319 (b): no arrangement can be safe
         hidden.add(complement)
     elif len(hidden) == 1:
         if not candidates:
@@ -129,7 +139,7 @@ def plan_suppression(cells, order):
         hidden.add(candidates[0])
 
     hidden_counts = {key: cells[key][0] for key in hidden}
-    if determined_keys(hidden_counts, [hidden]):
+    if determined_keys(hidden_counts, [hidden], lower):
         return None  # defensive: never show an arrangement that fails the uniqueness test
     return frozenset(hidden)
 
@@ -284,9 +294,11 @@ def build_overview(user):
     total = sum(by_cohort.values())
 
     # Real cohorts (DEC-317): assignments, profiles and complaints in the window.
-    universe = set(by_cohort)
-    universe |= set(AdvisorAssignment.objects.order_by().values_list(*COHORT_FIELDS).distinct())
-    universe |= set(StudentProfile.objects.order_by().values_list(*COHORT_FIELDS).distinct())
+    structural = set(AdvisorAssignment.objects.order_by().values_list(*COHORT_FIELDS).distinct())
+    structural |= set(StudentProfile.objects.order_by().values_list(*COHORT_FIELDS).distinct())
+    universe = structural | set(by_cohort)
+    # A cohort real only through this term's complaints shows that it has at least one.
+    lower_bounds = {key: 1 for key in universe - structural}
     students = _grouped_counts(
         StudentProfile.objects.filter(user__is_active=True, user__role=User.Role.STUDENT), COHORT_FIELDS
     )
@@ -303,7 +315,7 @@ def build_overview(user):
     # Complement preference: the largest cohorts by active students first, then academic order.
     # It does not depend on complaint counts, so it is stable between visits (spec 6.4).
     order = sorted(universe, key=lambda key: (-cells[key][1], academic(key)))
-    hidden = plan_suppression(cells, order)
+    hidden = plan_suppression(cells, order, lower_bounds)
     if hidden is None:
         return Overview(state="withheld", term=term)  # DEC-319: the same for both cases
 
