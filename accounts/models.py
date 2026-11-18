@@ -228,7 +228,7 @@ class StudentProfileChange(models.Model):
 
 # ---------------------------------------------------------------------------------------------
 # Cohort representation: CR and GR (Collective Issues CI-1; COLLECTIVE_ISSUES_SPEC.md section 4.2
-# and section 5; DEC-016, DEC-240, DEC-245, DEC-323)
+# and section 5; DEC-016, DEC-212, DEC-245, DEC-323, DEC-324; one post per student: DEC-240)
 # ---------------------------------------------------------------------------------------------
 
 REPRESENTATION_WRITE_MESSAGE = (

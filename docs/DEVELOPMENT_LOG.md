@@ -14,7 +14,7 @@ Rules:
 
 ## 2026-11-18 — Collective Issues CI-1: cohort representation (awaiting review)
 
-Branch `feat/collective-issues-ci-1-representation`, created from `main` at `a0e2427`. **It is not merged.** Specification: `COLLECTIVE_ISSUES_SPEC.md` sections 4.2, 5 and 9.2–9.3; decisions DEC-016, DEC-212, DEC-240, DEC-245, DEC-323.
+Branch `feat/collective-issues-ci-1-representation`, created from `main` at `a0e2427`, submitted as PR #23. **It is awaiting independent review and is not merged.** CI-2 to CI-4 are not implemented. Specification: `COLLECTIVE_ISSUES_SPEC.md` sections 4.2, 5 and 9.2–9.3. Decisions: DEC-016, DEC-212, DEC-245, DEC-323 and DEC-324 (the approved Collective Issues V1 product rules). The one-post-per-student rule it enforces is DEC-240.
 
 **What was done**
 
@@ -27,7 +27,8 @@ Branch `feat/collective-issues-ci-1-representation`, created from `main` at `a0e
   - **Replacing:** the CR, the GR, both, or a swap, ending the old period and starting the new one in one transaction with an `expected_period` stale guard.
   - **Removing:** there is no remove operation.
   - **Lifecycle:** `set_account_active` and `update_student_profile` replace in the same transaction, refuse, or (fewer than two active students) record a closure. In an inactive cohort the period simply ends. Reactivation never restores a post. The last-active-Super-Admin rule now also lives in the service (all active Super Admin rows locked).
-  - **Registration:** `register_student` takes the cohort lock and refuses an inactive target.
+  - **Registration:** `register_student` takes the cohort lock, refuses an inactive target, then locks and re-reads the User row: the account must still be active and a student, with no profile yet. The locked row is the one saved.
+  - **Deactivating an unregistered student:** there is no known cohort, so `set_account_active` locks every Section row (still step 1, ascending) and re-reads the profile under that lock. Registration and this deactivation are therefore serialised in both orders.
   - **Academic entries:** `academics.services.set_entry_active` locks **all** Section rows first.
   - **Lock order** (spec 5.7): Section rows → Batch or Semester (academic changes only) → current periods → User and StudentProfile rows. Representation services only read Batch and Semester states, after their locks.
 - **Authority checks:** `current_representative` (viewing) and `can_act_as_representative` (new actions; it also requires active academic entries) read the database. `representation_breaches()` lists represented, active cohorts naming an ineligible student.
@@ -38,19 +39,26 @@ Branch `feat/collective-issues-ci-1-representation`, created from `main` at `a0e
 - **Pages:** `/advisor/representatives/` (assigned cohorts only) and `/super-admin/representatives/` (all cohorts, with filters and the consistency panel). Each cohort card shows its state, and represented cohorts get Replace CR, Replace GR and Swap actions; there is no remove control. A combined appointment form explains when fewer than two eligible students exist. History lists who served, when, and why each period ended. The navigation entries "Representatives" and "CR/GR Management" are now live.
 - **Behaviour changes to existing code (all required by spec 5.4 and 5.7):**
   - moving a student into an inactive cohort, or registering into one, is now refused;
+  - registering an account that is no longer active is refused;
   - deactivating or moving a CR or GR of a represented, eligible cohort needs a replacement;
   - the admin save paths for accounts, profiles and academic entries now run through services.
 
 **Verification** (local runs; no hosted CI)
 
 - **Tests:**
-  - 52 representation tests: database constraints via raw SQL, ORM guards, migration, services, lifecycle, rollback, authority, consistency, admin and pages;
-  - 17 multi-connection MySQL concurrency tests (details in the PR).
+  - 58 representation tests: database constraints via raw SQL, ORM guards, migration, services, lifecycle, registration re-checks, rollback, authority, consistency, admin and pages;
+  - 19 multi-connection MySQL concurrency tests (details in the PR).
 - **Mutation checks:** removing the appointment, registration, deactivation or academic-entry locks makes the concurrency tests fail.
-- **Results:** MySQL 8.0.44: 69/69 focused, 0 skipped (all 17 concurrency tests ran); full suite 670/670 in two consecutive `--keepdb` runs, 0 skipped.
-- **SQLite:** 670 run, 639 passed, 31 skipped (the 17 representation concurrency tests and 14 existing MySQL-only ones).
+- **Results:** MySQL 8.0.44: 77/77 focused (58 + 19), 0 skipped (all 19 concurrency tests ran); full suite 678/678, 0 skipped.
+- **SQLite:** 678 run, 645 passed, 33 skipped (the 19 representation concurrency tests and 14 existing MySQL-only ones).
 - **Checks:** `check`, `makemigrations --check --dry-run`, `compileall` and `git diff --check` are clean. `migrate --check` exits 1 only because `accounts.0004` is unapplied on the development database, deliberately not applied.
 - **Browser:** headless Chrome, both pages at 1280×590, 1232×590, 1100×590, 1600×740, 1440×800 and 360px, across 6 states (represented with history, awaiting, too few students, inactive, a validation error with focus, the Super Admin breach panel and filters). 0 of 36 combinations flagged.
+
+**Review corrections (PR #23)**
+
+- **Registration against deactivation of an unregistered student:** previously the two operations shared no cohort lock, and registration did not re-read the User row, so an account deactivated concurrently could still be registered. Fixed as described under Services above, keeping the global lock order (no User lock before a Section lock). Two MySQL races cover it: deactivation first (registration waits and is refused; no profile, name unchanged) and registration first (deactivation waits, then deactivates the now-registered student).
+- **Replacement candidates on the Batch Advisor page:** the "holds a post" set was built only from the periods of the advisor's own batches, so a student holding a post in a cohort the advisor can't see could be offered as a candidate. It is now one global query (`current_holder_ids`), keeping the page's query count constant. The services already refused such a submission; a test checks both the list and the refusal.
+- **Decision references:** the CI-1 summaries now cite DEC-016, DEC-212, DEC-245, DEC-323 and DEC-324.
 
 ---
 
