@@ -298,3 +298,21 @@ These are gaps found while reconciling, not reopened decisions. Each needs a sho
 | O31 | Resolved by DEC-313. |
 | O32 | Resolved by DEC-314. |
 | O33 | Resolved by DEC-312: no response-required classification or "Waiting for you" queue is added. |
+| O35 | Collective issues: may a CR or GR post be vacant, given DEC-016's "exactly one"? Recommended: yes; the database enforces at most one per post. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O36 | Collective issues: what closes an issue for support and removes it from home pages (DEC-243 "after the advisor responds")? Recommended: the first official response or resolution note; Under Review alone does not. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O37 | Collective issues: do the current CR and GR see all of their cohort's issues and private responses, including a predecessor's, and does a former representative keep access? Recommended: current representatives see all; access follows the current assignment. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O38 | Collective issues: can students support an issue after it is closed for support? Recommended: no; the count is then frozen. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O39 | Collective issues: do non-representative students see the issue's status? Recommended: no; only "Open for support" or "Support closed". Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O40 | Collective issues: who may see which students supported an issue? Recommended: nobody in the interface; counts only. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O41 | Collective issues: drafts or immediate publication? Recommended: no stored drafts; a review step with a required confirmation that the issue will be locked. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O42 | Collective issues: categories? Recommended: none in V1. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O43 | Collective issues: duplicate handling? Recommended: a non-blocking notice listing the cohort's open issues. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O44 | Collective issues: may the Super Admin respond or change status, or is oversight (DEC-247) read-only? Recommended: read-only in V1. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O45 | Collective issues: new assignments or issues for a cohort that includes an inactive batch, semester or section? Recommended: no; existing records stay readable. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O46 | Collective issues: where representatives raise issues and read private responses, given DEC-304's four phone destinations? Recommended: inside Home and the section issues pages reached from it. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O47 | Collective issues: reference format? Recommended: CI-<year>-<5 digits>. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O48 | Collective issues: a limit on how many issues a representative may raise? Recommended: none in V1. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O49 | Collective issues: reopening a Resolved issue, or a Rejected status? Recommended: neither in V1. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O50 | Collective issues: moderation of abusive or wrong content, given that nobody can edit or delete? Recommended: none in V1, recorded as a risk. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O51 | Collective issues: notify the current CR/GR when a BA responds or resolves (not in DEC-270's list)? Recommended: yes, if approved. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
+| O52 | "GR": the Collective Issues brief says "General Representative"; DEC-016 says Girls Representative. Recommended: keep DEC-016 unless the owner changes it. Details: `docs/technical/COLLECTIVE_ISSUES_SPEC.md` section 12. |
