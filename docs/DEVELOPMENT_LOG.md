@@ -12,6 +12,26 @@ Rules:
 
 ---
 
+## 2026-11-18 — Collective Issues V1 product decisions approved
+
+**What was done**
+
+- The owner approved the recommended Collective Issues V1 defaults for O27 (collective issues only) and O36–O54, including the accepted no-moderation limitation (O50) and in-app notifications to current CR/GR after a BA response or resolution (O51).
+- Recorded the approved collective-issue rules as DEC-324 and the additional representative notification event as DEC-325 in `DECISIONS.md`.
+- O27 remains open only for BA routing in Student Voice and meeting requests; the collective-issue routing part is settled.
+- Updated `COLLECTIVE_ISSUES_SPEC.md` to distinguish approved product requirements from the still-unimplemented technical design and to remove the former open-decision blockers from the implementation stages.
+
+**Not done**
+
+- No application code, models, migrations, templates or tests were changed or run. Collective Issues remains unimplemented.
+- No Claude Code implementation task has started.
+
+**Next**
+
+- Begin CI-1 implementation planning against DEC-323 and DEC-324. Preserve the approved rules and the existing global cohort-lock order.
+
+---
+
 ## Status at a glance (2026-11-18)
 
 | Area | Status |

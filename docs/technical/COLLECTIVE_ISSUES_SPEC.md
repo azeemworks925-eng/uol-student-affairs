@@ -1,9 +1,9 @@
 # Collective Issues V1 — specification (CR/GR)
 
-**Status:** Draft for review. **Not approved, not implemented.** Nothing in this document is a product decision until the owner approves it.
+**Status:** Product decisions approved on 2026-11-18 (DEC-323 to DEC-325); **not implemented**. The technical design remains a specification for implementation and review. Product requirements are authoritative as recorded in `DECISIONS.md`.
 **Builds on:** `main` at `0df6dd4` (Complaints Parts 1–4, notifications, academic terms and Super Admin analytics merged).
-**Governing decisions (already CONFIRMED):** DEC-016, DEC-040, DEC-205, DEC-210, DEC-212, DEC-240 to DEC-247, DEC-270, DEC-282, DEC-300 to DEC-304, DEC-307 and **DEC-323** (CR/GR posts: no vacancies once represented; the awaiting-representatives exception) in `docs/decisions/DECISIONS.md`.
-**Open decisions:** section 12. O36 to O54 are registered as OPEN in `DECISIONS.md`; O35 and O55 are resolved by DEC-323. Section 13 lists conflicts between this task's brief and confirmed decisions.
+**Governing decisions (already CONFIRMED):** DEC-016, DEC-040, DEC-205, DEC-210, DEC-212, DEC-240 to DEC-247, DEC-270, DEC-282, DEC-300 to DEC-304, DEC-307, **DEC-323** (CR/GR representation lifecycle), **DEC-324** (Collective Issues V1 product rules) and **DEC-325** (representative response notifications) in `docs/decisions/DECISIONS.md`.
+**Decision traceability:** section 12 records the remaining O27 scope and the resolution of O35, O36–O55. The collective-issue portion of O27 is resolved by DEC-324; O27 remains open for Student Voice and meeting requests. Section 13 records brief differences already settled by confirmed decisions.
 
 Labels used below:
 - **Confirmed (DEC-n):** an approved decision; it must be implemented as written.
@@ -25,9 +25,9 @@ A **collective issue** is a concern raised on behalf of a whole section by its C
 | Student interaction | Add information, "Still not resolved", cancellation request | **Support once**, never withdrawn | None |
 | Staff answer visible to | The student | **The cohort's representatives only** | The student |
 | Statuses | Received, Under Review, Resolved, Rejected | Received, Under Review, Resolved | Not specified |
-| Editing after submission | Original kept; information added | **Locked**: no edit or delete by CR/GR (DEC-242); by staff, proposed none (O54) | — |
+| Editing after submission | Original kept; information added | **Locked**: no edit or delete by anyone (DEC-242, DEC-324) | — |
 
-**In V1 (all Confirmed unless marked):**
+**In V1 (product requirements confirmed):**
 - management of each cohort's CR and GR, with no vacancies (DEC-016, DEC-245; section 5);
 - raising an issue (DEC-040);
 - the section noticeboard on the student Home (DEC-241, DEC-282, DEC-303);
@@ -52,7 +52,7 @@ A **collective issue** is a concern raised on behalf of a whole section by its C
    - a student can support it once, and support can't be withdrawn or changed;
    - CR/GR can support their own issue;
    - there are no student comments.
-7. **Locked once published:** published issues can't be edited or deleted by CR/GR in V1 (DEC-242). The brief adds "no editing or updating" and "the original published record is preserved", and repeats "no deletion by CR/GR". Whether staff may edit or delete is not decided; this specification proposes that nobody may (O54).
+7. **Locked once published:** published issues can't be edited or deleted by CR/GR in V1 (DEC-242). The brief adds "no editing or updating" and "the original published record is preserved", and repeats "no deletion by CR/GR". Staff edit or delete is prohibited in V1 as well (DEC-324).
 8. **The private response** (DEC-243):
    - the BA receives the issue and responds privately to the CR/GR; other students can't see the response;
    - after the advisor responds, the issue disappears from student home pages;
@@ -82,10 +82,10 @@ A **collective issue** is a concern raised on behalf of a whole section by its C
 | See support count | Yes | Yes | No | Yes | No | Yes |
 | See who supported | **No** (O40) | No | No | No (O40) | No | No (O40) |
 | Raise an issue | No | **Yes**, for their own cohort only | No | No | No | No |
-| Edit or delete a published issue | No | No (DEC-242) | No | No (O54) | No | No (O54) |
-| See status | O39 | Yes | No | Yes | No | Yes |
+| Edit or delete a published issue | No | No (DEC-242) | No | No (DEC-324) | No | No (DEC-324) |
+| See status | Only support state | Yes | No | Yes | No | Yes |
 | See the official response and resolution note | **No** (DEC-243) | Yes (O37) | No | Yes | No | Yes |
-| Change status and respond | No | No | No | **Yes** | No | O44 (default: no) |
+| Change status and respond | No | No | No | **Yes** | No | No (DEC-324) |
 | Appoint the cohort's CR and GR (both together), or replace one or both | No | No | No | **Yes** (DEC-245) | No | **Yes** (DEC-245) |
 
 **Inactive cohorts.** In a cohort whose batch, semester or section is inactive, the rows that start something new (raise, support, appoint or replace representatives) are refused; viewing follows the rows above. See section 5.6 (O45).
@@ -330,10 +330,10 @@ Each cohort card (Batch Advisor "Representatives", Super Admin "CR/GR Management
   - If the cohort has fewer than two eligible students, the form explains why appointment isn't possible yet.
 - **History:** a collapsible list of past periods: who, from when, until when, and why it ended.
 
-### 5.6 Inactive academic entries: historical visibility versus new actions (O45)
+### 5.6 Inactive academic entries: historical visibility versus new actions (DEC-324)
 A cohort is **inactive** when its batch, semester or section is inactive. Records are never deleted or hidden because an entry was deactivated (DEC-210). The no-vacancy invariant applies to **active** cohorts only, and representatives are never appointed to inactive cohorts.
 
-| | Cohort active | Cohort inactive (recommended O45 default) |
+| | Cohort active | Cohort inactive |
 |---|---|---|
 | Appoint or replace representatives | Allowed (section 5.2) | **Refused** |
 | A representative is deactivated or moves cohort | Replacement in the same transaction, or refused, or closure (section 5.4) | The current period ends (`student_deactivated` or `cohort_changed`); no replacement is required or possible |
@@ -449,7 +449,7 @@ The review step re-posts the same fields and keeps no server-side draft. Publish
 
 **Duplicates** (O43). Nothing is blocked; separate issues may be similar. The form shows the cohort's issues that are still open for support (reference and title) as a non-blocking notice: "Your section already has these open issues. Supporting one may be better than raising another." This mirrors DEC-225's spirit for complaints. A per-representative rate limit is not proposed (O48).
 
-**Locked after publication.** There is no edit or delete route for CR/GR (DEC-242), and this specification proposes none for anyone else (O54). The issue page says: "Published issues are locked: they can't be edited or removed." Corrections are made by raising a new issue.
+**Locked after publication.** There is no edit or delete route for any role (DEC-242, DEC-324). The issue page says: "Published issues are locked: they can't be edited or removed." Corrections are made by raising a new issue.
 
 ## 7. Student experience
 
@@ -509,7 +509,7 @@ The page lives at `/advisor/collective-issues/` and uses the same split-pane lay
   - the full content and the support count (no supporter identities; O40);
   - the history, newest first;
   - separate panels for the three actions of the table below (no combined form; O53).
-- **Actions** (DEC-243, DEC-244). DEC-244 says the BA "can update the status and provide a short official response". It does not say whether these are one action or two, or whether there may be more than one response. **This is recorded as O53**; the table below is its recommended default. There are three separate actions, and every one is private to the cohort's representatives, BAs and the Super Admin:
+- **Actions** (DEC-243, DEC-244, DEC-324). The approved workflow has three separate actions, and every one is private to the cohort's representatives, BAs and the Super Admin:
 
   | Action | Allowed from | Input | Effect, in one transaction with the issue row locked | Closes support? |
   |---|---|---|---|---|
@@ -529,16 +529,16 @@ The page lives at `/advisor/collective-issues/` and uses the same split-pane lay
   - **support against closure:** the support service also locks the issue row and checks `first_response_at` under the lock. A support committed after the closing action is therefore refused, and the frozen count is exact.
 - **No Rejected status** (DEC-244 lists three statuses).
 - **No delete or edit actions.**
-- **All BAs of the cohort** see and can act on its issues (O27 default; section 12). There is no owner designation for collective issues.
+- **All BAs assigned to the exact cohort** see and can act on its issues (DEC-324). There is no owner designation for collective issues.
 
 ## 9. Super Admin oversight (DEC-247)
 
 ### 9.1 Collective issues
-`/super-admin/collective-issues/` is a department-wide list and issue view, read-only by default (O44).
+`/super-admin/collective-issues/` is a department-wide list and issue view, read-only in V1 (DEC-324).
 - **Filters:** cohort, status, current academic term (reusing `term_window()`), and search.
 - **Issue view:** content, support count and the full history, including private responses (oversight).
 - **No editing or deletion** (immutability).
-- **No moderation or hiding action in V1** (O50).
+- **No moderation or hiding action in V1** (DEC-324). This is an accepted V1 limitation and risk: abusive or incorrect published content cannot be withdrawn from view.
 
 ### 9.2 Representatives (Batch Advisor)
 `/advisor/representatives/` shows the advisor's assigned cohorts and their CR/GR posts (section 5.5).
@@ -555,7 +555,7 @@ All three destinations already exist in the navigation as unavailable entries ("
   - **Content:** title "New issue in your section: <title>" (truncated); destination: the issue page.
   - **Delivery:** created after the publishing transaction commits, through `notifications.services.notify` (one row per recipient; the existing unique constraint per recipient and source prevents duplicates).
   - **Scale:** for one section, a single post-commit loop is enough; a bulk helper may be added to `notifications.services` if it measurably helps.
-- **Proposed, needs approval** (O51): "Response to your section's issue". It would go to the cohort's **current** CR and GR when a BA records a response or resolves an issue. Reason: the issue leaves the noticeboard after a response (DEC-243), and the response is private, so the representatives otherwise have no prompt to look. DEC-270's list doesn't include this event; the default is **not** to add it unless approved.
+- **Confirmed (DEC-325):** "Response to your section's issue" goes to the cohort's **current** CR and GR when a BA sends an official response or resolves an issue. The response is private and the issue leaves the noticeboard after the first response (DEC-243), so this notification alerts the representatives. A resolution sends one notification for that BA action, not a duplicate response notification.
 - **Not proposed:**
   - notifications to BAs or the Super Admin for new issues or support (the workspaces show them, consistent with complaints);
   - notifications for each support;
@@ -564,7 +564,7 @@ All three destinations already exist in the navigation as unavailable entries ("
 ## 11. Explicit exclusions (V1)
 
 - Comments, discussion or chat (DEC-241, DEC-052).
-- Editing or deleting a published issue by CR/GR (DEC-242), and, as proposed, by anyone (O54); drafts stored on the server.
+- Editing or deleting a published issue by anyone (DEC-242, DEC-324); drafts stored on the server.
 - Withdrawing or changing support (DEC-241). The brief asked "if removal is appropriate"; it isn't.
 - Showing supporter identities.
 - Visibility for, or interaction from, other cohorts.
@@ -578,42 +578,39 @@ All three destinations already exist in the navigation as unavailable entries ("
 - Automatic semester promotion of representatives (DEC-021).
 - Changes to complaint behaviour.
 
-## 12. Open decisions
+## 12. Decision traceability
 
-O36 to O54 are registered as OPEN in `DECISIONS.md` section 5.2, each with its recommended default; none is assumed approved. O35 and O55 are listed for traceability and are resolved by DEC-323.
+The following collective-issue product questions were approved by the owner on 2026-11-18 and are recorded as confirmed decisions in `DECISIONS.md`:
 
-| ID | Question | Impact | Recommended default |
-|---|---|---|---|
-| O27 (existing) | Which BA handles a cohort's collective issues when several are assigned? | Routing and responsibility | **All BAs of the exact cohort** see and act on its issues, with no owner designation. This matches DEC-310's principle that all of a cohort's advisors keep their rights. |
-| O35 | No vacant CR/GR posts | — | **Resolved by DEC-323** (owner, 2026-11-18): a represented, eligible cohort can never have a vacant post; departures need an atomic replacement, refusal or the recorded closure case. |
-| O36 | What closes an issue for support and takes it off home pages ("after the advisor responds", DEC-243)? | Noticeboard, support window | **The first official response or the resolution note,** whichever comes first (section 8). A status change to Under Review alone does not close it. |
-| O37 | Do the CR and GR of a cohort see each other's issues and responses, and those raised by a predecessor? Does a former representative keep access? | Privacy of responses | **The current CR and GR see all of the cohort's issues and responses.** Access follows the *current* period; a former representative becomes a normal student again. |
-| O38 | Can students support after the issue is closed for support? | Support counts | **No.** Support is accepted only while the issue is open for support; the count then stays frozen. |
-| O39 | Do non-representative students see the issue's status (Received, Under Review or Resolved)? | Transparency versus DEC-243's privacy | **No.** Students see only "Open for support" or "Support closed". Status, response and note are for the representatives, the cohort's BAs and the Super Admin. |
-| O40 | Who may see *who* supported an issue? | Student privacy | **Nobody in the interface.** Counts only, for everyone. Support rows exist for integrity and are visible to database administrators only. |
-| O41 | Drafts or immediate publication? | Raising experience | **No stored drafts.** A review step with a required confirmation of the lock, then immediate publication. |
-| O42 | Categories for collective issues? | Form, filters | **None in V1.** Title and description only. |
-| O43 | Duplicate handling | Noise on the noticeboard | **A non-blocking notice** listing the cohort's open issues; never block. |
-| O44 | May the Super Admin respond or change status, as for complaints (DEC-228)? | Oversight scope | **Read-only in V1.** DEC-247 grants oversight; DEC-228's power to act is complaint-specific. |
-| O45 | What may happen in a cohort whose batch, semester or section is inactive? | Historical cohorts | **No new appointments, issues or support.** A representative's deactivation or move ends the period without a replacement. BAs may still mark under review, respond and resolve existing issues. All existing records stay readable to those with historical access (section 5.6). |
-| O46 | Where do representatives find their raise and private views, given DEC-304's four phone destinations? | Navigation | **Inside Home** (noticeboard actions) and the section issues pages reached from it. No new destination. |
-| O47 | Reference format | Support and oversight | **`CI-<year>-<5 digits>`,** like complaints. |
-| O48 | A limit on how many issues a representative can raise | Spam versus legitimate use | **None in V1;** revisit if misuse appears. |
-| O49 | Reopening a Resolved issue, or a Rejected status | Workflow | **Neither in V1** (DEC-244 lists three statuses; DEC-242 locks content). |
-| O50 | Moderation of abusive or wrong content, given that nobody can edit or delete | Safety; immutability | **No moderation action in V1.** Record it as a risk. If the owner wants one, it should be a Super Admin "withdraw from view" flag that keeps the record, which is a new decision. |
-| O51 | Notify the current CR/GR when a BA responds or resolves? | Representatives learning of private responses | **Yes, if approved;** otherwise not implemented (section 10). |
-| O53 | DEC-244: are "update the status" and "provide a short official response" one combined action or separate ones, and may there be several responses? | BA workflow, when support closes | **Three separate actions** (section 8): Mark under review (no response needed), Send official response (status unchanged, several allowed until resolved) and Resolve (note required, counts as a response). |
-| O54 | May anyone (BA or Super Admin) edit or delete a published issue? DEC-242 covers only CR/GR. | Immutability, moderation (O50) | **No one,** in V1: no edit or delete route exists. |
-| O52 | "GR" meaning (section 13) | Labels throughout the interface | **Keep DEC-016: Girls Representative.** The interface shows "CR" and "GR" with that expansion in help text. No gender data is recorded or checked; appointing the GR is an administrative judgement. |
-| O55 | Which cohorts must have a CR and a GR | — | **Resolved by DEC-323** (owner, 2026-11-18): the Awaiting-representatives exception before the first appointment and after a recorded closure below two active students is approved. |
+| Item | Approved outcome | Decision |
+|---|---|---|
+| O27 (collective issues only) | All BAs assigned to the exact cohort can see and act on collective issues; no designated owner. O27 remains open for Student Voice and meeting requests. | DEC-324 |
+| O35, O55 | The permitted Awaiting representatives states and no-vacancy lifecycle. | DEC-323 |
+| O36 | First official BA response or resolution note closes support; Under Review alone does not. | DEC-324 |
+| O37 | Current CR and GR see the cohort's full issue and response history, including predecessor issues; former representatives lose representative-only access. | DEC-324 |
+| O38 | Support stops after closure; the count freezes. | DEC-324 |
+| O39 | Non-representative students see only Open for support / Support closed, not detailed status or private responses. | DEC-324 |
+| O40 | Supporter identities are never shown in the interface; counts only. | DEC-324 |
+| O41–O43 | No stored drafts; mandatory review/lock confirmation; no categories; non-blocking duplicate notice. | DEC-324 |
+| O44 | Super Admin oversight is read-only in V1. | DEC-324 |
+| O45 | Inactive cohorts accept no new appointments, issues or support; historical records remain accessible; BAs may still act on existing issues. | DEC-324 |
+| O46 | Representative workflows are reached from Home and section issue pages; no new phone destination. | DEC-324 |
+| O47 | References use `CI-<year>-<5 digits>`. | DEC-324 |
+| O48 | No representative issue-raising limit in V1. | DEC-324 |
+| O49 | No Rejected status or reopening; Resolved is final. | DEC-324 |
+| O50 | No moderation or withdrawal-from-view action in V1; this is an accepted risk. | DEC-324 |
+| O51 | Notify current CR and GR when a BA sends an official response or resolves an issue. | DEC-325 |
+| O52 | GR means Girls Representative, per DEC-016; no gender data is recorded or checked. | DEC-324 |
+| O53 | BA actions are separate—Mark Under Review; Send Official Response (status unchanged, repeatable until resolved); Resolve (mandatory note, counts as a response). | DEC-324 |
+| O54 | No role may edit or delete a published issue in V1. | DEC-324 |
 
 ## 13. Conflicts between the brief and confirmed decisions
 
-These are reported, not resolved. The specification follows the confirmed decisions until the owner decides otherwise.
-1. **"General Representative" vs DEC-016 "Girls Representative".** The brief's title uses "General Representative" (O52).
+These differences between the original brief and confirmed decisions are settled. The specification follows the confirmed decisions; they must not be reopened without a new owner decision.
+1. **"General Representative" vs DEC-016 "Girls Representative".** DEC-016 and DEC-324 retain "Girls Representative".
 2. **Who assigns representatives.** The brief asks how the *Super Admin* assigns CR/GR. DEC-245 also gives this to **Batch Advisors** for their assigned cohorts, and this specification includes both.
 3. **Support removal.** The brief asks about "Support and remove-support behaviour, if removal is appropriate". DEC-241 forbids withdrawal, so there is none.
-4. **Scope of the lock.** DEC-242 forbids editing and deletion *by CR/GR*. The brief says published issues are "permanently locked" with "no editing or updating", repeats "no deletion by CR/GR", and preserves the original record. Neither says whether a BA or the Super Admin may edit or delete. This specification **proposes** that nobody may (O54, open); it is consistent with, and stricter than, DEC-242.
+4. **Scope of the lock.** DEC-242 forbids editing and deletion by CR/GR; DEC-324 confirms that no role may edit or delete a published issue in V1.
 
 ## 14. Security and integrity
 
@@ -689,7 +686,7 @@ These are reported, not resolved. The specification follows the confirmed decisi
     - deactivating a batch or semester leaves existing representation periods unchanged (no closure; O45 and DEC-323 unchanged);
   - two BAs acting on one issue (status against status, response against resolve);
   - support against the closing response.
-- **Notifications:** one per eligible student; not to the raiser, other cohorts or inactive students; none if the transaction rolls back; O51 tests only if approved.
+- **Notifications:** one per current CR/GR for each BA official-response or resolution action (DEC-325); never to the raiser solely by virtue of raising the issue, other cohorts or inactive students; none if the transaction rolls back. Test that a resolution emits one notification, not duplicate response and resolution notifications.
 - **Privacy:** response text, resolution notes and supporter identities are absent from every student page, the student response context and student notifications.
 - **Frontend:**
   - every page and state at 1280×590, 1232×590, 1100×590, 1600×740, 1440×800 and 360px (DEC-307);
@@ -709,26 +706,18 @@ These are reported, not resolved. The specification follows the confirmed decisi
      - the authority checks and the consistency check;
      - **prerequisite:** `academics.services.set_entry_active`, with `AcademicEntryAdmin.save_model` (change form and list-editable saves) rewired to it, so academic active-state changes take the Section locks (section 5.7). There is no model or migration change.
      - the BA "Representatives" and Super Admin "CR/GR Management" pages.
-   - **Needs:** O45 and O52 (O35 and O55 are resolved by DEC-323).
+   - **Needs:** DEC-323 and DEC-324; representation lifecycle and inactive-cohort rules are settled.
    - **Independently useful:** representatives are recorded before issues exist.
 2. **Stage CI-2: raising, the noticeboard and support.**
    - **Contents:** the `collective_issues` app with models, the migration, `visible_issues`, the raise flow with review step, the Home noticeboard, the section issues list and issue pages, support, and the DEC-270 notification.
-   - **Needs:** CI-1, plus O36 to O43, O46 and O47.
+   - **Needs:** CI-1; raising, noticeboard and support rules are settled by DEC-324.
 3. **Stage CI-3: Batch Advisor workspace and Super Admin oversight.**
-   - **Contents:** respond, status with resolution note, the representatives' private views, the Super Admin read-only oversight, and O51 if approved.
-   - **Needs:** CI-2, plus O27, O44, O49, O50, O51, O53 and O54.
+   - **Contents:** respond, status with resolution note, the representatives' private views, Super Admin read-only oversight, and the approved representative response notifications (DEC-325).
+   - **Needs:** CI-2; routing, staff permissions, moderation scope and response notifications are settled by DEC-324 and DEC-325.
 4. **Stage CI-4: acceptance and documentation.** Full regression on both databases, browser acceptance and technical notes.
 
 Each stage adds only additive migrations and changes no existing data. Complaint behaviour is untouched throughout.
 
-## 17. Proposed decision entries (for DECISIONS.md, after approval)
+## 17. Decision record (approved; implementation pending)
 
-**Not approved.** If the owner approves this specification, these become CONFIRMED entries with new DEC numbers. Until then they are tracked as the open items above.
-- **Representation** (beyond DEC-323, which is already confirmed): CR and GR are recorded as history-keeping periods in `accounts`, each naming both posts; every change takes the cohort lock of section 5.7.
-- **Visibility:** collective issues are visible to the issue's exact cohort, its BAs and the Super Admin. Students see title, description, raiser (name and role), date, support count and the support state; status, responses and notes are for representatives, BAs and the Super Admin (O37, O39).
-- **Support:** support is accepted while an issue is open for support, until the first official response or resolution note (O36, O38). Counts only; supporter identities are never shown (O40).
-- **Raising:** a review step with a required lock confirmation, no stored drafts, no categories, and a non-blocking duplicate notice (O41 to O43).
-- **Statuses and actions:** three separate BA actions: Mark under review, Send official response (several allowed) and Resolve (note required, counts as a response). Received → Under Review → Resolved, or Received → Resolved; Resolved is final (O49, O53).
-- **Lock:** nobody edits or deletes a published issue (O54).
-- **Inactive cohorts:** no new appointments, issues or support; a representative's departure ends the period; BAs may still close existing issues; history stays readable (O45).
-- **Super Admin:** read-only oversight in V1 (O44).
+All product decisions formerly listed as open in this specification are recorded in `DECISIONS.md`: DEC-323 (representation lifecycle; O35 and O55), DEC-324 (collective-issue routing and product rules; O27 for collective issues and O36–O50, O52–O54), and DEC-325 (representative response notifications; O51). O27 remains open only for BA routing in Student Voice and meeting requests. The technical design remains subject to implementation review; product approval does not mean the feature has been implemented.
