@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{# Pages for signed-out visitors: the landing page and the sign-in pages share this header and footer. #}
+{% block body_class %}sa-public-body{% endblock %}
+{% block body %}
+<div class="sa-public">
+  <header class="sa-public-head">
+    <a class="sa-wordmark" href="{% url 'home' %}"><small>UOL</small><span>Student Affairs</span></a>
+  </header>
+  {% block main %}{% endblock %}
+  <footer class="sa-public-foot">
+    <p>An independent student project, not an official University of Lahore system.</p>
+  </footer>
+</div>
+{% endblock %}

@@ -1,0 +1,103 @@
+/*
+  Django admin in the portal's Forest style (templates/admin/base_site.html).
+  Maps the admin's own CSS variables to the Forest Light tokens in app.css (DEC-301) and sets Inter.
+  Presentation only. The selectors outrank dark_mode.css, so the admin matches the portal in
+  every colour scheme.
+*/
+@font-face { font-family: "Inter"; font-style: normal; font-weight: 400 600; font-display: swap; src: url("../fonts/Inter-latin-variable.woff2") format("woff2"); }
+@font-face { font-family: "Newsreader"; font-style: normal; font-weight: 400 600; font-display: swap; src: url("../fonts/Newsreader-latin-variable.woff2") format("woff2"); }
+
+html:root, html[data-theme] {
+  color-scheme: light;
+
+  --primary: #176B52;
+  --secondary: #176B52;
+  --accent: #176B52;
+  --primary-fg: #FFFFFF;
+
+  --body-fg: #16201C;
+  --body-bg: #FFFFFF;
+  --body-quiet-color: #55635C;
+  --body-medium-color: #253B32;
+  --body-loud-color: #16201C;
+
+  --header-color: #55635C;
+  --header-branding-color: #253B32;
+  --header-bg: #FFFFFF;
+  --header-link-color: #16201C;
+
+  --breadcrumbs-fg: #55635C;
+  --breadcrumbs-link-fg: #176B52;
+  --breadcrumbs-bg: #EDF2EE;
+
+  --link-fg: #176B52;
+  --link-hover-color: color-mix(in srgb, #176B52 78%, #16201C);
+  --link-selected-fg: #16201C;
+
+  --hairline-color: #DCE8E0;
+  --border-color: #7A8A82;
+
+  --error-fg: #9F2D22;
+  --message-success-bg: #E6F4DF;
+  --message-warning-bg: #FDF1D7;
+  --message-error-bg: #FBEAE8;
+
+  --darkened-bg: #F5F7F5;
+  --selected-bg: #EDF2EE;
+  --selected-row: #EDF2EE;
+
+  --button-fg: #FFFFFF;
+  --button-bg: #176B52;
+  --button-hover-bg: color-mix(in srgb, #176B52 86%, #16201C);
+  --default-button-bg: #176B52;
+  --default-button-hover-bg: color-mix(in srgb, #176B52 78%, #16201C);
+  --close-button-bg: #55635C;
+  --close-button-hover-bg: #16201C;
+  --delete-button-bg: #9F2D22;
+  --delete-button-hover-bg: color-mix(in srgb, #9F2D22 80%, #16201C);
+
+  --object-tools-fg: var(--button-fg);
+  --object-tools-bg: var(--close-button-bg);
+  --object-tools-hover-bg: var(--close-button-hover-bg);
+
+  --font-family-primary: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-family-monospace: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+body { -webkit-font-smoothing: antialiased; }
+
+/* Header: white surface with a hairline, like the portal's sidebar and mobile bar. */
+#header { border-bottom: 1px solid #DCE8E0; }
+#site-name { margin-inline-end: 20px; }
+.sa-admin-wordmark { display: inline-flex; align-items: baseline; gap: 6px; min-height: 44px; text-decoration: none !important; }
+#site-name .sa-admin-wordmark:link, #site-name .sa-admin-wordmark:visited { color: #253B32; }
+.sa-admin-wordmark small { font: 600 10px/1 "Inter", system-ui, sans-serif; letter-spacing: .1em; color: #55635C; }
+.sa-admin-wordmark span { font-family: "Newsreader", Georgia, serif; font-weight: 500; letter-spacing: -.015em; font-size: 21px; line-height: 44px; }
+.sa-admin-wordmark em { font: 500 13px/1 "Inter", system-ui, sans-serif; font-style: normal; color: #55635C; margin-left: 4px; }
+#user-tools { text-transform: none; letter-spacing: 0; font-size: 13px; color: #55635C; }
+#header a.sa-admin-back:link, #header a.sa-admin-back:visited { color: #176B52; font-weight: 600; }
+
+/* Module captions and fieldset headings: calm white bars with a hairline instead of colour blocks. */
+.module h2, .module caption, .inline-group h2,
+fieldset .fieldset-heading, fieldset .inline-heading, :not(.inline-related) .collapse summary {
+  border-bottom: 1px solid #DCE8E0;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+#content h1 { font-family: "Newsreader", Georgia, serif; font-weight: 500; font-size: 1.75rem; letter-spacing: -.01em; color: #253B32; }
+.module, #changelist-filter { border-radius: 10px; }
+.button, input[type=submit], input[type=button], .submit-row input, a.button { border-radius: 8px; }
+:focus-visible { outline: 2px solid #176B52; outline-offset: 2px; }
+#user-tools, #logout-form button { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 400; }
+#user-tools a, #logout-form button { border-bottom: 0; }
+
+/* Changelists below 1366px: the nav sidebar, a 240px filter column and the table do not fit side
+   by side, so the filter becomes a compact row of groups above a full-width table. */
+@media (min-width: 768px) and (max-width: 1365.98px) {
+  #changelist { flex-direction: column; align-items: stretch; }
+  #changelist .changelist-form-container { width: 100%; }
+  #changelist-filter { order: -1; flex: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); align-items: start; gap: 0 12px; margin: 0 0 16px; padding: 4px 6px 8px; }
+  #changelist-filter > h2, #changelist-filter-extra-actions { grid-column: 1 / -1; }
+  #changelist-filter details { border-bottom: 0; }
+  #changelist-filter > h2 { background: transparent; }
+}

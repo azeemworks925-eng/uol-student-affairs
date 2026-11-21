@@ -1,10 +1,10 @@
 {% extends "layouts/auth.html" %}
 {% block title %}Sign-in cancelled · UOL Student Affairs{% endblock %}
 {% block content %}
-  <span class="sa-eyebrow">Sign-in</span>
+  <span class="sa-eyebrow">Sign in</span>
   <h1 class="sa-display">Sign-in cancelled.</h1>
   <div class="panel">
-    <p class="mb-0">You cancelled signing in with Google. Nothing was saved.</p>
+    <p class="mb-0">You closed Google sign-in before it finished. Nothing was changed.</p>
   </div>
-  <p class="note mt-3"><a href="{% url 'account_login' %}">Back to sign in</a></p>
+  <p class="sa-auth-links"><a href="{% url 'account_login' %}">Sign in again</a>{% include "includes/back_home.html" %}</p>
 {% endblock %}

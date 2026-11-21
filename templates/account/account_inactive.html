@@ -1,10 +1,10 @@
 {% extends "layouts/auth.html" %}
 {% block title %}Account inactive · UOL Student Affairs{% endblock %}
 {% block content %}
-  <span class="sa-eyebrow">Sign-in</span>
+  <span class="sa-eyebrow">Sign in</span>
   <h1 class="sa-display">This account is inactive.</h1>
   <div class="panel">
-    <p class="mb-0" role="alert">Your account has been deactivated. Contact the Super Admin if you think this is a mistake.</p>
+    <p class="mb-0" role="alert">Your account has been switched off, so you can't sign in with it right now. If you think this is a mistake, please speak to the Super Admin (the Head of Batch Advisors).</p>
   </div>
-  <p class="note mt-3"><a href="{% url 'account_login' %}">Back to sign in</a></p>
+  <p class="sa-auth-links"><a href="{% url 'account_login' %}">Try a different account</a>{% include "includes/back_home.html" %}</p>
 {% endblock %}

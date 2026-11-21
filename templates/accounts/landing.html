@@ -1,0 +1,58 @@
+{% extends "layouts/public.html" %}
+{# Landing page for signed-out visitors at "/". Signed-in users are sent to their role's home instead. #}
+{% block title %}UOL Student Affairs · Raise and track student concerns{% endblock %}
+{% block main %}
+<main id="main" class="sa-landing" tabindex="-1">
+  <div class="sa-hero-wrap">
+    <section class="sa-hero" aria-labelledby="hero-title">
+      <div>
+        <span class="sa-eyebrow">The University of Lahore · Software Engineering</span>
+        <h1 class="sa-display" id="hero-title">Raise a concern. Follow it through to resolved.</h1>
+        <p class="sa-lede">Your concern goes straight to your Batch Advisor, <span class="soft">and you see every step until it is settled.</span></p>
+      </div>
+      <div class="sa-hero-action">
+        {% include "includes/google_sign_in.html" %}
+        <p class="note">Use your UOL Google account. Students sign in with their SAP ID address; you are taken straight to your own home.</p>
+      </div>
+    </section>
+  </div>
+
+  <section class="sa-how" aria-labelledby="how-title">
+    <h2 class="sa-label" id="how-title">How it works</h2>
+    <ol class="sa-journey sa-journey--steps">
+      <li class="is-done">
+        <span class="step"><span class="dot" aria-hidden="true"></span><b>Submit</b></span>
+        <span class="desc">Describe the concern. It gets a reference ID and goes to your Batch Advisor.</span>
+      </li>
+      <li class="is-done">
+        <span class="step"><span class="dot" aria-hidden="true"></span><b>Track</b></span>
+        <span class="desc">Every status change and reply appears in My Submissions.</span>
+      </li>
+      <li class="is-current">
+        <span class="step"><span class="dot" aria-hidden="true"></span><b>Resolved</b></span>
+        <span class="desc">You see how it was resolved, and can reopen it if it is not.</span>
+      </li>
+    </ol>
+  </section>
+
+  <section class="sa-features" aria-label="What you can do">
+    <ul class="sa-feature-list">
+      <li class="sa-feature">
+        <span class="ic"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-file"/></svg></span>
+        <h2 class="sa-h2">Complaints</h2>
+        <p>Raise an academic, personal or other concern and follow it to a clear outcome.</p>
+      </li>
+      <li class="sa-feature">
+        <span class="ic"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-voice"/></svg></span>
+        <h2 class="sa-h2">Student Voice</h2>
+        <p>Share an idea, ask a question or give feedback to your Batch Advisor.</p>
+      </li>
+      <li class="sa-feature">
+        <span class="ic"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg></span>
+        <h2 class="sa-h2">Meetings</h2>
+        <p>Ask your Batch Advisor for a meeting and see when and where it is.</p>
+      </li>
+    </ul>
+  </section>
+</main>
+{% endblock %}

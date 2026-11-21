@@ -1,9 +1,9 @@
 """
 Role-based navigation for the application shell (DESIGN_PLAN.md section 3; DEC-304, DEC-306).
 
-Destinations whose module has not been built yet are listed with url=None and rendered as
-unavailable, so the information architecture is visible without linking to pages that do
-not exist. Access control is never decided here: views enforce roles (accounts.permissions).
+Destinations whose module has not been built yet stay listed here with url_name=None but are
+not rendered: the shell shows only pages that exist, and an item reappears as soon as its
+url_name is set. Access control is never decided here: views enforce roles (accounts.permissions).
 """
 
 from dataclasses import dataclass
@@ -119,8 +119,9 @@ def navigation(request):
         return {}
     match = getattr(request, "resolver_match", None)
     current = match.view_name if match else None
-    groups = [
-        {"heading": heading, "items": [_resolve(item, current) for item in items]}
-        for heading, items in NAVIGATION[user.role]
-    ]
+    groups = []
+    for heading, items in NAVIGATION[user.role]:
+        built = [_resolve(item, current) for item in items if item.url_name]
+        if built:  # a group with nothing built yet is left out, heading included
+            groups.append({"heading": heading, "items": built})
     return {"sa_nav": groups, "sa_nav_items": [i for g in groups for i in g["items"]]}

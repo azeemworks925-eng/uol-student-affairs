@@ -4,10 +4,11 @@
 {% block content %}
   <span class="sa-eyebrow">Sign out</span>
   <h1 class="sa-display">Sign out of Student Affairs?</h1>
+  <p class="sa-lede">You can sign back in at any time with your UOL Google account.</p>
   <form method="post" action="{% url 'account_logout' %}" class="panel">
     {% csrf_token %}
     {{ redirect_field }}
     <button type="submit" class="btn btn-sa-primary btn-lg w-100">Sign out</button>
   </form>
-  <p class="note mt-3"><a href="{% url 'home' %}">Stay signed in</a></p>
+  <p class="sa-auth-links"><a class="sa-back" href="{% url 'home' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Stay signed in</a></p>
 {% endblock %}
