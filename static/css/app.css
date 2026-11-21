@@ -56,7 +56,7 @@ a { color: var(--sa-accent); text-decoration: none; }
 a:hover { text-decoration: underline; text-underline-offset: 3px; }
 :focus-visible { outline: 2px solid var(--sa-focus); outline-offset: 2px; box-shadow: none !important; }
 #main:focus { outline: none; } /* focused only by the skip link; the content itself is the target */
-.skip-link { position: absolute; left: 12px; top: -48px; z-index: 100; padding: 8px 12px; border-radius: 8px; background: var(--sa-ink); color: #fff; }
+.skip-link { position: absolute; left: 12px; top: -64px; z-index: 1100; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 8px; background: var(--sa-ink); color: #fff; }
 .skip-link:focus { top: 12px; color: #fff; }
 svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
@@ -70,7 +70,8 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
 .sa-small { font-size: 13px; line-height: 18px; }
 
 /* ---------- Primitives ---------- */
-.sa-cohort { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border: 1px solid var(--sa-border-strong); border-radius: 6px; background: var(--sa-surface); color: var(--sa-ink); font: 500 11px/1 var(--sa-mono); white-space: nowrap; }
+/* One line wherever it fits; in a narrow column (the workspace list) it wraps instead of overflowing. */
+.sa-cohort { display: inline-flex; align-items: center; max-width: 100%; min-height: 22px; padding: 4px 8px; border: 1px solid var(--sa-border-strong); border-radius: 6px; background: var(--sa-surface); color: var(--sa-ink); font: 500 11px/1.3 var(--sa-mono); }
 .sa-ref { font: 500 12px/1 var(--sa-mono); color: var(--sa-muted); white-space: nowrap; }
 .sa-ref--inline { font-size: 0.9em; color: inherit; }
 .sa-status { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 999px; font: 500 12px/1 var(--sa-ui); white-space: nowrap; }
@@ -117,13 +118,14 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
 .sa-page { flex: 1 0 auto; width: 100%; max-width: 1120px; margin: 0 auto; padding: clamp(16px, 3vh, 24px) clamp(24px, 3.5vw, 48px) 56px; }
 .sa-page--wide { max-width: 1240px; }
 
-.sa-wordmark { display: flex; align-items: baseline; gap: 6px; color: var(--sa-heading); text-decoration: none !important; }
+/* The 44px line box makes every wordmark a full touch target while UOL stays on the name's baseline. */
+.sa-wordmark { display: flex; align-items: baseline; gap: 6px; min-height: 44px; color: var(--sa-heading); text-decoration: none !important; }
 .sa-wordmark small { font: 600 10px/1 var(--sa-ui); letter-spacing: .1em; color: var(--sa-muted); }
-.sa-wordmark span { font-family: var(--sa-display); font-weight: 500; letter-spacing: -.015em; font-size: 21px; line-height: 1; }
+.sa-wordmark span { font-family: var(--sa-display); font-weight: 500; letter-spacing: -.015em; font-size: 21px; line-height: 44px; }
 
 /* Sidebar with the approved ink active indicator (DEC-301). */
 .sa-sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; padding: clamp(16px, 3vh, 24px) 12px; background: var(--sa-surface); border-right: 1px solid var(--sa-border); }
-.sa-sidebar .sa-wordmark { padding: 4px 12px clamp(14px, 3vh, 24px); }
+.sa-sidebar .sa-wordmark { padding: 0 12px; margin: -8px 0 clamp(4px, 1.6vh, 12px); }
 .sa-nav { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .sa-nav-group { font: 600 11px/16px var(--sa-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--sa-disabled); padding: clamp(12px, 2.4vh, 20px) 12px 6px; }
 .sa-nav-group:first-of-type { padding-top: 0; }
@@ -135,7 +137,7 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
 
 /* Icon rail (Batch Advisor). */
 .sa-rail { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 20px 0; background: var(--sa-surface); border-right: 1px solid var(--sa-border); }
-.sa-rail .sa-rail-mark { font-family: var(--sa-display); font-weight: 500; font-size: 22px; color: var(--sa-heading); margin-bottom: 14px; text-decoration: none !important; }
+.sa-rail .sa-rail-mark { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin-bottom: 4px; font-family: var(--sa-display); font-weight: 500; font-size: 22px; color: var(--sa-heading); text-decoration: none !important; }
 .sa-rail-link { position: relative; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--sa-muted); }
 .sa-rail-link:hover { background: var(--sa-subtle); color: var(--sa-ink); }
 .sa-rail-link[aria-current="page"] { color: var(--sa-ink); background: var(--sa-subtle); }
@@ -165,7 +167,6 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
   .sa-sidebar, .sa-rail { display: none; }
   .sa-page { padding: 0 16px 24px; }
   .sa-mobilebar { position: sticky; top: 0; z-index: 1020; display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 56px; padding: 0 8px 0 16px; background: rgba(245, 247, 245, .94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--sa-border); }
-  .sa-mobilebar .sa-wordmark { padding: 12px 0; }
   .sa-mobilebar .sa-wordmark span { font-size: 19px; }
   .sa-iconbtn { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: transparent; color: var(--sa-ink); }
   .sa-bottomnav { position: sticky; bottom: 0; z-index: 1020; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; height: 64px; padding-bottom: env(safe-area-inset-bottom); background: var(--sa-surface); border-top: 1px solid var(--sa-border); }
@@ -205,7 +206,7 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
 a.sa-quick-item:hover { border-color: var(--sa-border-control); }
 .sa-quick-item .ic { width: 36px; height: 36px; border-radius: 9px; background: var(--sa-subtle); display: flex; align-items: center; justify-content: center; }
 .sa-quick-item b { display: block; font: 600 15px/1.3 var(--sa-ui); }
-.sa-quick-item .d { display: block; font-size: 13px; line-height: 1.3; color: var(--sa-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sa-quick-item .d { display: block; font-size: 13px; line-height: 1.3; color: var(--sa-muted); overflow-wrap: anywhere; }
 .sa-quick-item--primary { background: var(--sa-accent); border-color: var(--sa-accent); color: var(--sa-on-accent); }
 .sa-quick-item--primary .ic { background: rgba(255, 255, 255, .14); }
 .sa-quick-item--primary .d { color: rgba(255, 255, 255, .85); }
@@ -399,7 +400,7 @@ a.sa-status-line:hover { background: var(--sa-subtle); }
 @media (max-width: 767.98px) { .sa-filter-chip-remove { min-height: 44px; } }
 .sa-ws-rows { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--sa-border); }
 .sa-ws-rows li { border-bottom: 1px solid var(--sa-border); }
-.sa-ws-row { position: relative; display: grid; gap: 4px; padding: 12px 10px; color: var(--sa-ink); text-decoration: none !important; border-radius: 8px; }
+.sa-ws-row { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 12px 10px; color: var(--sa-ink); text-decoration: none !important; border-radius: 8px; }
 .sa-ws-row:hover { background: var(--sa-subtle); }
 /* The selected case: ink indicator and weight, never the Forest tint (DEC-301). */
 .sa-ws-row[aria-current="true"] { background: var(--sa-surface); box-shadow: inset 3px 0 0 var(--sa-ink); }
