@@ -2,16 +2,23 @@
 
 import re
 from datetime import datetime
+from unittest import mock
 
 from django.contrib.staticfiles import finders
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from accounts.forms import StudentRegistrationForm
 from accounts.presentation import NOTHING_TO_SHOW, Summary, first_name, greeting, personal_summary
 
-from .helpers import cohort, make_academics, make_advisor, make_student, make_super_admin
+from accounts import navigation, views
+from accounts.models import User
+
+from .helpers import GOOGLE_PROVIDERS, cohort, make_academics, make_advisor, make_student, make_super_admin
+
+FOOTER = "An independent student project, not an official University of Lahore system."
+UNBUILT_WORDING = ("Soon", "not available yet", "Available soon", 'aria-disabled="true"')
 
 
 def section(html, opening):
@@ -61,6 +68,7 @@ class StaticAssetTests(SimpleTestCase):
     def test_self_hosted_assets_are_findable(self):
         for path in [
             "css/app.css",
+            "css/admin-forest.css",
             "fonts/Inter-latin-variable.woff2",
             "fonts/Newsreader-latin-variable.woff2",
             "vendor/bootstrap-5.3.3/bootstrap.min.css",
@@ -94,30 +102,36 @@ class StudentHomeTests(TestCase):
         self.assertContains(self.response, "No updates yet.")
         self.assertContains(self.response, "No open issues in your section.")
 
-    def test_quick_access_lists_three_actions_without_dead_links(self):
+    def test_quick_access_shows_only_built_actions(self):
         quick = section(self.html, '<nav class="sa-quick"')
-        for label in ("Submit a complaint", "Student Voice", "My meetings"):
-            self.assertIn(label, quick)
-        # Only built destinations are links: complaints (Part 2). The others stay unavailable.
+        # Only built destinations appear: complaints (Part 2). Student Voice and meetings are hidden.
         self.assertEqual(re.findall(r'<a [^>]*href="([^"]+)"', quick), [reverse("student_complaint_new")])
-        self.assertEqual(quick.count('aria-disabled="true"'), 2)
+        self.assertIn("Submit a complaint", quick)
+        self.assertIn("Raise a problem with your Batch Advisor", quick)
+        for label in ("Student Voice", "My meetings", *UNBUILT_WORDING):
+            self.assertNotIn(label, quick)
 
-    def test_bottom_navigation_has_exactly_four_destinations(self):
+    def test_quick_access_keeps_unbuilt_actions_for_later(self):
+        labels = [item["label"] for item in views.QUICK_ACCESS]
+        self.assertEqual(labels, ["Submit a complaint", "Student Voice", "My meetings"])
+        built = [dict(item) for item in views.QUICK_ACCESS]
+        built[1]["url_name"] = "student_complaints"  # stands in for the Student Voice page once it exists
+        with mock.patch.object(views, "QUICK_ACCESS", built):
+            self.assertEqual([item["label"] for item in views.quick_access()], ["Submit a complaint", "Student Voice"])
+
+    def test_bottom_navigation_lists_only_built_destinations(self):
         bottom = section(self.html, '<nav class="sa-bottomnav"')
-        items = re.findall(r"<(?:a|span) (?:href|role)=", bottom)
-        self.assertEqual(len(items), 4)
-        for label in ("Home", "Complaints", "Voice", "Meetings"):
-            self.assertIn(label, bottom)
-        self.assertNotIn("More", bottom)
+        self.assertEqual(re.findall(r'<a href="([^"]+)"', bottom), [reverse("student_home"), reverse("student_complaints")])
+        for label in ("Voice", "Meetings", "More", *UNBUILT_WORDING):
+            self.assertNotIn(label, bottom)
 
     def test_active_navigation_is_marked_current(self):
         self.assertRegex(self.html, r'<a class="sa-nav-link" href="/[^"]*" aria-current="page">.*Home</a>')
         self.assertEqual(self.html.count('aria-current="page"'), 2)  # sidebar and bottom navigation
 
-    def test_unbuilt_destinations_are_not_links(self):
-        self.assertIn("Soon", self.html)
-        for label in ("Student Voice", "Meetings"):
-            self.assertNotRegex(self.html, r'<a class="sa-nav-link"[^>]*>.*{}</a>'.format(label))
+    def test_unbuilt_destinations_are_not_rendered(self):
+        for text in ("Student Voice", "Meetings", "My meetings", *UNBUILT_WORDING):
+            self.assertNotIn(text, self.html)
         self.assertRegex(self.html, r'<a class="sa-nav-link" href="{}">.*Complaints</a>'.format(re.escape(reverse("student_complaints"))))
 
     def test_no_staff_drawer_or_other_students(self):
@@ -151,6 +165,14 @@ class AdvisorHomeTests(TestCase):
         self.assertContains(response, "Semester 4 · Section B")
         self.assertRegex(html, r'class="sa-rail-link" href="{}"[^>]*aria-current="page"'.format(reverse("advisor_home")))
 
+    def test_rail_shows_only_built_destinations(self):
+        self.client.force_login(self.advisor)
+        html = self.client.get(reverse("advisor_home")).content.decode()
+        rail = html[html.index('<nav class="sa-rail"'):html.index("</nav>", html.index('<nav class="sa-rail"'))]
+        self.assertEqual(re.findall(r'class="sa-rail-link" href="[^"]+" title="([^"]+)"', rail), ["Overview", "Complaints", "Representatives"])
+        for text in ("Collective Issues", "Student Voice", "Meetings", "Statistics", *UNBUILT_WORDING):
+            self.assertNotIn(text, html)
+
     def test_no_assignments(self):
         self.client.force_login(self.unassigned)
         self.assertContains(self.client.get(reverse("advisor_home")), "No cohorts are assigned to you yet.")
@@ -172,6 +194,14 @@ class SuperAdminHomeTests(TestCase):
         for heading in ("Oversight", "People", "Configuration"):
             self.assertIn(heading, sidebar)
         self.assertNotIn("Statistics", self.html)  # DEC-306
+
+    def test_sidebar_hides_unbuilt_destinations(self):
+        sidebar = self.html[self.html.index('<aside class="sa-sidebar"'):self.html.index("</aside>")]
+        labels = re.findall(r'<a class="sa-nav-link" href="[^"]+"[^>]*>.*?</svg>([^<]+)</a>', sidebar)
+        self.assertEqual(labels, ["Overview", "Complaints", "Students", "Batch Advisors", "CR/GR Management",
+                                  "Academic Structure", "Complaint Categories"])
+        for text in ("Collective Issues", "Calendar", *UNBUILT_WORDING):
+            self.assertNotIn(text, self.html)
 
     def test_manage_links_reach_existing_admin_pages(self):
         for name in ("admin:accounts_studentprofile_changelist", "admin:accounts_user_changelist"):
@@ -312,3 +342,127 @@ class SignInFlowPageTests(TestCase):
         self.assertIn('class="sa-auth-card"', page)
         self.assertIn("<p>Example body</p>", page)
         self.assertNotIn("Menu:", page)
+
+
+class LandingPageTests(TestCase):
+    """The public landing page at "/" (signed-out visitors only)."""
+
+    def test_signed_out_visitors_see_the_landing_page(self):
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "accounts/landing.html")
+        self.assertTemplateUsed(response, "layouts/public.html")
+        for text in ("Raise a concern. Follow it through to resolved.", "How it works", "Submit", "Track",
+                     "Resolved", "Complaints", "Student Voice", "Meetings", FOOTER):
+            self.assertContains(response, text)
+        html = response.content.decode()
+        self.assertEqual(html.count('class="sa-display"'), 1)  # one display-size moment
+        self.assertIn('class="sa-journey sa-journey--steps"', html)  # the status journey look
+        self.assertNotIn('<aside class="sa-sidebar"', html)
+
+    @override_settings(SOCIALACCOUNT_PROVIDERS=GOOGLE_PROVIDERS)
+    def test_sign_in_is_one_csrf_protected_post(self):
+        client = self.client_class(enforce_csrf_checks=True)
+        html = client.get(reverse("home")).content.decode()
+        forms = re.findall(r'<form method="post" action="([^"]+)" class="sa-signin-form">(.*?)</form>', html, re.S)
+        self.assertEqual(len(forms), 1)
+        action, body = forms[0]
+        self.assertEqual(action, reverse("google_login"))
+        self.assertIn('name="csrfmiddlewaretoken"', body)
+        self.assertIn("Sign in with Google", body)
+        self.assertEqual(html.count("btn-sa-primary"), 1)
+        self.assertNotRegex(html, r'<a [^>]*href="{}'.format(re.escape(reverse("google_login"))))
+
+    def test_signed_in_users_still_go_to_their_role_home(self):
+        academics = make_academics()
+        for user, page in ((make_student(academics=academics), "student_home"),
+                           (make_advisor(), "advisor_home"), (make_super_admin(), "super_admin_home")):
+            with self.subTest(role=user.role):
+                self.client.force_login(user)
+                self.assertRedirects(self.client.get(reverse("home")), reverse(page), fetch_redirect_response=False)
+
+
+class PublicAuthPageTests(TestCase):
+    """Sign-in and refusal pages share the landing page's header and footer and link back to it."""
+
+    def assert_public_page(self, response):
+        self.assertTemplateUsed(response, "layouts/public.html")
+        self.assertContains(response, FOOTER, status_code=response.status_code)
+        self.assertContains(response, f'<a class="sa-wordmark" href="{reverse("home")}">', status_code=response.status_code)
+
+    def test_sign_in_page_links_back_to_the_landing_page(self):
+        response = self.client.get(reverse("account_login"))
+        self.assert_public_page(response)
+        self.assertContains(response, "Back to the home page")
+
+    def test_refusal_pages_offer_a_way_back(self):
+        for url_name, status in (("account_inactive", 200), ("socialaccount_login_cancelled", 200),
+                                 ("socialaccount_login_error", 401)):
+            with self.subTest(page=url_name):
+                response = self.client.get(reverse(url_name))
+                self.assertEqual(response.status_code, status)
+                self.assert_public_page(response)
+                self.assertContains(response, "Back to the home page", status_code=status)
+                self.assertContains(response, f'href="{reverse("account_login")}"', status_code=status)
+
+    def test_sign_in_denied_page(self):
+        from django.template.loader import render_to_string
+        from django.test import RequestFactory
+
+        request = RequestFactory().get("/")
+        request.user = make_student()
+        page = render_to_string("accounts/sign_in_denied.html", {"reason": "Use your UOL Google account."}, request)
+        self.assertIn("We couldn't sign you in.", page)
+        self.assertIn("Use your UOL Google account.", page)
+        self.assertIn("Back to the home page", page)
+        self.assertIn(FOOTER, page)
+
+
+class NavigationDataTests(TestCase):
+    """Unbuilt destinations stay in the navigation data and appear as soon as their url_name is set."""
+
+    def test_unbuilt_items_stay_in_the_data(self):
+        unbuilt = {role: [item.label for _, items in groups for item in items if not item.url_name]
+                   for role, groups in navigation.NAVIGATION.items()}
+        self.assertEqual(unbuilt[User.Role.STUDENT], ["Student Voice", "Meetings"])
+        self.assertEqual(unbuilt[User.Role.BATCH_ADVISOR], ["Collective Issues", "Student Voice", "Meetings", "Statistics"])
+        self.assertEqual(unbuilt[User.Role.SUPER_ADMIN], ["Collective Issues", "Calendar"])
+
+    def test_an_item_reappears_when_its_url_name_is_set(self):
+        heading, items = navigation.NAVIGATION[User.Role.STUDENT][0]
+        # "student_complaints" stands in for the Meetings page once it exists.
+        built = [navigation.NavItem(i.label, i.icon, "student_complaints") if i.label == "Meetings" else i for i in items]
+        self.client.force_login(make_student(academics=make_academics()))
+        with mock.patch.dict(navigation.NAVIGATION, {User.Role.STUDENT: [(heading, built)]}):
+            html = self.client.get(reverse("student_home")).content.decode()
+        self.assertIn("Meetings", html)
+        self.assertNotIn("Student Voice", html)
+
+    def test_groups_with_nothing_built_are_left_out(self):
+        groups = [("Later", [navigation.NavItem("Collective Issues", "hand")]), *navigation.NAVIGATION[User.Role.SUPER_ADMIN]]
+        self.client.force_login(make_super_admin())
+        with mock.patch.dict(navigation.NAVIGATION, {User.Role.SUPER_ADMIN: groups}):
+            html = self.client.get(reverse("super_admin_home")).content.decode()
+        self.assertNotIn("Later", html)
+        self.assertIn("Oversight", html)
+
+
+class AdminForestStyleTests(TestCase):
+    """The Django admin wears the portal's wordmark and Forest styles; its behaviour is unchanged."""
+
+    def setUp(self):
+        self.client.force_login(make_super_admin())
+
+    def test_admin_pages_have_wordmark_back_link_and_forest_css(self):
+        for url in (reverse("admin:index"), reverse("admin:accounts_studentprofile_changelist"),
+                    reverse("admin:app_list", kwargs={"app_label": "academics"}),
+                    reverse("admin:academics_academicterm_changelist")):
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                self.assertTemplateUsed(response, "admin/base_site.html")
+                self.assertContains(response, 'class="sa-admin-wordmark"')
+                self.assertContains(response, f'<a class="sa-admin-back" href="{reverse("home")}">Back to portal</a>')
+                self.assertContains(response, "css/admin-forest.css")
+                self.assertContains(response, f'action="{reverse("admin:logout")}"')
+                self.assertNotContains(response, "Django administration")

@@ -54,7 +54,8 @@ class RoleAccessTests(TestCase):
                 self.assertEqual(self.client.post(reverse("advisor_home"), params).status_code, 403)
 
     def test_anonymous_users_are_sent_to_sign_in(self):
-        for page in [*ROLE_PAGES.values(), "home"]:
+        # "home" is the public landing page for signed-out visitors (accounts.tests.test_frontend).
+        for page in ROLE_PAGES.values():
             with self.subTest(page=page):
                 response = self.client.get(reverse(page))
                 self.assertEqual(response.status_code, 302)
