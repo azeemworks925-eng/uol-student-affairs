@@ -131,9 +131,6 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
 .sa-nav-link:hover { background: var(--sa-subtle); color: var(--sa-ink); }
 .sa-nav-link[aria-current="page"] { color: var(--sa-ink); font-weight: 600; }
 .sa-nav-link[aria-current="page"]::before { content: ""; position: absolute; left: -12px; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--sa-ink); }
-.sa-nav-link[aria-disabled="true"] { color: var(--sa-disabled); cursor: default; }
-.sa-nav-link[aria-disabled="true"]:hover { background: transparent; color: var(--sa-disabled); }
-.sa-nav-link .soon { margin-left: auto; font: 500 11px/1 var(--sa-ui); color: var(--sa-disabled); }
 @media (max-height: 640px) { .sa-nav-link { min-height: 36px; } }
 
 /* Icon rail (Batch Advisor). */
@@ -143,8 +140,6 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
 .sa-rail-link:hover { background: var(--sa-subtle); color: var(--sa-ink); }
 .sa-rail-link[aria-current="page"] { color: var(--sa-ink); background: var(--sa-subtle); }
 .sa-rail-link[aria-current="page"]::before { content: ""; position: absolute; left: -14px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--sa-ink); }
-.sa-rail-link[aria-disabled="true"] { color: var(--sa-disabled); cursor: default; }
-.sa-rail-link[aria-disabled="true"]:hover { background: transparent; }
 
 /* Account menu (sidebar foot, rail foot, mobile header). */
 .sa-account { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--sa-border); }
@@ -173,11 +168,10 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
   .sa-mobilebar .sa-wordmark { padding: 12px 0; }
   .sa-mobilebar .sa-wordmark span { font-size: 19px; }
   .sa-iconbtn { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: transparent; color: var(--sa-ink); }
-  .sa-bottomnav { position: sticky; bottom: 0; z-index: 1020; display: grid; grid-template-columns: repeat(4, 1fr); height: 64px; padding-bottom: env(safe-area-inset-bottom); background: var(--sa-surface); border-top: 1px solid var(--sa-border); }
-  .sa-bottomnav a, .sa-bottomnav span { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font: 500 11px/1 var(--sa-ui); color: var(--sa-muted); text-decoration: none !important; }
+  .sa-bottomnav { position: sticky; bottom: 0; z-index: 1020; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; height: 64px; padding-bottom: env(safe-area-inset-bottom); background: var(--sa-surface); border-top: 1px solid var(--sa-border); }
+  .sa-bottomnav a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font: 500 11px/1 var(--sa-ui); color: var(--sa-muted); text-decoration: none !important; }
   .sa-bottomnav [aria-current="page"] { color: var(--sa-ink); font-weight: 600; }
   .sa-bottomnav [aria-current="page"]::after { content: ""; width: 4px; height: 4px; margin-top: -1px; border-radius: 50%; background: var(--sa-ink); }
-  .sa-bottomnav [aria-disabled="true"] { color: var(--sa-disabled); }
 }
 
 /* ---------- Auth pages (sign in, registration, refusal) ---------- */
@@ -206,9 +200,6 @@ a.sa-quick-item:hover { border-color: var(--sa-border-control); }
 .sa-quick-item--primary { background: var(--sa-accent); border-color: var(--sa-accent); color: var(--sa-on-accent); }
 .sa-quick-item--primary .ic { background: rgba(255, 255, 255, .14); }
 .sa-quick-item--primary .d { color: rgba(255, 255, 255, .85); }
-.sa-quick-item[aria-disabled="true"] { background: var(--sa-surface); border-color: var(--sa-border); border-style: dashed; color: var(--sa-muted); }
-.sa-quick-item[aria-disabled="true"] .ic { background: var(--sa-subtle); }
-.sa-quick-item[aria-disabled="true"] .d { color: var(--sa-muted); }
 .sa-section { padding-top: var(--sa-gap-section); }
 .sa-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
 .sa-board { margin-top: var(--sa-gap-section); padding-top: var(--sa-gap-section); border-top: 1px solid var(--sa-border); }

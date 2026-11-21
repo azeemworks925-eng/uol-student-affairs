@@ -14,11 +14,7 @@
     </div>
     <nav class="sa-quick" aria-label="Quick access">
       {% for item in quick_access %}
-        {% if item.url %}
-          <a class="sa-quick-item{% if item.primary %} sa-quick-item--primary{% endif %}" href="{{ item.url }}"><span class="ic"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></span><span><b>{{ item.label }}</b><span class="d">{{ item.description }}</span></span><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>
-        {% else %}
-          <span class="sa-quick-item" role="link" aria-disabled="true"><span class="ic"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></span><span><b>{{ item.label }}</b><span class="d">Available soon</span></span><span></span></span>
-        {% endif %}
+        <a class="sa-quick-item{% if item.primary %} sa-quick-item--primary{% endif %}" href="{{ item.url }}"><span class="ic"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></span><span><b>{{ item.label }}</b><span class="d">{{ item.description }}</span></span><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>
       {% endfor %}
     </nav>
   </section>
@@ -44,7 +40,7 @@
   {% else %}
   <div class="sa-empty">
     <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
-    <div><p class="title">No updates yet.</p><p class="sa-muted sa-small">Replies to your complaints, answers in Student Voice and meeting changes will appear here.</p></div>
+    <div><p class="title">No updates yet.</p><p class="sa-muted sa-small">Replies and status changes on your complaints will appear here.</p></div>
   </div>
   {% endif %}
 </section>

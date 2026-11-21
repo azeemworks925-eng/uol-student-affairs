@@ -63,8 +63,8 @@ def cohort_label(batch, semester, section):
     return f"{batch} · {semester} · {section}"
 
 
-# Quick Access: three separate actions (DEC-282, DEC-303). A destination stays unavailable
-# (url_name None) until its module is built, so nothing links to a page that does not exist.
+# Quick Access: three separate actions (DEC-282, DEC-303). An action whose module is not built
+# yet keeps url_name None and is not shown; it appears once its url_name is set.
 QUICK_ACCESS = [
     {"label": "Submit a complaint", "description": "Raise a problem with your Batch Advisor", "icon": "plus", "url_name": "student_complaint_new", "primary": True},
     {"label": "Student Voice", "description": "An idea, a question or feedback", "icon": "voice", "url_name": None},
@@ -73,7 +73,7 @@ QUICK_ACCESS = [
 
 
 def quick_access():
-    return [{**item, "url": reverse(item["url_name"]) if item["url_name"] else None} for item in QUICK_ACCESS]
+    return [{**item, "url": reverse(item["url_name"])} for item in QUICK_ACCESS if item["url_name"]]
 
 
 @student_required
