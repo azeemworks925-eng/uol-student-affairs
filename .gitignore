@@ -32,3 +32,6 @@ htmlcov/
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Local demo session script (never commit)
+create_demo_sessions.py
