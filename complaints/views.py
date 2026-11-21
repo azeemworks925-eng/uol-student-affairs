@@ -9,6 +9,8 @@ Views stay thin:
 - the student and the cohort always come from the signed-in account, never from the form.
 """
 
+from urllib.parse import urlencode
+
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
@@ -22,6 +24,7 @@ from accounts.permissions import student_required
 from . import services
 from .forms import CancellationRequestForm, ComplaintSubmissionForm, FurtherInformationForm, StillNotResolvedForm
 from .models import Complaint, ComplaintCategory
+from .ordering import DEFAULT_SORT, STUDENT_SORTS, clean_sort, sort_complaints
 from .permissions import get_visible_complaint, visible_complaints
 from .presentation import has_cancellation_request, status_journey, status_tone, student_timeline
 
@@ -88,10 +91,12 @@ def complaint_list(request):
     status = request.GET.get("status", "")
     if status not in Status.values:
         status = ""
+    sort = clean_sort(request.GET.get("sort"), STUDENT_SORTS)
     own = visible_complaints(request.user)
     complaints = own.filter(status=status) if status else own
-    complaints = complaints.annotate(last_activity=Max("events__created_at"), event_count=Count("events"))
-    page = Paginator(complaints.order_by("-created_at", "-id"), PAGE_SIZE).get_page(request.GET.get("page"))
+    complaints = complaints.annotate(last_activity=Max("events__created_at"), event_count=Count("events")).order_by()
+    # Filtered in the database, merge-sorted in Python (dsa.sorting), then paginated.
+    page = Paginator(sort_complaints(list(complaints), sort), PAGE_SIZE).get_page(request.GET.get("page"))
     for complaint in page:
         complaint.tone = status_tone(complaint.status)
     total = own.count()
@@ -100,6 +105,11 @@ def complaint_list(request):
         "page": page,
         "status": status,
         "filters": [("", "All")] + list(Status.choices),
+        "sort": sort,
+        "sorts": STUDENT_SORTS,
+        # Query strings that keep the other choice: sort for the status links, both for pages.
+        "sort_query": urlencode({"sort": sort}) if sort != DEFAULT_SORT else "",
+        "list_query": urlencode([(k, v) for k, v in (("status", status), ("sort", sort if sort != DEFAULT_SORT else "")) if v]),
         "total": total,
         "open_count": open_count,
     })

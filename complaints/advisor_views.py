@@ -19,6 +19,16 @@ def workspace_view(request, reference=None):
 
 
 @batch_advisor_required
+def go_to_reference(request):
+    return workspace.go_to_reference(request, ADVISOR)
+
+
+@batch_advisor_required
+def next_complaint(request):
+    return workspace.next_complaint(request, ADVISOR)
+
+
+@batch_advisor_required
 @require_POST
 def respond(request, reference):
     return workspace.respond(request, ADVISOR, reference)

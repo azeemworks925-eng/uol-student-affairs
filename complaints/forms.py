@@ -11,6 +11,7 @@ from django import forms
 from accounts.forms import AccessibleErrorsMixin
 
 from .models import TEXT_LIMIT, Complaint, ComplaintCategory, ComplaintSubcategory
+from .ordering import STAFF_SORTS
 from .services import NOTE_REQUIRED, STAFF_TRANSITIONS, eligible_advisors
 
 TITLE_LIMIT = Complaint._meta.get_field("title").max_length
@@ -178,7 +179,7 @@ class ComplaintListFilterForm(forms.Form):
     gets the spec's exact status list and an owner filter (pass `owners`), and in Stage 4a an
     academic-term filter (pass `terms`)."""
 
-    SORTS = [("activity", "Latest activity"), ("newest", "Newest submitted")]
+    SORTS = STAFF_SORTS  # merge-sorted in Python (complaints.ordering)
     OPEN = "open"
     UNASSIGNED = "unassigned"
 

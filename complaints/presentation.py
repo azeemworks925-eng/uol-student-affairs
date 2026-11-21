@@ -9,6 +9,11 @@ while O27 is open.
 
 from dataclasses import dataclass
 
+from django.urls import reverse
+
+from dsa.sorting import merge_sort
+from notifications.models import Notification
+
 from .models import Complaint, ComplaintEvent
 
 Status = Complaint.Status
@@ -153,3 +158,54 @@ def status_journey(complaint):
         }
         for index, step in enumerate(steps)
     ]
+
+
+# --- Student Home: "Your latest updates" ---------------------------------------------------------
+
+STUDENT_UPDATE_KINDS = (Kind.STATUS_CHANGED, Kind.RESPONSE)  # the two events that notify (DEC-270)
+HOME_UPDATE_LIMIT = 5
+
+
+@dataclass(frozen=True)
+class StudentUpdate:
+    reference: str
+    complaint_title: str
+    headline: str  # the full sentence, used by the personal summary
+    label: str  # the row title next to the reference
+    status: str
+    status_label: str
+    tone: str
+    when: object
+    url: str
+    is_new: bool  # its notification is still unread
+
+
+def student_updates(student, limit=HOME_UPDATE_LIMIT):
+    """The student's latest staff updates on their own complaints: status changes and responses,
+    newest first (merge sort, dsa.sorting). An update is "new" while its notification is unread."""
+    events = list(
+        ComplaintEvent.objects.filter(complaint__student=student, kind__in=STUDENT_UPDATE_KINDS)
+        .exclude(actor=student).select_related("complaint").order_by()
+    )
+    latest = merge_sort(events, key=lambda e: (e.created_at, e.pk), reverse=True)[:limit]
+    unread = set(
+        Notification.objects.filter(
+            recipient=student, source_type=ComplaintEvent._meta.label_lower,
+            source_id__in=[event.pk for event in latest], read_at__isnull=True,
+        ).values_list("source_id", flat=True)
+    )
+    updates = []
+    for event in latest:
+        complaint = event.complaint
+        if event.kind == Kind.STATUS_CHANGED:
+            status, headline = event.to_status, f"{complaint.reference} is now {event.get_to_status_display()}."
+            label = f"Status changed to {event.get_to_status_display()}"
+        else:
+            status, headline = complaint.status, f"New response on {complaint.reference}."
+            label = "New response from staff"
+        updates.append(StudentUpdate(
+            reference=complaint.reference, complaint_title=complaint.title, headline=headline, label=label,
+            status=status, status_label=Status(status).label, tone=status_tone(status), when=event.created_at,
+            url=reverse("student_complaint_detail", args=[complaint.reference]), is_new=event.pk in unread,
+        ))
+    return updates

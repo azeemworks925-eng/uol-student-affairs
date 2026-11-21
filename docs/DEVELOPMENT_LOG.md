@@ -12,7 +12,37 @@ Rules:
 
 ---
 
-## 2026-11-18 — Collective Issues CI-1: cohort representation (awaiting review)
+## 2026-11-22 — Complaints, finished: DSA in the complaint features (awaiting review)
+
+Branch `feat/complaints-complete`, created from `main` at `efec6f2`. **It is not merged.** This is the DSA course-project slice for the teacher demo on 2026-11-26. It adds no migrations and no dependencies.
+
+**What was done**
+
+- **`dsa/` package** (plain Python, hand-written, rules and complexity table in `dsa/README.md`):
+  - merge sort (stable, also in reverse);
+  - a hash table with separate chaining (its own string hash, and a resize above load factor 0.75);
+  - a trie;
+  - a binary min-heap.
+
+  Unit tests check edge cases and 200 random cases each against Python built-ins.
+- **Wired into complaints** (`complaints/ordering.py`):
+  - **Sorting (merge sort):** the Batch Advisor, Super Admin and My Submissions lists are filtered in the database, then merge-sorted, then paginated. The options are Latest activity (the default), Newest, Oldest, Status (in workflow order), Category, and Cohort (staff only). Ties fall back to latest activity, using stability. My Submissions previously defaulted to Newest; it now defaults to Latest activity.
+  - **"Go to reference" (hash table):** in both staff workspaces. The table is built from the complaints the user can already see. A reference that isn't found gets a friendly message.
+  - **Staff search (trie):** a trie of student full names, each word of a name, and SAP IDs, built from the students behind the visible complaints. Reference search, and title search for the Super Admin, are unchanged. Name matching is now by prefix (of the full name or of any word), not by substring.
+  - **"Next complaint" (min-heap):** Batch Advisor only. It opens the oldest complaint still Received or Under Review in the advisor's cohorts, or says "All caught up". This is a factual ordering by submission time, not a "needs a response" label (DEC-312).
+- **Student Home:** the student's 5 latest staff updates (status changes and responses), newest first. Each has a status pill, a time, a link, and a text "New" badge while its notification is unread. They feed the existing personal summary.
+- **Batch Advisor Overview:** each cohort card shows the open complaints, the complaints resolved in the last 7 days and the total. The stale wording is fixed. "Last 7 days" was chosen over "this week" so the number doesn't reset on Monday.
+- **`manage.py seed_demo`:**
+  - DEBUG only, and safe to run again;
+  - keeps the existing demo accounts and the demo batch, and restores the batch name's em dash, which had been saved as "?";
+  - adds a current term, sections DEMO-A and DEMO-B with 6 students each, a second advisor, assignments, and 15 complaints across all categories and statuses.
+
+  Every complaint action goes through `complaints.services`; only the clock is simulated, to spread the dates.
+
+**Verification** (local runs)
+
+- See PR for the test counts.
+- The pages were checked in headless Chrome at six viewports, including 1280×590 and 360px.
 
 Branch `feat/collective-issues-ci-1-representation`, created from `main` at `a0e2427`, submitted as PR #23. **It is awaiting independent review and is not merged.** CI-2 to CI-4 are not implemented. Specification: `COLLECTIVE_ISSUES_SPEC.md` sections 4.2, 5 and 9.2–9.3. Decisions: DEC-016, DEC-212, DEC-245, DEC-323 and DEC-324 (the approved Collective Issues V1 product rules). The one-post-per-student rule it enforces is DEC-240.
 
@@ -91,8 +121,8 @@ Branch `feat/collective-issues-ci-1-representation`, created from `main` at `a0e
 | Authentication and account foundation | Merged into `main` through PR #3 (merge commit `df47133`). Google sign-in is tested with simulated Google responses only; it has **not** been verified with a real UOL Google account. |
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O30 and O34; O25 is resolved by DEC-315. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. |
-| Complaints | Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`); Stage 3 (in-app notifications) through PR #16 (`d857d27`). Stage 4a (academic terms and the Super Admin term filter) through PR #18 (`1809730`). Stage 4b (analytics) is specified (COMPLAINTS_PART4_SPEC.md section 6, DEC-316 to DEC-322; PR #19, `b7d48a9`) and implemented on branch `feat/super-admin-analytics`, awaiting review. Stage 5 (final acceptance) is not started. |
-| Other product features | Collective issues: Stage CI-1 (CR/GR cohort representation) on branch `feat/collective-issues-ci-1-representation`, awaiting review; CI-2 to CI-4 (issues, support, Batch Advisor workspace) not implemented. Student Voice and meetings are not implemented. |
+| Complaints | "Complaints, finished" (DSA-backed sorting, Go to reference, trie search, Next complaint, Student Home updates, Overview counts, `seed_demo`) on branch `feat/complaints-complete`, awaiting review. Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`); Stage 3 (in-app notifications) through PR #16 (`d857d27`). Stage 4a (academic terms and the Super Admin term filter) through PR #18 (`1809730`). Stage 4b (analytics) is specified (COMPLAINTS_PART4_SPEC.md section 6, DEC-316 to DEC-322; PR #19, `b7d48a9`) and merged through PR #20 (`0df6dd4`). Stage 5 (final acceptance) is not started. |
+| Other product features | Collective issues: Stage CI-1 (CR/GR cohort representation) merged through PR #23 (`efec6f2`); CI-2 to CI-4 (issues, support, Batch Advisor workspace) not implemented. Student Voice and meetings are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
 
 ---

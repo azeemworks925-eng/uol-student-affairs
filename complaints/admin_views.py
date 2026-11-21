@@ -21,6 +21,11 @@ def workspace_view(request, reference=None):
 
 
 @super_admin_required
+def go_to_reference(request):
+    return workspace.go_to_reference(request, SUPER_ADMIN)
+
+
+@super_admin_required
 @require_POST
 def respond(request, reference):
     return workspace.respond(request, SUPER_ADMIN, reference)
