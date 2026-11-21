@@ -1,0 +1,29 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+{% comment %}
+  The Django admin in the portal's Forest style: wordmark, "Back to portal" and the colour and type
+  mapping in css/admin-forest.css. Presentation only: every admin view, form and permission is unchanged.
+  The theme toggle is not shown because the Forest palette applies in every colour scheme.
+{% endcomment %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | UOL Student Affairs administration{% endblock %}
+
+{# extrahead follows every admin stylesheet (pages add theirs in extrastyle), so these rules win ties. #}
+{% block extrahead %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin-forest.css' %}">{% endblock %}
+
+{% block branding %}
+<div id="site-name"><a class="sa-admin-wordmark" href="{% url 'admin:index' %}"><small>UOL</small><span>Student Affairs</span><em>Administration</em></a></div>
+{% endblock %}
+
+{% block userlinks %}
+  <a class="sa-admin-back" href="{% url 'home' %}">{% translate 'Back to portal' %}</a> /
+  {% if user.has_usable_password %}
+  <a href="{% url 'admin:password_change' %}">{% translate 'Change password' %}</a> /
+  {% endif %}
+  <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+    {% csrf_token %}
+    <button type="submit">{% translate 'Log out' %}</button>
+  </form>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
