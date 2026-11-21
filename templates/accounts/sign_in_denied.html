@@ -1,10 +1,10 @@
 {% extends "layouts/auth.html" %}
 {% block title %}Sign-in not allowed · UOL Student Affairs{% endblock %}
 {% block content %}
-  <span class="sa-eyebrow">Sign-in</span>
-  <h1 class="sa-display">Sign-in not allowed.</h1>
+  <span class="sa-eyebrow">Sign in</span>
+  <h1 class="sa-display">We couldn't sign you in.</h1>
   <div class="panel">
     <p class="mb-0" role="alert">{{ reason }}</p>
   </div>
-  <p class="note mt-3"><a href="{% url 'account_login' %}">Back to sign in</a></p>
+  <p class="sa-auth-links"><a href="{% url 'account_login' %}">Try a different account</a>{% include "includes/back_home.html" %}</p>
 {% endblock %}

@@ -1,0 +1,17 @@
+{% load socialaccount %}
+{# The one sign-in action: a CSRF-protected POST that starts Google sign-in (SOCIALACCOUNT_LOGIN_ON_GET is off). #}
+{% get_providers as providers %}
+{% if providers %}
+  <form method="post" action="{% provider_login_url 'google' %}" class="sa-signin-form">
+    {% csrf_token %}
+    {% if redirect_field_value %}
+      <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+    {% endif %}
+    <button type="submit" class="btn btn-sa-primary btn-lg sa-google"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-google"/></svg>Sign in with Google</button>
+  </form>
+{% else %}
+  <div class="sa-signin-off">
+    <p class="mb-0"><b>Google sign-in is not configured on this server.</b></p>
+    <p class="note">An administrator needs to add the Google OAuth client to the server's settings.</p>
+  </div>
+{% endif %}

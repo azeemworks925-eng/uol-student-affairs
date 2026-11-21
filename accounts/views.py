@@ -28,9 +28,10 @@ ROLE_HOME_URL_NAMES = {
 
 
 def home(request):
-    """Direct each user to their role's area. There is no role selector (DEC-200)."""
+    """Signed-out visitors see the landing page; everyone else goes to their role's area.
+    There is no role selector (DEC-200)."""
     if not request.user.is_authenticated:
-        return redirect("account_login")
+        return render(request, "accounts/landing.html")
     return redirect(ROLE_HOME_URL_NAMES[request.user.role])
 
 

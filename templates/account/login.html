@@ -1,25 +1,13 @@
 {% extends "layouts/auth.html" %}
-{% load socialaccount %}
 {# The single shared sign-in page for every role (DEC-010, DEC-200). #}
 {% block title %}Sign in · UOL Student Affairs{% endblock %}
 {% block content %}
-  <span class="sa-eyebrow">Students, Batch Advisors and the Super Admin</span>
+  <span class="sa-eyebrow">Sign in</span>
   <h1 class="sa-display">Sign in with your UOL Google account.</h1>
-  <p class="sa-lede">One sign-in for everyone. You will be taken to the right place for your role.</p>
+  <p class="sa-lede">One sign-in for everyone. <span class="soft">Students, Batch Advisors and the Super Admin are each taken straight to their own home.</span></p>
   <div class="panel">
-    {% get_providers as providers %}
-    {% if providers %}
-      <form method="post" action="{% provider_login_url 'google' %}">
-        {% csrf_token %}
-        {% if redirect_field_value %}
-          <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
-        {% endif %}
-        <button type="submit" class="btn btn-sa-primary btn-lg sa-google"><svg class="sa-i" aria-hidden="true"><use href="#i-google"/></svg>Sign in with Google</button>
-      </form>
-      <p class="note">Students use their SAP ID address at @student.uol.edu.pk. Batch Advisor accounts are created by the Super Admin.</p>
-    {% else %}
-      <p class="mb-0"><b>Google sign-in is not configured on this server.</b></p>
-      <p class="note">An administrator needs to add the Google OAuth client to the server's settings.</p>
-    {% endif %}
+    {% include "includes/google_sign_in.html" %}
+    <p class="note">Students use their SAP ID address, for example 12345678@student.uol.edu.pk. Batch Advisor accounts are set up by the Super Admin.</p>
   </div>
+  <p class="sa-auth-links">{% include "includes/back_home.html" %}</p>
 {% endblock %}
