@@ -3,6 +3,7 @@
   <span class="sa-eyebrow">Complaints</span>
   {% if complaint %}<h2 class="sa-ws-title" id="ws-list-title">{% if workspace.department_wide %}Department{% else %}Your cohorts{% endif %}</h2>{% else %}<h1 class="sa-ws-title" id="ws-list-title">{% if workspace.department_wide %}Department{% else %}Your cohorts{% endif %}</h1>{% endif %}
   {% if has_assignments %}<p class="sa-ws-headline">{{ headline }}</p>{% endif %}
+  {% if can_take_next %}<a class="btn btn-sa-primary btn-sm sa-ws-next" href="{% url urls.next %}">Next complaint<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>{% endif %}
 </header>
 
 {% if not has_assignments %}
@@ -39,6 +40,13 @@
       {% if has_filters %}<a class="btn btn-sa-secondary btn-sm" href="{% url urls.list %}">Clear filters</a>{% endif %}
     </div>
   </details>
+</form>
+<form method="get" action="{% url urls.go %}" class="sa-ws-goto">
+  <label class="sa-ws-goto-label" for="ws-goto-ref">Go to reference</label>
+  <div class="sa-ws-search-row">
+    <input type="text" name="ref" id="ws-goto-ref" class="form-control" placeholder="CMP-2026-00012" maxlength="30" autocomplete="off" spellcheck="false">
+    <button type="submit" class="btn btn-sa-secondary">Go</button>
+  </div>
 </form>
 
 {% if page.object_list %}

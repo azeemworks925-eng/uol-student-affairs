@@ -12,11 +12,21 @@
 </header>
 
 {% if total %}
+<div class="sa-list-tools">
 <nav class="sa-filter" aria-label="Filter by status">
   {% for value, label in filters %}
-    <a href="{% url 'student_complaints' %}{% if value %}?status={{ value }}{% endif %}"{% if value == status %} aria-current="page"{% endif %}>{{ label }}</a>
+    <a href="{% url 'student_complaints' %}{% if value %}?status={{ value }}{% if sort_query %}&amp;{{ sort_query }}{% endif %}{% elif sort_query %}?{{ sort_query }}{% endif %}"{% if value == status %} aria-current="page"{% endif %}>{{ label }}</a>
   {% endfor %}
 </nav>
+<form method="get" action="{% url 'student_complaints' %}" class="sa-sort-form">
+  {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+  <label for="list-sort">Sort by</label>
+  <select id="list-sort" name="sort" class="form-select form-select-sm">
+    {% for value, label in sorts %}<option value="{{ value }}"{% if value == sort %} selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+  <button type="submit" class="btn btn-sa-secondary btn-sm">Sort</button>
+</form>
+</div>
 
 {% if page.object_list %}
 <ul class="sa-case-list">
@@ -36,15 +46,15 @@
 
 {% if page.has_other_pages %}
 <nav class="sa-pagination" aria-label="Pages">
-  {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="?{% if status %}status={{ status }}&amp;{% endif %}page={{ page.previous_page_number }}">Newer</a>{% endif %}
+  {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="?{% if list_query %}{{ list_query }}&amp;{% endif %}page={{ page.previous_page_number }}">Previous</a>{% endif %}
   <span class="sa-small sa-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
-  {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="?{% if status %}status={{ status }}&amp;{% endif %}page={{ page.next_page_number }}">Older</a>{% endif %}
+  {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="?{% if list_query %}{{ list_query }}&amp;{% endif %}page={{ page.next_page_number }}">Next</a>{% endif %}
 </nav>
 {% endif %}
 {% else %}
 <div class="sa-empty">
   <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
-  <div><p class="title">No complaints with this status.</p><p class="sa-muted sa-small"><a href="{% url 'student_complaints' %}">Show all your complaints</a></p></div>
+  <div><p class="title">No complaints with this status.</p><p class="sa-muted sa-small"><a href="{% url 'student_complaints' %}{% if sort_query %}?{{ sort_query }}{% endif %}">Show all your complaints</a></p></div>
 </div>
 {% endif %}
 {% else %}

@@ -13,11 +13,17 @@ role. Access is the same for both:
 - changes go only through complaints.services.
 
 Not here, by decision: automatic owner assignment (DEC-310), cancellation handling (DEC-311),
-a "Waiting for you" queue (DEC-312), the student's other complaints (DEC-305) and the
-student's current cohort (P3-5).
+a "Waiting for you" queue or "needs a response" labels (DEC-312), the student's other
+complaints (DEC-305) and the student's current cohort (P3-5). "Next complaint" (Batch Advisor)
+is factual: the oldest complaint still Received or Under Review, by submission time.
+
+Data structures (dsa/, wired in complaints.ordering): the list is merge-sorted, the search
+matches students with a trie, "Go to reference" uses a hash table and "Next complaint" a
+min-heap.
 """
 
 from dataclasses import dataclass
+from datetime import timedelta
 from urllib.parse import urlencode
 
 from django.contrib import messages
@@ -26,11 +32,12 @@ from django.core.paginator import Paginator
 from django.db.models import Count, Exists, Max, OuterRef, Q
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from django.utils import timezone
 
 from accounts.models import AdvisorAssignment, StudentProfile, User
 from academics.models import AcademicTerm, Batch, Section, Semester
 
-from . import services
+from . import ordering, services
 from .forms import AdvisorResponseForm, ComplaintListFilterForm, ResponsibleOwnerForm, StatusUpdateForm
 from .models import Complaint, ComplaintCategory, ComplaintEvent
 from .permissions import get_visible_complaint, visible_complaints
@@ -69,9 +76,12 @@ class Workspace:
     @property
     def url_names(self):
         names = {"list": f"{self.url_prefix}s", "detail": f"{self.url_prefix}_detail",
-                 "respond": f"{self.url_prefix}_respond", "status": f"{self.url_prefix}_status"}
+                 "respond": f"{self.url_prefix}_respond", "status": f"{self.url_prefix}_status",
+                 "go": f"{self.url_prefix}_go"}
         if self.department_wide:
             names["owner"] = f"{self.url_prefix}_owner"
+        else:
+            names["next"] = f"{self.url_prefix}_next"
         return names
 
 
@@ -113,6 +123,32 @@ def department_cohorts():
     ])
 
 
+RECENT_DAYS = 7
+
+
+def advisor_cohort_counts(user):
+    """Batch Advisor Overview: for each cohort with complaints the advisor can see, keyed by
+    cohort_value, the open complaints (Received + Under Review), the complaints resolved in the
+    last 7 days (currently Resolved, with a resolution in that window) and the total.
+    Two grouped database counts, whatever the number of cohorts."""
+    visible = visible_complaints(user).order_by()
+    fields = ("batch_id", "semester_id", "section_id")
+    counts = {}
+    for batch_id, semester_id, section_id, status, n in visible.values_list(*fields, "status").annotate(n=Count("id")):
+        entry = counts.setdefault(cohort_value(batch_id, semester_id, section_id), {"open": 0, "resolved_recently": 0, "total": 0})
+        entry["total"] += n
+        if status in OPEN_STATUSES:
+            entry["open"] += n
+    since = timezone.now() - timedelta(days=RECENT_DAYS)
+    recent = visible.filter(
+        status=Status.RESOLVED, events__kind=Kind.STATUS_CHANGED, events__to_status=Status.RESOLVED,
+        events__created_at__gte=since,
+    ).values_list(*fields).annotate(n=Count("id", distinct=True))
+    for batch_id, semester_id, section_id, n in recent:
+        counts[cohort_value(batch_id, semester_id, section_id)]["resolved_recently"] = n
+    return counts
+
+
 def list_state(params, *, without=(), keys=LIST_PARAMS):
     """The list's query string (search, filters, sort, page) to carry between list and case.
     `keys` is the workspace's own parameter list (Workspace.list_params)."""
@@ -142,11 +178,9 @@ def _filtered(visible, filters, workspace, term=None):
         complaints = complaints.filter(created_at__gte=start, created_at__lt=end)
     q = filters.value("q")
     if q:
-        search = (
-            Q(reference__icontains=q)
-            | Q(student__full_name__icontains=q)
-            | Q(student__student_profile__sap_id__startswith=q)  # P3-3
-        )
+        # Students by name, a word of their name, or SAP ID prefix (P3-3): a trie built from
+        # the students of the visible complaints only.
+        search = Q(reference__icontains=q) | Q(student_id__in=ordering.matching_student_ids(visible, q))
         if workspace.department_wide:
             search |= Q(title__icontains=q)  # Part 4 section 3.1
         complaints = complaints.filter(search)
@@ -173,8 +207,8 @@ def _filtered(visible, filters, workspace, term=None):
         cancellation_requested=Exists(ComplaintEvent.objects.filter(complaint=OuterRef("pk"), kind=Kind.CANCELLATION_REQUESTED)),
         reopened=Exists(ComplaintEvent.objects.filter(complaint=OuterRef("pk"), kind=Kind.STILL_NOT_RESOLVED)),
     )
-    order = ("-created_at", "-id") if filters.value("sort") == "newest" else ("-last_activity", "-id")
-    return complaints.order_by(*order)
+    # No database ordering: the list is merge-sorted in Python (render_workspace).
+    return complaints.order_by()
 
 
 def _owner_context(user, complaint, forms):
@@ -239,7 +273,8 @@ def render_workspace(request, workspace, reference=None, status=200, **forms):
     )
     # Only an existing term chosen from the form's choices filters; anything else is ignored.
     selected_term = next((t for t in terms if str(t.pk) == filters.value("term")), None) if terms else None
-    page = Paginator(_filtered(visible, filters, workspace, selected_term), PAGE_SIZE).get_page(request.GET.get("page"))
+    rows = ordering.sort_complaints(list(_filtered(visible, filters, workspace, selected_term)), filters.value("sort"))
+    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     for item in page:
         item.tone = status_tone(item.status)
 
@@ -270,10 +305,33 @@ def render_workspace(request, workspace, reference=None, status=200, **forms):
         "list_state_without_page": list_state(request.GET, without=("page",), keys=keys),
         "list_url": workspace.url("s") + (f"?{state}" if state else ""),
         "selected_reference": reference,
+        "can_take_next": not workspace.department_wide and bool(cohorts),
     }
     if reference:
         context.update(_case_context(user, get_visible_complaint(user, reference), forms, workspace))
     return render(request, "complaints/workspace/workspace.html", context, status=status)
+
+
+def go_to_reference(request, workspace):
+    """"Go to reference": look the reference up in a hash table of the user's visible complaints."""
+    text = request.GET.get("ref", "")
+    complaint = ordering.find_visible(visible_complaints(request.user), text) if text.strip() else None
+    if complaint is not None:
+        return redirect(workspace.url("_detail", complaint.reference))
+    if text.strip():
+        messages.error(request, f"No complaint with the reference {ordering.normalise_reference(text)[:30]} was found in your complaints.")
+    else:
+        messages.error(request, "Type a complaint reference, for example CMP-2026-00012.")
+    return redirect(workspace.url("s"))
+
+
+def next_complaint(request, workspace):
+    """"Next complaint": the oldest complaint still Received or Under Review (a min-heap)."""
+    complaint = ordering.next_waiting(visible_complaints(request.user))
+    if complaint is None:
+        messages.success(request, "All caught up: no complaints in your cohorts are waiting as Received or Under Review.")
+        return redirect(workspace.url("s"))
+    return redirect(workspace.url("_detail", complaint.reference))
 
 
 def _case_url(workspace, complaint, request):
