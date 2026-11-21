@@ -1,11 +1,11 @@
 {% extends "layouts/app.html" %}
-{# Batch Advisor overview. The complaints workspace (Design D, DEC-305) arrives with the complaints module. #}
+{# Batch Advisor overview: each assigned cohort with its complaint counts; a card opens the complaints workspace filtered to that cohort (P3-8). #}
 {% block title %}Overview · UOL Student Affairs{% endblock %}
 {% block content %}
 <header class="sa-masthead">
   <span class="sa-eyebrow">Overview · your cohorts</span>
   <h1 class="sa-display">{% if assignments %}You advise {{ assignments|length }} cohort{{ assignments|length|pluralize }}.{% else %}No cohorts are assigned to you yet.{% endif %}</h1>
-  <p class="sa-lede">{% if assignments %}Complaints, collective issues, Student Voice and meetings for these cohorts will appear here as each part of the portal opens.{% else %}The Super Admin assigns cohorts. Your work will appear here once you have one.{% endif %}</p>
+  <p class="sa-lede">{% if assignments %}Each cohort's complaints at a glance. Open a cohort to work on its complaints.{% else %}The Super Admin assigns cohorts. Your work will appear here once you have one.{% endif %}</p>
 </header>
 
 {% if assignments %}
@@ -17,7 +17,12 @@
       <a class="sa-cohort-card sa-cohort-card--link" href="{{ a.complaints_url }}">
         <span class="batch">{{ a.batch }}</span>
         <span class="sa-muted">{{ a.semester }} · {{ a.section }}</span>
-        <span class="sa-small">Complaints<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></span>
+        <dl class="sa-cohort-counts">
+          <div><dt>Open</dt><dd>{{ a.counts.open }}</dd></div>
+          <div><dt>Resolved, last 7 days</dt><dd>{{ a.counts.resolved_recently }}</dd></div>
+          <div><dt>Total</dt><dd>{{ a.counts.total }}</dd></div>
+        </dl>
+        <span class="sa-small">View complaints<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></span>
       </a>
     </li>
     {% endfor %}

@@ -25,11 +25,28 @@
 </div>
 
 <section class="sa-section" aria-labelledby="updates-title">
-  <div class="sa-section-head"><h2 class="sa-h2" id="updates-title">Your latest updates</h2></div>
+  <div class="sa-section-head"><h2 class="sa-h2" id="updates-title">Your latest updates</h2>{% if updates %}<a class="sa-small" href="{% url 'student_complaints' %}">All your complaints</a>{% endif %}</div>
+  {% if updates %}
+  <ul class="sa-case-list sa-updates">
+    {% for update in updates %}
+    <li>
+      <a class="sa-case-row" href="{{ update.url }}">
+        <span class="sa-case-main">
+          <span class="sa-update-top"><span class="sa-ref">{{ update.reference }}</span>{% if update.is_new %}<span class="sa-flag sa-flag--new">New</span>{% endif %}</span>
+          <span class="sa-case-title">{{ update.label }}</span>
+          <span class="sa-case-meta">{{ update.complaint_title }} · <time class="sa-nowrap" datetime="{{ update.when|date:'c' }}">{{ update.when|date:"j M Y, g:i a" }}</time></span>
+        </span>
+        {% include "complaints/student/_status.html" with tone=update.tone label=update.status_label %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
   <div class="sa-empty">
     <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
     <div><p class="title">No updates yet.</p><p class="sa-muted sa-small">Replies to your complaints, answers in Student Voice and meeting changes will appear here.</p></div>
   </div>
+  {% endif %}
 </section>
 
 <section class="sa-board" aria-labelledby="board-title">

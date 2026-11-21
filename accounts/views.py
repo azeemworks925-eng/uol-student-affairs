@@ -10,7 +10,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 
 from complaints.analytics import build_overview
-from complaints.workspace import cohort_value
+from complaints.presentation import student_updates
+from complaints.workspace import advisor_cohort_counts, cohort_value
 
 from .forms import StudentRegistrationForm
 from .identity import extract_sap_id
@@ -78,16 +79,17 @@ def quick_access():
 @student_required
 def student_home(request):
     profile = request.user.student_profile
-    # The student's own updates, most important/recent first. Complaints, Student Voice and
-    # meetings are not built yet, so there are none to show.
-    updates = []
+    # The student's latest staff updates on their complaints (status changes and responses),
+    # newest first. Student Voice and meetings will add their own updates when they are built.
+    updates = student_updates(request.user)
     return render(request, "accounts/student_home.html", {
         "profile": profile,
         "today": timezone.localdate(),
         "greeting": greeting(),
         "first_name": first_name(request.user),
         "cohort_label": cohort_label(profile.batch, profile.semester, profile.section),
-        "summary": personal_summary(updates),
+        "summary": personal_summary([update.headline for update in updates]),
+        "updates": updates,
         "quick_access": quick_access(),
     })
 
@@ -96,9 +98,12 @@ def student_home(request):
 def advisor_home(request):
     assignments = list(request.user.advisor_assignments.select_related("batch", "semester", "section"))
     workspace = reverse("advisor_complaints")
+    counts = advisor_cohort_counts(request.user)
     for a in assignments:
+        value = cohort_value(a.batch_id, a.semester_id, a.section_id)
         # P3-8: each card opens the complaints workspace filtered to this exact cohort.
-        a.complaints_url = f"{workspace}?{urlencode({'cohort': cohort_value(a.batch_id, a.semester_id, a.section_id)})}"
+        a.complaints_url = f"{workspace}?{urlencode({'cohort': value})}"
+        a.counts = counts.get(value, {"open": 0, "resolved_recently": 0, "total": 0})
     return render(request, "accounts/advisor_home.html", {"assignments": assignments})
 
 
