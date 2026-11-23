@@ -256,7 +256,11 @@ class Command(BaseCommand):
             raise CommandError("DEMO_STAFF_EMAILS must contain valid, non-student email addresses.")
         roles = [(User.Role.SUPER_ADMIN, "Demo Staff Admin"), (User.Role.BATCH_ADVISOR, "Demo Staff Advisor")]
         for email, (role, name) in zip(emails, roles):
-            user = self._user(email, name, role)
+            user = self._user(email, name, role)  # a name already on the account is kept
+            if not user.full_name:
+                user.full_name = name
+                user.save(update_fields=["full_name"])
+                self.created.append(f"name of {email}")
             if user.role != role:
                 user.role = role
                 user.save(update_fields=["role", "is_staff", "is_superuser"])

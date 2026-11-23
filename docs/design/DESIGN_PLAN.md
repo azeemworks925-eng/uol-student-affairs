@@ -40,7 +40,7 @@ Dark values, as given in the Frontend Design Research Report (kept outside the r
 |---|---|---|
 | Student | Sidebar: Home, Complaints, Student Voice, Meetings; account menu at the foot | Header (notifications, account) + bottom navigation with those **four** destinations; no "More" (DEC-304) |
 | Batch Advisor | 72px icon rail: Overview, Complaints, Collective Issues, Student Voice, Meetings, Representatives, Statistics | Header with menu button and drawer |
-| Super Admin | Sidebar groups — Oversight: Overview, Complaints, Collective Issues, Calendar · People: Students, Batch Advisors, CR/GR Management · Configuration: Academic Structure, Complaint Categories. **No separate Statistics** (DEC-306) | Header with menu button and drawer |
+| Super Admin | Sidebar groups — Oversight: Overview, Complaints, Collective Issues, Calendar · People: Students, Staff, CR/GR Management · Configuration: Academic Structure, Academic Terms, Complaint Categories (DEC-330). **No separate Statistics** (DEC-306) | Header with menu button and drawer |
 
 The full application shell (drawer behaviour, notification list, account menu contents) is refined as modules are built.
 
@@ -118,4 +118,5 @@ This section takes precedence over the earlier layout notes where they differ. P
 - **Lists:** one markup shown as rows or item cards. Rows are one line from 1200px and two compact lines below it.
 - **Detail:** main column plus a sticky panel. On phones: title, original, panel, history, with actions in a bottom bar.
 - **Charts:** inline SVG, Forest and status colours, a written takeaway, and no scale derived from a hidden value. The stacked bar keeps a light segment between the two dark ones, because the status colours are too close for colour-blind readers when they touch.
+- **People and structure (DEC-330):** Students, Staff, Academic Structure and Academic Terms reuse these components. The Django admin is an emergency fallback, linked only from the Super Admin's avatar menu.
 - **Motion:** only `--dur-fast` (120ms), `--dur-base` (200ms), `--dur-slow` (320ms) and `--ease-out`. Opacity and transform where possible. Off under `prefers-reduced-motion`.

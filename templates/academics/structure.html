@@ -1,0 +1,30 @@
+{% extends "layouts/app.html" %}
+{% block title %}Academic Structure · UOL Student Affairs{% endblock %}
+{% block content %}
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Academic Structure</h1>
+      <p class="sa-page-subtitle">Batches, semesters and sections. Entries are deactivated, never deleted.</p>
+    </div>
+  </header>
+
+  <div class="sa-stats">
+    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
+  </div>
+
+  <div class="sa-structure-grid">
+    {% for card in cards %}{% include "academics/_entry_card.html" %}{% endfor %}
+  </div>
+
+  <section class="sa-card" aria-labelledby="tree-title">
+    {% include "includes/ui/card_head.html" with title="Department tree" id="tree-title" takeaway="Each row totals everything beneath it: students, active students and open complaints." %}
+    {% if cohort_total %}
+    <ul class="sa-tree">{% include "academics/_tree_node.html" with node=tree %}</ul>
+    {% else %}
+      {% include "includes/ui/empty.html" with title="No cohorts yet." text="A cohort appears here once it has a student, an advisor or a complaint." icon="layers" %}
+    {% endif %}
+    <p class="sa-tree-note">How this is built: a tree from one row per real cohort, with children merge-sorted and totals added up by a depth-first search in O(n).</p>
+  </section>
+</div>
+{% endblock %}

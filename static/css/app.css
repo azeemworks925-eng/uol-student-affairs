@@ -878,6 +878,73 @@ a.sa-bar-row:hover .sa-bar-label { text-decoration: underline; text-underline-of
   .sa-map-key li { min-height: 24px; }
 }
 
+/* ---------- People and structure (DEC-330) ----------
+   Variants of the shared collection, plus the audit list and the department outline.
+   Active/Inactive stay neutral labels, never status colours (DEC-301). */
+.sa-stats--3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); }
+@media (min-width: 992px) { .sa-stats--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.sa-field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr)); gap: 0 12px; }
+.sa-item.is-inactive .sa-item-who, .sa-item.is-inactive .sa-item-ref { color: var(--sa-muted); }
+.sa-item-cohort, .sa-item-state { display: inline-flex; min-width: 0; }
+
+.sa-collection.sa-collection--people .sa-avatar { grid-area: avatar; }
+.sa-collection.sa-collection--people .sa-item-who { grid-area: who; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
+.sa-collection.sa-collection--people .sa-item-ref { grid-area: ref; white-space: normal; overflow-wrap: anywhere; }
+.sa-collection.sa-collection--people .sa-item-cohort { grid-area: cohort; }
+.sa-collection.sa-collection--people .sa-item-state { grid-area: state; justify-self: end; }
+.sa-collection.sa-collection--people .sa-item-when { grid-area: when; justify-self: end; text-align: right; }
+.sa-collection.sa-collection--people[data-view="list"] .sa-item { grid-template-columns: 30px minmax(0, 1fr) auto; grid-template-areas: "avatar who state" "avatar ref ref" "avatar cohort when"; }
+.sa-collection.sa-collection--people[data-view="cards"] .sa-item { grid-template-columns: 36px minmax(0, 1fr) auto; grid-template-areas: "avatar who state" "avatar ref ref" "cohort cohort when"; }
+@media (min-width: 768px) {
+  .sa-collection.sa-collection--people[data-view="list"] .sa-item { grid-template-columns: 30px minmax(0, 1fr) auto auto; grid-template-areas: "avatar who cohort state" "avatar ref ref when"; }
+}
+@media (min-width: 1200px) {
+  .sa-collection.sa-collection--people[data-view="list"] .sa-item { grid-template-columns: 30px minmax(0, 1fr) 112px 150px 96px 104px; grid-template-areas: "avatar who ref cohort state when"; }
+  .sa-collection.sa-collection--people[data-view="list"] .sa-item-state { justify-self: start; }
+  .sa-collection.sa-collection--staff[data-view="list"] .sa-item { grid-template-columns: 30px minmax(0, 1fr) minmax(0, 1.2fr) 112px 96px 124px; }
+}
+
+.sa-check-list { display: grid; gap: 2px; max-height: 208px; overflow-y: auto; padding: 6px; border: 1px solid var(--sa-border-control); border-radius: 10px; }
+.sa-check { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px; border-radius: 8px; font-size: 14px; cursor: pointer; overflow-wrap: anywhere; }
+.sa-check:hover { background: var(--sa-subtle); }
+.sa-check input { flex: none; width: 18px; height: 18px; accent-color: var(--sa-accent); }
+.sa-assign-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.sa-assign-list > li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 0; }
+.sa-assign-list > li + li { border-top: 1px solid var(--sa-border); }
+.sa-assign-list > li:first-child { padding-top: 0; }
+.sa-assign-main { display: grid; justify-items: start; gap: 3px; flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+.sa-assign-add { display: grid; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--sa-border); }
+.sa-assign-add .mb-3 { margin-bottom: 4px !important; }
+
+.sa-change-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.sa-change-list > li { display: grid; gap: 2px; padding: 10px 0; min-width: 0; overflow-wrap: anywhere; }
+.sa-change-list > li + li { border-top: 1px solid var(--sa-border); }
+.sa-change-list > li:first-child { padding-top: 0; }
+.sa-change-list > li:last-child { padding-bottom: 0; }
+.sa-change-field { font-size: 14px; font-weight: 600; }
+.sa-change-values { font-size: 14px; }
+.sa-change-meta { font-size: 14px; color: var(--sa-muted); }
+
+/* Academic Structure: entry cards and the department outline. */
+.sa-structure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: var(--sa-gap); align-items: start; }
+.sa-cat-row.is-inactive { background: var(--sa-canvas); }
+.sa-cat-row.is-inactive .sa-cat-name { color: var(--sa-muted); }
+.sa-tree, .sa-tree-children { list-style: none; margin: 0; padding: 0; }
+.sa-tree-children { margin-left: 9px; padding-left: 12px; border-left: 1px solid var(--sa-border-strong); }
+.sa-tree-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2px 16px; min-height: 44px; padding: 5px 8px; border-radius: 8px; transition: background-color var(--dur-fast) var(--ease-out); }
+summary.sa-tree-row { cursor: pointer; list-style: none; }
+summary.sa-tree-row::-webkit-details-marker { display: none; }
+summary.sa-tree-row:hover { background: var(--sa-subtle); }
+.sa-tree-label { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.sa-tree-label svg { width: 16px; height: 16px; color: var(--sa-muted); transform: rotate(-90deg); transition: transform var(--dur-fast) var(--ease-out); }
+details[open] > summary .sa-tree-label svg { transform: none; }
+.sa-tree-label--leaf { padding-left: 24px; font-weight: 500; }
+.sa-tree-node.is-inactive > details > summary .sa-tree-label, .sa-tree-node.is-inactive > .sa-tree-row .sa-tree-label { color: var(--sa-muted); }
+.sa-tree-totals { display: inline-flex; flex-wrap: wrap; gap: 2px 14px; font-size: 14px; color: var(--sa-muted); font-variant-numeric: tabular-nums; }
+.sa-tree-totals b { font-weight: 600; color: var(--sa-ink); }
+.sa-tree-note { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--sa-border); font-size: 14px; color: var(--sa-muted); }
+@media (max-width: 575.98px) { .sa-tree-totals { padding-left: 24px; } .sa-tree-children { margin-left: 4px; padding-left: 6px; } }
+
 /* ---------- Motion ---------- */
 .btn { transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
 .btn:active { transform: scale(.98); }

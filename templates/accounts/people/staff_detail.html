@@ -1,0 +1,139 @@
+{% extends "layouts/app.html" %}
+{% load ui %}
+{% block title %}{{ person.get_full_name }} · Staff · UOL Student Affairs{% endblock %}
+{% block crumb_root %}<li><a href="{% url 'super_admin_staff' %}">Staff</a></li>{% endblock %}
+{% block crumb %}<li>{{ person.get_full_name }}</li>{% endblock %}
+{% block content %}
+<div class="sa-flow">
+  <a class="sa-back" href="{% url 'super_admin_staff' %}{% if person.is_super_admin %}?tab=admins{% endif %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Back to staff</a>
+
+  <div class="sa-detail">
+    <div class="sa-detail-main">
+      <header class="sa-card sa-detail-head">
+        <div>
+          <div class="sa-detail-ids"><span class="sa-flag">{{ person.get_role_display }}</span>{% if person.is_active %}<span class="sa-flag">Active</span>{% else %}<span class="sa-flag sa-flag--muted">Inactive</span>{% endif %}</div>
+          <h1 class="sa-detail-title">{{ person.get_full_name }}</h1>
+          <p class="sa-page-subtitle sa-prose">{{ person.email }}</p>
+        </div>
+      </header>
+
+      {% if person.is_batch_advisor %}
+      <section class="sa-card" aria-labelledby="assignments-title">
+        {% include "includes/ui/card_head.html" with title="Assignments" id="assignments-title" takeaway="Each assignment is one exact batch, semester and section." %}
+        {% if assignments %}
+        <ul class="sa-assign-list">
+          {% for row in assignments %}
+          <li>
+            <div class="sa-assign-main">
+              {% include "includes/ui/cohort.html" with record=row %}
+              <span class="sa-small">{{ row|cohort_full }}{% if not row.is_active_cohort %} <span class="sa-flag sa-flag--muted">Inactive cohort</span>{% endif %}</span>
+              <span class="sa-small sa-muted">{{ row.students }} student{{ row.students|pluralize }} · {{ row.open_complaints }} open complaint{{ row.open_complaints|pluralize }}{% if row.only_advisor %} · only advisor{% endif %}</span>
+            </div>
+            <button type="button" class="btn btn-sa-secondary btn-sm" data-dialog-open="dialog-remove-{{ row.pk }}">Remove<span class="visually-hidden"> {{ row|cohort_full }}</span></button>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+          {% include "includes/ui/empty.html" with title="No cohorts assigned." text="This advisor sees no students until a cohort is added." icon="layers" %}
+        {% endif %}
+        {% if person.is_active %}
+        <form class="sa-assign-add" method="post" action="{% url 'super_admin_staff_assignment_add' person.pk %}" novalidate>
+          {% csrf_token %}
+          <h3 class="sa-card-title">Add assignment</h3>
+          {% if assignment_form.non_field_errors %}<div class="sa-message sa-message--error" role="alert">{{ assignment_form.non_field_errors|join:" " }}</div>{% endif %}
+          <div class="sa-field-row">
+            {% include "includes/form_field.html" with field=assignment_form.batch %}
+            {% include "includes/form_field.html" with field=assignment_form.semester %}
+            {% include "includes/form_field.html" with field=assignment_form.section %}
+          </div>
+          <div><button type="submit" class="btn btn-sa-secondary">Add assignment</button></div>
+        </form>
+        {% else %}
+        <p class="sa-muted sa-small mt-3 mb-0">Reactivate this advisor to add a cohort.</p>
+        {% endif %}
+      </section>
+
+      <section class="sa-card" aria-labelledby="advisor-activity-title">
+        {% include "includes/ui/card_head.html" with title="Recent activity" id="advisor-activity-title" takeaway="The latest 10 responses, status changes and other actions." %}
+        {% if activity %}{% include "includes/ui/activity.html" with items=activity %}{% else %}{% include "includes/ui/empty.html" with title="No activity yet." icon="clock" %}{% endif %}
+      </section>
+      {% else %}
+      <section class="sa-card" aria-labelledby="admin-role-title">
+        <h2 class="sa-card-title mb-2" id="admin-role-title">Super Admin access</h2>
+        <p class="mb-0 sa-small">This account can see and manage the whole portal. At least one Super Admin must stay active.</p>
+      </section>
+      {% endif %}
+    </div>
+
+    <aside class="sa-detail-side" data-sticky-panel aria-label="Staff details">
+      <section class="sa-card" aria-label="{{ person.get_role_display }}">
+        <div class="sa-person">
+          {% include "includes/ui/avatar.html" with name=person.get_full_name size="lg" %}
+          <div class="sa-person-name">{{ person.get_full_name }}</div>
+        </div>
+        <dl class="sa-facts-list">
+          <div><dt>Email</dt><dd>{{ person.email }}</dd></div>
+          <div><dt>Status</dt><dd>{% if person.is_active %}Active{% else %}Inactive{% endif %}</dd></div>
+          <div><dt>Last sign-in</dt><dd>{% if person.last_login %}{{ person.last_login|date:"j M Y, H:i" }}{% else %}Never{% endif %}</dd></div>
+          <div><dt>Google</dt><dd>{% if google_linked %}Linked{% else %}Not linked yet{% endif %}</dd></div>
+        </dl>
+      </section>
+
+      {% if coverage %}
+      <section class="sa-card" aria-labelledby="coverage-title">
+        <h2 class="sa-card-title mb-2" id="coverage-title">Coverage</h2>
+        <dl class="sa-facts-list">
+          <div><dt>Cohorts</dt><dd>{{ coverage.cohorts }}</dd></div>
+          <div><dt>Open complaints</dt><dd>{{ coverage.open }}</dd></div>
+          <div><dt>Upcoming meetings</dt><dd>{{ coverage.upcoming }}</dd></div>
+        </dl>
+      </section>
+      {% endif %}
+
+      <section class="sa-card sa-side-actions-card" aria-labelledby="staff-actions-title">
+        <h2 class="sa-card-title mb-2" id="staff-actions-title">Actions</h2>
+        <div class="sa-side-actions">
+          <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-name">Edit name</button>
+          <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-active">{% if person.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <nav class="sa-actionbar" aria-label="Staff actions">
+    <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-name">Edit name</button>
+    <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-active">{% if person.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
+  </nav>
+</div>
+
+<dialog class="sa-dialog" id="dialog-name" aria-labelledby="name-title"{% if open_dialog == "name" %} data-open-on-load{% endif %}>
+  <div class="sa-dialog-body">
+    {% include "includes/ui/dialog_head.html" with title="Edit name" id="name-title" %}
+    <form method="post" action="{% url 'super_admin_staff_name' person.pk %}" novalidate>
+      {% csrf_token %}
+      {% if name_form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ name_form.non_field_errors|join:" " }}</div>{% endif %}
+      {% include "includes/form_field.html" with field=name_form.full_name %}
+      <p class="sa-muted sa-small">The email is the Google sign-in identity and can't be changed.</p>
+      <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary">Save</button><button type="button" class="btn btn-sa-secondary" data-dialog-close>Cancel</button></div>
+    </form>
+  </div>
+</dialog>
+
+{% for row in assignments %}
+<dialog class="sa-dialog" id="dialog-remove-{{ row.pk }}" aria-labelledby="remove-title-{{ row.pk }}">
+  <div class="sa-dialog-body">
+    {% include "includes/ui/dialog_head.html" with title="Remove this assignment?" id=row.dialog_title_id %}
+    <form method="post" action="{% url 'super_admin_staff_assignment_remove' person.pk row.pk %}">
+      {% csrf_token %}
+      <p>{{ person.get_full_name }} will stop seeing <strong>{{ row|cohort_full }}</strong>. Past records are kept.</p>
+      {% if row.only_advisor and row.is_active_cohort %}<div class="sa-notice mb-3">This is the cohort's only active advisor. You can still remove it, but the cohort will have no advisor until you assign one.</div>{% endif %}
+      {% if row.owned_open %}<div class="sa-notice mb-3">They are the responsible owner of {{ row.owned_open }} open complaint{{ row.owned_open|pluralize }} here. Reassign {{ row.owned_open|pluralize:"it,them" }} from the complaint page.</div>{% endif %}
+      <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary">Remove assignment</button><button type="button" class="btn btn-sa-secondary" data-dialog-close>Cancel</button></div>
+    </form>
+  </div>
+</dialog>
+{% endfor %}
+
+{% url 'super_admin_staff_active' person.pk as active_url %}
+{% include "accounts/people/_active_dialog.html" with form=active_form action=active_url is_open=active_open effect=active_effect blocked=active_blocked %}
+{% endblock %}

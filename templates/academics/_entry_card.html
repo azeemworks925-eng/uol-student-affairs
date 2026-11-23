@@ -1,0 +1,68 @@
+{# One of the Batches / Semesters / Sections cards, with its add, edit and active-state dialogs. #}
+<section class="sa-card" aria-labelledby="card-{{ card.kind.key }}">
+  <header class="sa-card-head">
+    <div class="sa-card-titles"><h2 class="sa-card-title" id="card-{{ card.kind.key }}">{{ card.kind.title }}</h2></div>
+    <button type="button" class="btn btn-sa-secondary btn-sm" data-dialog-open="{{ card.add_id }}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Add<span class="visually-hidden"> {{ card.kind.singular }}</span></button>
+  </header>
+  {% if card.rows %}
+  <ul class="sa-cat-list">
+    {% for row in card.rows %}
+    <li class="sa-cat-row{% if not row.entry.is_active %} is-inactive{% endif %}">
+      <div class="sa-cat-main">
+        <span class="sa-cat-name">{{ row.entry }}</span>
+        {% if not row.entry.is_active %}<span class="sa-flag sa-flag--muted">Inactive</span>{% endif %}
+        <span class="sa-cat-meta">{{ row.students }} student{{ row.students|pluralize }}</span>
+      </div>
+      <div class="sa-cat-actions">
+        <button type="button" class="btn btn-sa-secondary btn-sm" data-dialog-open="{{ row.edit_id }}">Edit<span class="visually-hidden"> {{ row.entry }}</span></button>
+        <button type="button" class="btn btn-sa-secondary btn-sm" data-dialog-open="{{ row.active_id }}">{% if row.entry.is_active %}Deactivate{% else %}Reactivate{% endif %}<span class="visually-hidden"> {{ row.entry }}</span></button>
+      </div>
+
+      <dialog class="sa-dialog" id="{{ row.edit_id }}" aria-labelledby="{{ row.edit_title }}"{% if row.open %} data-open-on-load{% endif %}>
+        <div class="sa-dialog-body">
+          {% include "includes/ui/dialog_head.html" with title="Edit "|add:card.kind.singular id=row.edit_title %}
+          <form method="post" action="{% url 'super_admin_structure_edit' card.kind.key row.entry.pk %}" novalidate>
+            {% csrf_token %}
+            {% if row.form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ row.form.non_field_errors|join:" " }}</div>{% endif %}
+            {% include "includes/form_field.html" with field=row.form.value %}
+            <p class="sa-muted sa-small">The new name shows everywhere this {{ card.kind.singular }} is used. Past audit entries keep the old name.</p>
+            <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary">Save</button><button type="button" class="btn btn-sa-secondary" data-dialog-close>Cancel</button></div>
+          </form>
+        </div>
+      </dialog>
+
+      <dialog class="sa-dialog" id="{{ row.active_id }}" aria-labelledby="{{ row.active_title }}">
+        <div class="sa-dialog-body">
+          {% if row.entry.is_active %}{% include "includes/ui/dialog_head.html" with title="Deactivate "|add:card.kind.singular|add:"?" id=row.active_title %}{% else %}{% include "includes/ui/dialog_head.html" with title="Reactivate "|add:card.kind.singular|add:"?" id=row.active_title %}{% endif %}
+          <form method="post" action="{% url 'super_admin_structure_active' card.kind.key row.entry.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="active" value="{% if row.entry.is_active %}0{% else %}1{% endif %}">
+            {% if row.entry.is_active %}
+            <p><strong>{{ row.entry }}</strong> keeps its {{ row.students }} student{{ row.students|pluralize }} and all history, but is hidden from new registrations and assignments.</p>
+            <p class="sa-small sa-muted">Cohorts using it become inactive: no new CR/GR appointments, collective issues or support. Current CR/GR records are kept and nothing is closed.</p>
+            {% else %}
+            <p><strong>{{ row.entry }}</strong> can be chosen again for registrations and assignments. Cohorts become active again if their other entries are active.</p>
+            {% endif %}
+            <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary">{% if row.entry.is_active %}Deactivate{% else %}Reactivate{% endif %}</button><button type="button" class="btn btn-sa-secondary" data-dialog-close>Cancel</button></div>
+          </form>
+        </div>
+      </dialog>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+    {% include "includes/ui/empty.html" with title="Nothing here yet." icon="layers" %}
+  {% endif %}
+
+  <dialog class="sa-dialog" id="{{ card.add_id }}" aria-labelledby="{{ card.add_title }}"{% if card.add_open %} data-open-on-load{% endif %}>
+    <div class="sa-dialog-body">
+      {% include "includes/ui/dialog_head.html" with title="Add "|add:card.kind.singular id=card.add_title %}
+      <form method="post" action="{% url 'super_admin_structure_add' card.kind.key %}" novalidate>
+        {% csrf_token %}
+        {% if card.add_form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ card.add_form.non_field_errors|join:" " }}</div>{% endif %}
+        {% include "includes/form_field.html" with field=card.add_form.value %}
+        <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary">Add</button><button type="button" class="btn btn-sa-secondary" data-dialog-close>Cancel</button></div>
+      </form>
+    </div>
+  </dialog>
+</section>

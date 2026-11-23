@@ -1,0 +1,93 @@
+{% extends "layouts/app.html" %}
+{% load ui %}
+{% block title %}Staff · UOL Student Affairs{% endblock %}
+{% block content %}
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Staff</h1>
+      <p class="sa-page-subtitle">Batch Advisors, their cohorts, and Super Admins</p>
+    </div>
+    <div class="sa-page-actions">
+      <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-add-staff"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>{% if tab == "admins" %}Add Super Admin{% else %}Add Batch Advisor{% endif %}</button>
+    </div>
+  </header>
+
+  <div class="sa-stats">
+    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
+  </div>
+
+  {% if uncovered and tab == "advisors" %}
+  <div class="sa-notice" role="note">
+    <p class="fw-semibold mb-1">{{ uncovered|length }} active cohort{{ uncovered|length|pluralize }} without an advisor</p>
+    <p class="sa-small mb-0">{{ uncovered|join:", " }}</p>
+  </div>
+  {% endif %}
+
+  <div class="sa-controls">
+    <div class="sa-view-toggle" role="group" aria-label="Staff type">
+      <a href="{% url 'super_admin_staff' %}?tab=advisors"{% if tab == "advisors" %} aria-current="page"{% endif %}>Batch Advisors</a>
+      <a href="{% url 'super_admin_staff' %}?tab=admins"{% if tab == "admins" %} aria-current="page"{% endif %}>Super Admins</a>
+    </div>
+    <form method="get" action="{% url 'super_admin_staff' %}" class="sa-pill-search" role="search">
+      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
+      <label class="visually-hidden" for="staff-search">Search staff by name or email</label>
+      <input id="staff-search" type="search" name="q" maxlength="60" value="{{ current.q }}" placeholder="Search name or email">
+      {% for key, value in search_hidden %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    </form>
+    {% include "includes/ui/filter_chip.html" with label="Status" param="status" choices=statuses current=current.status %}
+    {% include "includes/ui/filter_chip.html" with label="Sort" param="sort" choices=sorts current=current.sort %}
+    {% if has_filters %}<a class="sa-clear" href="{% url 'super_admin_staff' %}?tab={{ tab }}">Clear filters</a>{% endif %}
+    <div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="people-staff" %}</div>
+  </div>
+
+  {% if page.object_list %}
+  <ul class="sa-collection sa-collection--people sa-collection--staff" data-view="list" data-view-key="people-staff">
+    {% for row in page %}
+    <li>
+      <a class="sa-item{% if not row.is_active %} is-inactive{% endif %}" href="{% url 'super_admin_staff_detail' row.user.pk %}">
+        {% include "includes/ui/avatar.html" with name=row.name size="sm" %}
+        <span class="sa-item-who">{{ row.name }}</span>
+        <span class="sa-item-ref">{{ row.email }}</span>
+        <span class="sa-item-cohort">{% if tab == "advisors" %}<span class="sa-small">{{ row.cohorts }} cohort{{ row.cohorts|pluralize }}</span>{% else %}<span class="sa-small">Super Admin</span>{% endif %}</span>
+        <span class="sa-item-state">{% if row.is_active %}<span class="sa-flag">Active</span>{% else %}<span class="sa-flag sa-flag--muted">Inactive</span>{% endif %}</span>
+        <span class="sa-item-when">{% if row.linked %}Google linked{% else %}Not linked yet{% endif %}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% include "includes/ui/pagination.html" with label="Staff list pages" %}
+  {% elif has_filters %}
+    {% include "includes/ui/empty.html" with title="No staff match these filters." icon="users" %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="No Batch Advisors yet." text="Add one to start assigning cohorts." icon="users" %}
+  {% endif %}
+</div>
+
+<dialog class="sa-dialog" id="dialog-add-staff" aria-labelledby="add-staff-title"{% if open_add %} data-open-on-load{% endif %}>
+  <div class="sa-dialog-body">
+    {% if tab == "admins" %}{% include "includes/ui/dialog_head.html" with title="Add Super Admin" id="add-staff-title" %}{% else %}{% include "includes/ui/dialog_head.html" with title="Add Batch Advisor" id="add-staff-title" %}{% endif %}
+    <form method="post" action="{% url 'super_admin_staff' %}?tab={{ tab }}" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="role" value="{% if tab == 'admins' %}super_admin{% else %}batch_advisor{% endif %}">
+      {% if add_form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ add_form.non_field_errors|join:" " }}</div>{% endif %}
+      {% include "includes/form_field.html" with field=add_form.full_name %}
+      {% include "includes/form_field.html" with field=add_form.email %}
+      {% if tab == "admins" %}
+      <p class="sa-muted sa-small">A Super Admin can see and manage everything in the portal.</p>
+      {% else %}
+      <fieldset class="mb-3">
+        <legend class="form-label">Cohorts <span class="sa-muted fw-normal">(optional)</span></legend>
+        {% if add_form.fields.cohorts.choices %}
+        <div class="sa-check-list">
+          {% for box in add_form.cohorts %}<label class="sa-check">{{ box.tag }}<span>{{ box.choice_label }}</span></label>{% endfor %}
+        </div>
+        {% else %}<p class="sa-muted sa-small mb-0">No active cohort combinations yet. Add them in Academic Structure.</p>{% endif %}
+        {% if add_form.cohorts.errors %}<div class="invalid-feedback">{{ add_form.cohorts.errors|join:" " }}</div>{% endif %}
+      </fieldset>
+      {% endif %}
+      <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary">{% if tab == "admins" %}Add Super Admin{% else %}Add Batch Advisor{% endif %}</button><button type="button" class="btn btn-sa-secondary" data-dialog-close>Cancel</button></div>
+    </form>
+  </div>
+</dialog>
+{% endblock %}

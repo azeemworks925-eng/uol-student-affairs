@@ -97,13 +97,21 @@ NAVIGATION = {
                     also_current=("super_admin_meetings_month", "super_admin_meetings_week", "super_admin_meeting_detail")),
         ]),
         ("People", [
-            NavItem("Students", "user", "admin:accounts_studentprofile_changelist"),
-            NavItem("Batch Advisors", "users", "admin:accounts_user_changelist", {"role__exact": User.Role.BATCH_ADVISOR}),
+            NavItem("Students", "user", "super_admin_students",
+                    also_current=("super_admin_student_detail", "super_admin_student_changes", "super_admin_student_edit",
+                                  "super_admin_student_active")),
+            NavItem("Staff", "users", "super_admin_staff",
+                    also_current=("super_admin_staff_detail", "super_admin_staff_name", "super_admin_staff_active",
+                                  "super_admin_staff_assignment_add", "super_admin_staff_assignment_remove")),
             NavItem("CR/GR Management", "badge", "super_admin_representatives",
                     also_current=("super_admin_representatives_appoint", "super_admin_representatives_replace")),
         ]),
         ("Configuration", [
-            NavItem("Academic Structure", "layers", "admin:app_list", kwargs={"app_label": "academics"}),
+            NavItem("Academic Structure", "layers", "super_admin_structure",
+                    also_current=("super_admin_structure_add", "super_admin_structure_edit", "super_admin_structure_active")),
+            NavItem("Academic Terms", "calendar", "super_admin_terms",
+                    also_current=("super_admin_term_add", "super_admin_term_edit", "super_admin_term_current",
+                                  "super_admin_term_clear")),
             NavItem("Complaint Categories", "tags", "super_admin_categories", also_current=CATEGORY_VIEWS),
         ]),
     ],
@@ -118,7 +126,7 @@ NEW_MENU = {
         ("Request meeting", "calendar", "student_meetings", "?new=1"),
     ],
     User.Role.BATCH_ADVISOR: [("Schedule meeting", "calendar", "advisor_meeting_schedule")],
-    User.Role.SUPER_ADMIN: [("Add Batch Advisor", "user", "admin:accounts_user_add")],
+    User.Role.SUPER_ADMIN: [("Add Batch Advisor", "user", "super_admin_staff", "?new=1")],
 }
 
 

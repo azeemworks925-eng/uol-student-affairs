@@ -11,6 +11,7 @@ from functools import wraps
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
+from django.http import Http404
 
 from .models import AdvisorAssignment, StudentProfile, User
 
@@ -34,6 +35,19 @@ def role_required(*roles):
 student_required = role_required(User.Role.STUDENT)
 batch_advisor_required = role_required(User.Role.BATCH_ADVISOR)
 super_admin_required = role_required(User.Role.SUPER_ADMIN)
+
+
+def super_admin_or_404(view_func):
+    """Super Admin only, and a 404 for every other role, so the page is never hinted at."""
+
+    @wraps(view_func)
+    @login_required
+    def wrapped(request, *args, **kwargs):
+        if not request.user.is_super_admin:
+            raise Http404
+        return view_func(request, *args, **kwargs)
+
+    return wrapped
 
 
 COHORT_FIELDS = ("batch_id", "semester_id", "section_id")

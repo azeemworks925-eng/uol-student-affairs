@@ -1,7 +1,7 @@
 """
 Django admin for accounts. Only the Super Admin can use it (review M1: only that role
-holds is_staff), and it is the interim management interface until the portal dashboards
-are designed.
+holds is_staff). The portal's People pages are the normal interface; this stays as an
+emergency fallback (DEC-330).
 
 Accounts have no passwords: every role signs in with Google (DEC-010). Accounts are
 deactivated, never deleted (DEC-212).

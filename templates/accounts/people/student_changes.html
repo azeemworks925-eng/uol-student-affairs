@@ -1,0 +1,42 @@
+{% extends "layouts/app.html" %}
+{% load ui %}
+{% block title %}Profile history · Students · UOL Student Affairs{% endblock %}
+{% block crumb_root %}<li><a href="{% url 'super_admin_students' %}">Students</a></li>{% endblock %}
+{% block crumb %}<li>Profile history</li>{% endblock %}
+{% block content %}
+<div class="sa-flow">
+  <a class="sa-back" href="{% url 'super_admin_students' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Back to students</a>
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Profile history</h1>
+      <p class="sa-page-subtitle">Every audited change to student details, newest first. This record can't be edited.</p>
+    </div>
+  </header>
+  <div class="sa-controls">
+    <form method="get" action="{% url 'super_admin_student_changes' %}" class="sa-pill-search" role="search">
+      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
+      <label class="visually-hidden" for="change-search">Search by SAP ID, name or email</label>
+      <input id="change-search" type="search" name="q" maxlength="60" value="{{ current.q }}" placeholder="Search SAP ID, name, email">
+      {% for key, value in search_hidden %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    </form>
+    {% include "includes/ui/filter_chip.html" with label="Field" param="field" choices=fields current=current.field %}
+    {% if has_filters %}<a class="sa-clear" href="{% url 'super_admin_student_changes' %}">Clear filters</a>{% endif %}
+  </div>
+  {% if page.object_list %}
+  <section class="sa-card" aria-label="Profile changes">
+    <ul class="sa-change-list">
+      {% for change in page %}
+      <li>
+        <span class="sa-change-field"><a href="{% url 'super_admin_student_detail' change.profile.user_id %}">{{ change.profile.user.get_full_name }}</a> <span class="sa-ref">{{ change.profile.sap_id }}</span> · {{ change.field_label }}</span>
+        <span class="sa-change-values"><span class="sa-muted">{{ change.old_value|default:"(empty)" }}</span> <span aria-hidden="true">→</span><span class="visually-hidden">changed to</span> {{ change.new_value|default:"(empty)" }}</span>
+        <span class="sa-change-meta">{{ change.changed_by.get_full_name|default:"System" }} · <time datetime="{{ change.changed_at|date:'c' }}">{{ change.changed_at|date:"j M Y, H:i" }}</time></span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% include "includes/ui/pagination.html" with label="Profile history pages" %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="No profile changes found." icon="clock" %}
+  {% endif %}
+</div>
+{% endblock %}
