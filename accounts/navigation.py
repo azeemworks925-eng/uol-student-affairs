@@ -65,7 +65,7 @@ NAVIGATION = {
         (None, [
             NavItem("Home", "home", "student_home"),
             NavItem("Complaints", "file", "student_complaints", also_current=STUDENT_COMPLAINT_VIEWS),
-            NavItem("Student Voice", "voice"),
+            NavItem("Student Voice", "voice", "student_voice", also_current=("student_voice_detail",)),
             NavItem("Meetings", "calendar"),
         ]),
     ],
@@ -74,7 +74,8 @@ NAVIGATION = {
             NavItem("Overview", "grid", "advisor_home"),
             NavItem("Complaints", "file", "advisor_complaints", also_current=ADVISOR_COMPLAINT_VIEWS),
             NavItem("Collective Issues", "hand"),
-            NavItem("Student Voice", "voice"),
+            NavItem("Student Voice", "voice", "advisor_voice",
+                    also_current=("advisor_voice_detail", "advisor_voice_answer", "advisor_voice_review")),
             NavItem("Meetings", "calendar"),
             NavItem("Representatives", "users", "advisor_representatives",
                     also_current=("advisor_representatives_appoint", "advisor_representatives_replace")),
@@ -87,6 +88,7 @@ NAVIGATION = {
             NavItem("Overview", "grid", "super_admin_home"),
             NavItem("Complaints", "file", "super_admin_complaints", also_current=SUPER_ADMIN_COMPLAINT_VIEWS),
             NavItem("Collective Issues", "hand"),
+            NavItem("Student Voice", "voice", "super_admin_voice", also_current=("super_admin_voice_detail",)),
             NavItem("Calendar", "calendar"),
         ]),
         ("People", [

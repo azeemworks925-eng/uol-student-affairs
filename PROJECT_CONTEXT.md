@@ -29,7 +29,7 @@ This is an independently developed academic project with the ambition of becomin
 | Area | Status |
 |---|---|
 | Django foundation | Created and tested locally (details below). |
-| Product features | Authentication, the application shell, complaints (Parts 1–4 Stage 4a) and in-app notifications are merged into `main`. Stage 4b analytics are specified (DEC-316 to DEC-322), not implemented. Collective issues, Student Voice and meetings are not implemented. |
+| Product features | Authentication, the application shell, complaints, in-app notifications and Student Voice are built. Collective issues (beyond CR/GR representation) and meetings are not implemented. |
 | Authoritative status | The dated "Status at a glance" table in `DEVELOPMENT_LOG.md`. |
 
 Foundation work performed locally:
@@ -107,6 +107,7 @@ IDs refer to `DECISIONS.md`, which has the full wording.
 - No chat or follow-up messaging. (DEC-052)
 - Private to the student, the relevant BA and the Super Admin. (DEC-253)
 - No dedicated Student Voice section on the Super Admin dashboard. (DEC-254)
+- Every BA of the exact cohort can act. Statuses: Waiting, Reviewed, Answered. Ideas and Feedback can have one optional reply. The Super Admin has a read-only list. (DEC-326)
 
 ### Meetings
 
@@ -161,7 +162,7 @@ Product workflows are settled. Do not assume answers to the following; full word
 
 **Workflow details needing a short answer from the owner**
 
-- O27: Which BA is relevant for collective issues, Student Voice and meeting requests (resolved for complaints by DEC-310).
+- O27: Which BA is relevant for meeting requests (resolved for complaints by DEC-310, collective issues by DEC-324 and Student Voice by DEC-326).
 - O29: Meeting status names, and whether a student can cancel or ask to reschedule a confirmed meeting.
 
 ## 6. Technology stack

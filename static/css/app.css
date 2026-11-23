@@ -510,6 +510,26 @@ a.sa-cat-name:hover { color: var(--sa-accent); }
 .sa-notify-body { font-size: 14px; color: var(--sa-muted); overflow-wrap: anywhere; }
 .sa-notify-time { font-size: 13px; color: var(--sa-muted); }
 
+/* ---------- Student Voice ---------- */
+.sa-voice-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
+.sa-voice-layout .sa-panel .sa-h2 { margin-bottom: 12px; }
+.sa-voice-layout fieldset { min-width: 0; }
+.sa-voice-layout .sa-ws-choices { gap: 6px; }
+.sa-voice-layout .sa-ws-choice { padding: 0 10px; }
+.sa-voice-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.sa-voice-card { padding: 16px; background: var(--sa-surface); border: 1px solid var(--sa-border); border-radius: 14px; }
+.sa-voice-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 12px; }
+.sa-voice-card-head .sa-status { margin-left: auto; }
+.sa-voice-card-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.sa-voice-answer { padding: 12px 14px; border-left: 3px solid var(--sa-ink); border-radius: 0 10px 10px 0; background: var(--sa-subtle); min-width: 0; }
+.sa-voice-answer.is-empty { border-left-color: var(--sa-border-strong); }
+@media (min-width: 768px) { .sa-voice-card-body { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1100px) { .sa-voice-layout { grid-template-columns: 340px minmax(0, 1fr); } }
+@media (max-width: 767.98px) {
+  .sa-voice-layout .sa-ws-choice { flex: 1 1 auto; justify-content: center; }
+  .sa-voice-layout .sa-form-actions .btn { min-height: 44px; }
+}
+
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
 
 /* ---------- Representatives / CR/GR Management (Collective Issues CI-1) ----------

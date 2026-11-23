@@ -110,6 +110,7 @@ Rules for every collaborator (human or AI):
 | DEC-052 | There is no chat or follow-up messaging. |
 | DEC-253 | Submissions are private to the submitting student, the relevant BA and the Super Admin. Other students and CR/GR cannot see them. |
 | DEC-254 | The Super Admin has oversight of all submissions. There is no dedicated Student Voice section on the Super Admin dashboard; it is handled through the relevant BA workflow. |
+| DEC-326 | Student Voice workflow (resolves O27 for Student Voice, and O13). Every BA assigned to the student's exact cohort at submission (batch + semester + section) can see and act, with no designated owner. Statuses are Waiting, Reviewed (Ideas and Feedback) and Answered (Questions). An Idea or Feedback can have one optional written reply; like a Question's official answer, it cannot be changed once sent. An answer or reply notifies the student in-app; marking as reviewed does not. The Super Admin has a read-only list with filters, reached from the navigation; there is still no section on the dashboard (DEC-254). Confirmed by the owner on 2026-11-23. |
 
 ### 1.7 Meetings
 
@@ -253,11 +254,11 @@ Kept for traceability. These items appeared as NEEDS CONFIRMATION (Q) or OPEN (O
 | O6 | Collective issue visibility and support | DEC-241, DEC-243 |
 | O7 | Student Voice visibility and answers | DEC-051, DEC-252, DEC-253, DEC-254 |
 | O8 | The "did not solve" mechanism | DEC-222, DEC-223 |
-| O9 | Complaint ownership with several advisors | DEC-227, DEC-228, DEC-310. Complaint owner designation is settled; BA routing for collective issues, Student Voice and meetings remains open. |
+| O9 | Complaint ownership with several advisors | DEC-227, DEC-228, DEC-310. Complaint owner designation is settled. Collective issues: DEC-324. Student Voice: DEC-326. BA routing for meetings remains open. |
 | O10 | Complaints about a student's own BA | Out of scope. DEC-231 |
 | O11 | Calendar scope | DEC-061, DEC-261 |
 | O12 | Complaint categories and statuses | DEC-220, DEC-221 |
-| O13 | Statuses for collective issues and Student Voice | Collective issues: DEC-244. No status workflow has been specified for Student Voice. |
+| O13 | Statuses for collective issues and Student Voice | Collective issues: DEC-244. Student Voice: DEC-326. |
 | O14 | Meeting rules | DEC-060, DEC-260. Remaining details are open as O29. |
 | O15 | Notification events | DEC-270 |
 | O16 | Analytics | DEC-090, DEC-280, DEC-281, DEC-313 to DEC-322. Small-cohort privacy, classification and reporting window are settled. |
@@ -295,7 +296,7 @@ These are gaps found while reconciling, not reopened decisions. Each needs a sho
 
 | ID | Open item |
 |---|---|
-| O27 | Complaint owner designation is resolved by DEC-310. Collective-issue routing is resolved by DEC-324: all BAs assigned to the exact cohort can see and act, with no designated owner. BA routing for Student Voice and meeting requests remains open. |
+| O27 | Complaint owner designation is resolved by DEC-310. Collective-issue routing is resolved by DEC-324: all BAs assigned to the exact cohort can see and act, with no designated owner. Student Voice routing is resolved by DEC-326 on the same rule. BA routing for meeting requests remains open. |
 | O28 | Resolved by DEC-311: cancellation requests are record-only, with no status change or approval/decline workflow. |
 | O29 | Meeting status names, and whether a student can cancel or ask to reschedule a meeting that has been confirmed. |
 | O31 | Resolved by DEC-313. |

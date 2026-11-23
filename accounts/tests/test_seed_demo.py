@@ -10,12 +10,13 @@ from academics.models import AcademicTerm, Batch, Section, Semester
 from accounts.models import AdvisorAssignment, StudentProfile, User
 from complaints.models import Complaint, ComplaintCategory, ComplaintEvent
 from notifications.models import Notification
+from voice.models import Submission
 
 
 def snapshot():
     return [model.objects.count() for model in (
         User, StudentProfile, AdvisorAssignment, Batch, Section, AcademicTerm, ComplaintCategory,
-        Complaint, ComplaintEvent, Notification)]
+        Complaint, ComplaintEvent, Notification, Submission)]
 
 
 class SeedDemoTests(TestCase):
@@ -53,8 +54,16 @@ class SeedDemoTests(TestCase):
         # Real history and notifications, from the services.
         self.assertEqual(ComplaintEvent.objects.filter(kind=ComplaintEvent.Kind.SUBMITTED).count(), 15)
         status_events = ComplaintEvent.objects.filter(kind__in=[ComplaintEvent.Kind.STATUS_CHANGED, ComplaintEvent.Kind.RESPONSE])
-        self.assertEqual(Notification.objects.count(), status_events.count())
+        self.assertEqual(Notification.objects.filter(source_type="complaints.complaintevent").count(), status_events.count())
         self.assertFalse(complaints.filter(reference__isnull=True).exists())
+        # Student Voice: all types and statuses, in both cohorts, with one notification per answer.
+        voice = Submission.objects.all()
+        self.assertEqual(voice.count(), 8)
+        self.assertEqual(set(voice.values_list("type", flat=True)), set(Submission.Type.values))
+        self.assertEqual(set(voice.values_list("status", flat=True)), set(Submission.Status.values))
+        self.assertEqual(set(voice.values_list("section__name", flat=True)), {"DEMO-A", "DEMO-B"})
+        self.assertEqual(Notification.objects.filter(source_type="voice.submission").count(),
+                         voice.exclude(answer="").count())
         # Submission times are spread over the past three weeks, all in the past.
         oldest, newest = complaints.order_by("created_at").first(), complaints.order_by("created_at").last()
         self.assertGreaterEqual((newest.created_at - oldest.created_at).days, 10)

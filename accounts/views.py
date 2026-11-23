@@ -10,8 +10,8 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
 
 from complaints.analytics import build_overview
-from complaints.presentation import student_updates
 from complaints.workspace import advisor_cohort_counts, cohort_value
+from voice.presentation import student_home_updates
 
 from .forms import StudentRegistrationForm
 from .identity import extract_sap_id
@@ -68,7 +68,7 @@ def cohort_label(batch, semester, section):
 # yet keeps url_name None and is not shown; it appears once its url_name is set.
 QUICK_ACCESS = [
     {"label": "Submit a complaint", "description": "Raise a problem with your Batch Advisor", "icon": "plus", "url_name": "student_complaint_new", "primary": True},
-    {"label": "Student Voice", "description": "An idea, a question or feedback", "icon": "voice", "url_name": None},
+    {"label": "Student Voice", "description": "An idea, a question or feedback", "icon": "voice", "url_name": "student_voice"},
     {"label": "My meetings", "description": "Request or review meetings", "icon": "calendar", "url_name": None},
 ]
 
@@ -80,9 +80,9 @@ def quick_access():
 @student_required
 def student_home(request):
     profile = request.user.student_profile
-    # The student's latest staff updates on their complaints (status changes and responses),
-    # newest first. Student Voice and meetings will add their own updates when they are built.
-    updates = student_updates(request.user)
+    # The student's latest staff updates: complaint status changes and responses, and Student
+    # Voice answers and replies, merged newest first. Meetings will add theirs when built.
+    updates = student_home_updates(request.user)
     return render(request, "accounts/student_home.html", {
         "profile": profile,
         "today": timezone.localdate(),

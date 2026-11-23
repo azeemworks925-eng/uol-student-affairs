@@ -12,6 +12,22 @@ Rules:
 
 ---
 
+## 2026-11-23 — Student Voice, finished
+
+Branch `feat/student-voice`, created from `main` at `c9cd4e2`. Adds the `voice` app with one migration and no new dependencies. Workflow decisions are recorded as DEC-326, which resolves O27 for Student Voice.
+
+**What was done**
+
+- **Model and rules:** one `Submission` table for Idea, Question and Feedback (10 to 2000 characters), storing the exact cohort at submission. An answer or reply can be written once. Records cannot be deleted.
+- **Student:** a Student Voice page with a short form and "My submissions", showing type, date, status and the answer beside the message.
+- **Batch Advisor:** a workspace for assigned cohorts with type, cohort and status filters, merge-sorted newest first, with answer, reply and "Mark reviewed".
+- **Super Admin:** the same list and filters, read-only, with no POST routes. The Django admin registration is also read-only.
+- **Notifications and Student Home:** an answer or reply notifies the student and links to the submission. Student Home merges these with complaint updates using merge sort, still at most five.
+- **Navigation and demo data:** Student Voice appears for all three roles and in Quick Access. `seed_demo` adds 8 submissions across both demo cohorts and remains safe to run twice.
+- **Checked:** 12 Student Voice and Student Home page states at 1280×590 and 360px in headless Chrome, with no horizontal scroll or clipped text, and touch targets of at least 44px at 360px. The form's validation-error state was covered by tests, not by a screenshot.
+
+---
+
 ## 2026-11-22 — Look and feel, finished (awaiting review)
 
 Branch `feat/look-and-feel`, created from `main` at `25df230`. Prepares the portal to look finished and consistent for the teacher demo on 2026-11-26. No migrations, no dependencies, no change to any workflow or permission.
@@ -155,7 +171,7 @@ Branch `feat/collective-issues-ci-1-representation`, created from `main` at `a0e
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O30 and O34; O25 is resolved by DEC-315. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. "Look and feel, finished" (landing page, restyled sign-in pages, Forest admin, unbuilt items hidden) on branch `feat/look-and-feel`. |
 | Complaints | "Complaints, finished" (DSA-backed sorting, Go to reference, trie search, Next complaint, Student Home updates, Overview counts, `seed_demo`) on branch `feat/complaints-complete`, awaiting review. Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`); Stage 3 (in-app notifications) through PR #16 (`d857d27`). Stage 4a (academic terms and the Super Admin term filter) through PR #18 (`1809730`). Stage 4b (analytics) is specified (COMPLAINTS_PART4_SPEC.md section 6, DEC-316 to DEC-322; PR #19, `b7d48a9`) and merged through PR #20 (`0df6dd4`). Stage 5 (final acceptance) is not started. |
-| Other product features | Collective issues: Stage CI-1 (CR/GR cohort representation) merged through PR #23 (`efec6f2`); CI-2 to CI-4 (issues, support, Batch Advisor workspace) not implemented. Student Voice and meetings are not implemented. |
+| Other product features | Collective issues: Stage CI-1 (CR/GR cohort representation) merged through PR #23 (`efec6f2`); CI-2 to CI-4 (issues, support, Batch Advisor workspace) not implemented. Student Voice is built (entry of 2026-11-23, DEC-326). Meetings are not implemented. |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
 
 ---
