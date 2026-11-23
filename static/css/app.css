@@ -948,6 +948,50 @@ a.sa-bar-row:hover .sa-bar-label { text-decoration: underline; text-underline-of
   .sa-controls-end { margin-left: 0; }
 }
 
+/* ---------- Meetings: row actions and the week view ---------- */
+.sa-item-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 0 16px 10px; }
+.sa-collection[data-view="cards"] > li { align-content: start; gap: 6px; }
+.sa-collection[data-view="cards"] .sa-item-actions { padding: 0 4px; }
+.sa-item-actions .sa-meet-actions { padding: 0; }
+.sa-week-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sa-week-tabs { display: none; }
+.sa-week-card { padding: 12px; }
+.sa-week { --wk-row: 7px; display: grid; grid-template-columns: 52px repeat(7, minmax(0, 1fr)); }
+.sa-week-corner, .sa-week-head { padding: 4px 2px 8px; border-bottom: 1px solid var(--sa-border); }
+.sa-week-head { text-align: center; font-size: 13px; color: var(--sa-muted); }
+.sa-week-head b { display: block; font-size: 16px; font-weight: 600; color: var(--sa-ink); }
+.sa-week-head.is-today b { color: var(--sa-accent); text-decoration: underline; text-underline-offset: 3px; }
+.sa-week-times, .sa-week-day { display: grid; grid-template-rows: repeat(var(--wk-rows), var(--wk-row)); }
+.sa-week-times span { align-self: start; padding-right: 8px; font-size: 12px; line-height: 1; color: var(--sa-muted); text-align: right; font-variant-numeric: tabular-nums; }
+.sa-week-day { grid-template-columns: repeat(var(--wk-lanes, 1), minmax(0, 1fr)); gap: 0 2px; padding: 0 1px; border-left: 1px solid var(--sa-border); }
+.sa-week-day.is-today { background: var(--sa-canvas); }
+.sa-week-line { grid-column: 1 / -1; border-top: 1px solid var(--sa-subtle); }
+.sa-week-item { --edge: var(--sa-border-strong); z-index: 1; display: flex; align-items: flex-start; min-width: 0; overflow: hidden; padding: 1px 4px; border: 1px solid var(--sa-border); border-left: 3px solid var(--edge); border-radius: 5px; background: var(--sa-surface); color: var(--sa-ink); font-size: 14px; line-height: 17px; text-decoration: none !important; overflow-wrap: anywhere; transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
+.sa-week-item:hover { background: var(--sa-subtle); }
+.sa-week-item.sa-item--received { --edge: var(--sa-info); }
+.sa-week-item.sa-item--review { --edge: var(--sa-progress); }
+.sa-week-item.sa-item--resolved { --edge: var(--sa-success); }
+.sa-week-item.sa-item--rejected { --edge: var(--sa-negative); }
+.sa-wk-initials { display: none; font-weight: 600; }
+.sa-week-item.is-compact .sa-wk-name { display: none; }
+.sa-week-item.is-compact .sa-wk-initials { display: inline; }
+.sa-cal-nav { justify-content: space-between; }
+.sa-meet-history { margin-top: 0; }
+@media (max-width: 767.98px) {
+  .sa-week-nav .btn { flex: 1 1 auto; min-height: 44px; padding-inline: 8px; }
+  .sa-week-tabs { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+  .sa-week-tabs a { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px; border-radius: 8px; color: var(--sa-muted); font-size: 12px; text-decoration: none !important; }
+  .sa-week-tabs b { font-size: 15px; color: var(--sa-ink); }
+  .sa-week-tabs [aria-current] { background: var(--sa-ink); color: var(--sa-surface); }
+  .sa-week-tabs [aria-current] b { color: var(--sa-surface); }
+  .sa-week { grid-template-columns: 52px minmax(0, 1fr); }
+  .sa-week-head:not(.is-selected), .sa-week-day:not(.is-selected) { display: none; }
+  .sa-week-item.is-compact .sa-wk-name { display: inline; }
+  .sa-week-item.is-compact .sa-wk-initials { display: none; }
+  .sa-cal-nav .btn { min-height: 44px; }
+  .sa-item-actions .btn, .sa-item-actions .sa-card-action { min-height: 44px; }
+}
+
 /* ---------- Motion ---------- */
 .btn { transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
 .btn:active { transform: scale(.98); }

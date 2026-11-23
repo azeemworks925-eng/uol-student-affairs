@@ -2,45 +2,33 @@
 {# Super Admin oversight: every meeting, read-only (DEC-262, DEC-328). #}
 {% block title %}Meetings · UOL Student Affairs{% endblock %}
 {% block content %}
-<header class="sa-page-head">
-  <span class="sa-eyebrow">Meetings</span>
-  <h1 class="sa-display">All meetings.</h1>
-  <p class="sa-lede"><span class="soft">Read-only oversight. The Batch Advisors of each cohort act on meetings.</span></p>
-</header>
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Meetings</h1>
+      <p class="sa-page-subtitle">Department · read-only oversight</p>
+    </div>
+    <div class="sa-page-actions">{% include "meetings/_view_switch.html" with active="list" %}</div>
+  </header>
 
-<form method="get" class="sa-meet-filters">
-  <div><label class="form-label" for="{{ filters.status.id_for_label }}">Status</label>{{ filters.status }}</div>
-  <div><label class="form-label" for="{{ filters.cohort.id_for_label }}">Cohort</label>{{ filters.cohort }}</div>
-  <div class="sa-form-actions">
-    <button type="submit" class="btn btn-sa-primary">Apply</button>
-    {% if has_filters %}<a class="btn btn-sa-secondary" href="{% url 'super_admin_meetings' %}">Clear filters</a>{% endif %}
+  <div class="sa-controls">
+    {% include "includes/ui/filter_chip.html" with label="Status" param="status" choices=filters.fields.status.choices current=current.status %}
+    {% include "includes/ui/filter_chip.html" with label="Cohort" param="cohort" choices=filters.fields.cohort.choices current=current.cohort %}
+    {% if has_filters %}<a class="sa-clear" href="{% url 'super_admin_meetings' %}">Clear filters</a>{% endif %}
+    <div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="admin-meetings" %}</div>
   </div>
-</form>
 
-{% if page.object_list %}
-<ul class="sa-voice-list">
-  {% for meeting in page %}
-  <li>
-    <article class="sa-meet-card sa-meet-link">
-      <time class="sa-meet-time" datetime="{{ meeting.when|date:'c' }}"><b>{{ meeting.when|date:"H:i" }}</b><span>{{ meeting.when|date:"j M y" }}</span></time>
-      <span class="sa-meet-main">
-        <span class="sa-meet-title">{{ meeting.student.get_full_name }}{% if meeting.advisor %} with {{ meeting.advisor.get_full_name }}{% endif %}</span>
-        <span class="sa-small sa-muted">{{ meeting.batch }} · {{ meeting.semester }} · {{ meeting.section }}{% if meeting.location %} · {{ meeting.location }}{% endif %}</span>
-        <span class="sa-small">{{ meeting.reason|truncatechars:110 }}</span>
-      </span>
-      {% include "complaints/student/_status.html" with tone=meeting.tone label=meeting.get_status_display %}
-    </article>
-  </li>
-  {% endfor %}
-</ul>
-{% if page.has_other_pages %}
-<nav class="sa-pagination" aria-label="Meeting pages">
-  {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="?{% if page_state %}{{ page_state }}&amp;{% endif %}page={{ page.previous_page_number }}">Previous</a>{% endif %}
-  <span class="sa-small sa-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
-  {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="?{% if page_state %}{{ page_state }}&amp;{% endif %}page={{ page.next_page_number }}">Next</a>{% endif %}
-</nav>
-{% endif %}
-{% else %}
-<div class="sa-empty"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg><div><p class="title">{% if has_filters %}No meetings match these filters.{% else %}No meetings yet.{% endif %}</p></div></div>
-{% endif %}
+  <div class="sa-stats">
+    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
+  </div>
+
+  {% if page.object_list %}
+    {% include "meetings/_collection.html" with meetings=page.object_list key="admin-meetings" detail_url_name="super_admin_meeting_detail" show_student=True %}
+    {% include "includes/ui/pagination.html" with label="Meeting pages" %}
+  {% elif has_filters %}
+    {% include "includes/ui/empty.html" with title="No meetings match these filters." icon="calendar" %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="No meetings yet." icon="calendar" %}
+  {% endif %}
+</div>
 {% endblock %}

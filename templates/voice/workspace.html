@@ -1,138 +1,140 @@
 {% extends "layouts/app.html" %}
 {% load static %}
-{# Staff workspace: Batch Advisor (acts) and Super Admin (read-only). The URL selects a submission; CSS decides the layout. #}
+{# Staff Student Voice: Batch Advisor (acts) and Super Admin (read-only). The URL selects the list or one submission. #}
 {% block title %}{% if submission %}{{ submission.get_type_display }} · {% endif %}Student Voice · UOL Student Affairs{% endblock %}
-{% block page_class %} sa-page--workspace{% endblock %}
-{% block messages %}{% endblock %}
+{% block crumb %}{% if submission %}<li>{{ submission.get_type_display }}</li>{% endif %}{% endblock %}
 {% block content %}
-<div class="sa-workspace{% if submission %} sa-workspace--has-case{% endif %}">
-  <section class="sa-ws-list" aria-labelledby="ws-list-title">
-    {% if not submission %}{% include "includes/messages.html" %}{% endif %}
-    <header class="sa-ws-list-head">
-      <span class="sa-eyebrow">Student Voice</span>
-      {% if submission %}<h2 class="sa-ws-title" id="ws-list-title">{% else %}<h1 class="sa-ws-title" id="ws-list-title">{% endif %}{% if read_only %}Department{% else %}Your cohorts{% endif %}{% if submission %}</h2>{% else %}</h1>{% endif %}
-      {% if has_cohorts %}<p class="sa-ws-headline">{{ headline }}</p>{% endif %}
-    </header>
-
-    {% if not has_cohorts %}
-      <div class="sa-empty">
-        <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
-        <div><p class="title">No cohorts are assigned to you yet.</p><p class="sa-muted sa-small">The Super Admin assigns cohorts. Their submissions will appear here.</p></div>
-      </div>
-    {% else %}
-      <form method="get" action="{% url urls.list %}" class="sa-ws-search">
-        <details class="sa-ws-filters"{% if has_filters %} open{% endif %}>
-          <summary>Filters and sort</summary>
-          <div class="sa-ws-filter-grid">
-            <div><label class="form-label" for="{{ filters.type.id_for_label }}">Type</label>{{ filters.type }}</div>
-            <div><label class="form-label" for="{{ filters.cohort.id_for_label }}">Cohort</label>{{ filters.cohort }}</div>
-            <div><label class="form-label" for="{{ filters.status.id_for_label }}">Status</label>{{ filters.status }}</div>
-            <div><label class="form-label" for="{{ filters.sort.id_for_label }}">Sort by</label>{{ filters.sort }}</div>
-          </div>
-          <div class="sa-ws-filter-actions">
-            <button type="submit" class="btn btn-sa-primary btn-sm">Apply</button>
-            {% if has_filters %}<a class="btn btn-sa-secondary btn-sm" href="{% url urls.list %}">Clear filters</a>{% endif %}
-          </div>
-        </details>
-      </form>
-
-      {% if page.object_list %}
-      <ul class="sa-ws-rows">
-        {% for item in page %}
-        <li>
-          <a class="sa-ws-row" href="{% url urls.detail item.pk %}{% if list_state %}?{{ list_state }}{% endif %}"{% if item.pk == submission.pk %} aria-current="true"{% endif %}>
-            <span class="sa-ws-row-top"><span class="sa-flag">{{ item.get_type_display }}</span>{% include "complaints/student/_status.html" with tone=item.tone label=item.get_status_display %}</span>
-            <span class="sa-ws-row-title">{{ item.text|truncatechars:80 }}</span>
-            <span class="sa-ws-row-student">{{ item.student.get_full_name }}</span>
-            <span class="sa-ws-row-meta"><span class="sa-cohort">{{ item.batch }} · {{ item.semester }} · {{ item.section }}</span> <span class="sa-nowrap">{{ item.created_at|date:"j M Y" }}</span></span>
-          </a>
-        </li>
-        {% endfor %}
-      </ul>
-      {% if page.has_other_pages %}
-      <nav class="sa-pagination" aria-label="Submission pages">
-        {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="?{% if page_state %}{{ page_state }}&amp;{% endif %}page={{ page.previous_page_number }}">Previous</a>{% endif %}
-        <span class="sa-small sa-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
-        {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="?{% if page_state %}{{ page_state }}&amp;{% endif %}page={{ page.next_page_number }}">Next</a>{% endif %}
-      </nav>
-      {% endif %}
-      {% elif has_filters %}
-      <div class="sa-empty">
-        <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
-        <div><p class="title">No submissions match these filters.</p><p class="sa-small mb-0"><a href="{% url urls.list %}">Clear filters</a></p></div>
-      </div>
-      {% else %}
-      <div class="sa-empty">
-        <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-voice"/></svg>
-        <div><p class="title">No submissions yet.</p><p class="sa-muted sa-small">Ideas, questions and feedback from students appear here.</p></div>
-      </div>
-      {% endif %}
-    {% endif %}
-  </section>
-
-  <section class="sa-ws-case" aria-labelledby="{% if submission %}case-title{% else %}ws-empty-title{% endif %}">
-    {% if submission %}
-    <div class="sa-ws-case-inner">
-      <a class="sa-back sa-ws-back" href="{% url urls.list %}{% if list_state %}?{{ list_state }}{% endif %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Student Voice</a>
-      {% include "includes/messages.html" %}
-      <header class="sa-case-head sa-ws-case-head">
-        <div class="sa-case-ids">
-          <span class="sa-flag">{{ submission.get_type_display }}</span>
-          {% include "complaints/student/_status.html" with tone=submission.tone label=submission.get_status_display %}
+<div class="sa-flow">
+{% if submission %}
+  <a class="sa-back" href="{% url urls.list %}{% if list_state %}?{{ list_state }}{% endif %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Back to Student Voice</a>
+  <div class="sa-detail">
+    <div class="sa-detail-main">
+      <header class="sa-card sa-detail-head">
+        <div>
+          <div class="sa-detail-ids"><span class="sa-flag">{{ submission.get_type_display }}</span>{% include "complaints/student/_status.html" with tone=submission.tone label=submission.get_status_display %}</div>
+          <h1 class="sa-detail-title" id="case-title">{{ submission.get_type_display }} from {{ submission.student.get_full_name }}</h1>
         </div>
-        <h1 class="sa-display" id="case-title">{{ submission.get_type_display }} from {{ submission.student.get_full_name }}</h1>
-        <dl class="sa-facts mb-0">
-          <div><dt>SAP ID</dt><dd>{{ sap_id }}</dd></div>
-          <div><dt>Cohort at submission</dt><dd>{{ cohort_label }}</dd></div>
-          <div><dt>Submitted</dt><dd>{{ submission.created_at|date:"j F Y, H:i" }}</dd></div>
-        </dl>
       </header>
-      <div class="sa-ws-case-body">
-        <section class="sa-original" aria-labelledby="original-title">
-          <h2 class="sa-label" id="original-title">Student's message</h2>
-          <div class="sa-prose mb-0">{{ submission.text|linebreaksbr }}</div>
-        </section>
-
-        {% if submission.answer %}
-        <section class="sa-ws-panel" aria-labelledby="answer-title">
-          <h2 class="sa-h2" id="answer-title">{% if submission.is_question %}Official answer{% else %}Reply{% endif %}</h2>
-          <div class="sa-prose">{{ submission.answer|linebreaksbr }}</div>
-          <p class="sa-small sa-muted mb-0 mt-2">{{ submission.answered_by.get_full_name }} · {{ submission.answered_at|date:"j M Y, H:i" }}. It cannot be changed.</p>
-        </section>
-        {% elif submission.reviewed_by %}
-        <p class="sa-small sa-muted mt-3 mb-0">Reviewed by {{ submission.reviewed_by.get_full_name }} on {{ submission.reviewed_at|date:"j M Y, H:i" }}.</p>
-        {% endif %}
-
-        {% if can_review %}
-        <form method="post" action="{% url urls.review submission.pk %}{% if list_state %}?{{ list_state }}{% endif %}" class="sa-ws-panel" data-once-submit>
-          {% csrf_token %}
-          <h2 class="sa-h2">Review</h2>
-          <p class="sa-small sa-muted">A written reply is optional.</p>
-          <button type="submit" class="btn btn-sa-secondary" data-submit-label="Saving…">Mark reviewed</button>
-        </form>
-        {% endif %}
-
-        {% if can_answer %}
-        <form method="post" action="{% url urls.answer submission.pk %}{% if list_state %}?{{ list_state }}{% endif %}" class="sa-ws-panel" novalidate data-once-submit>
-          {% csrf_token %}
-          <h2 class="sa-h2">{% if submission.is_question %}Answer this question{% else %}Write a reply{% endif %}</h2>
-          {% include "includes/form_field.html" with field=answer_form.answer hide_optional=True %}
-          <button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">{% if submission.is_question %}Send answer{% else %}Send reply{% endif %}</button>
-        </form>
-        {% endif %}
-
-        {% if read_only %}
-        <p class="sa-notice sa-small mt-3 mb-0">Read-only oversight. The Batch Advisors of this cohort answer and review.</p>
-        {% endif %}
-      </div>
+      <section class="sa-card" aria-labelledby="original-title">
+        <h2 class="sa-card-title mb-2" id="original-title">Student's message</h2>
+        <div class="sa-prose">{{ submission.text|linebreaksbr }}</div>
+      </section>
+      {% if submission.answer %}
+      <section class="sa-card" aria-labelledby="answer-title">
+        <h2 class="sa-card-title mb-2" id="answer-title">{% if submission.is_question %}Official answer{% else %}Reply{% endif %}</h2>
+        <div class="sa-prose">{{ submission.answer|linebreaksbr }}</div>
+        <p class="sa-small sa-muted mb-0 mt-2">{{ submission.answered_by.get_full_name }} · {{ submission.answered_at|date:"j M Y, H:i" }}. It cannot be changed.</p>
+      </section>
+      {% elif submission.reviewed_by %}
+      <p class="sa-small sa-muted mb-0">Reviewed by {{ submission.reviewed_by.get_full_name }} on {{ submission.reviewed_at|date:"j M Y, H:i" }}.</p>
+      {% endif %}
     </div>
-    {% else %}
-    <div class="sa-ws-empty">
-      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-voice"/></svg>
-      <h2 class="sa-h2" id="ws-empty-title">Choose a submission from the list.</h2>
+
+    <aside class="sa-detail-side" data-sticky-panel aria-label="Student, details and actions">
+      <section class="sa-card" aria-label="Student">
+        <div class="sa-person">
+          {% include "includes/ui/avatar.html" with name=submission.student.get_full_name size="lg" %}
+          <div>
+            <div class="sa-person-name">{{ submission.student.get_full_name }}{% if student_post %}<span class="sa-post-badge">{{ student_post }}</span>{% endif %}</div>
+            <span class="sa-small sa-muted">SAP ID <span class="sa-ref">{{ sap_id }}</span></span>
+          </div>
+        </div>
+        <dl class="sa-facts-list"><div><dt>Cohort at submission</dt><dd>{% include "includes/ui/cohort.html" with record=submission %}</dd></div></dl>
+      </section>
+      <section class="sa-card" aria-labelledby="details-title">
+        <h2 class="sa-card-title mb-2" id="details-title">Details</h2>
+        <dl class="sa-facts-list">
+          <div><dt>Type</dt><dd>{{ submission.get_type_display }}</dd></div>
+          <div><dt>Submitted</dt><dd>{{ submission.created_at|date:"j M Y, H:i" }}</dd></div>
+        </dl>
+      </section>
+      {% if read_only %}
+      <p class="sa-notice sa-small mb-0">Read-only oversight. The Batch Advisors of this cohort answer and review.</p>
+      {% elif can_answer or can_review %}
+      <section class="sa-card sa-side-actions-card" aria-labelledby="actions-title">
+        <h2 class="sa-card-title mb-2" id="actions-title">Actions</h2>
+        <div class="sa-side-actions">
+          {% if can_answer %}<button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-answer">{% if submission.is_question %}Answer{% else %}Reply{% endif %}</button>{% endif %}
+          {% if can_review %}<form method="post" action="{% url urls.review submission.pk %}{% if list_state %}?{{ list_state }}{% endif %}" data-once-submit>{% csrf_token %}<button type="submit" class="btn btn-sa-secondary w-100" data-submit-label="Saving…">Mark reviewed</button></form>{% endif %}
+        </div>
+      </section>
+      {% endif %}
+    </aside>
+  </div>
+
+  {% if not read_only and can_answer or not read_only and can_review %}
+  <nav class="sa-actionbar" aria-label="Actions">
+    {% if can_answer %}<button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-answer">{% if submission.is_question %}Answer{% else %}Reply{% endif %}</button>{% endif %}
+    {% if can_review %}<form method="post" action="{% url urls.review submission.pk %}{% if list_state %}?{{ list_state }}{% endif %}" class="d-grid" data-once-submit>{% csrf_token %}<button type="submit" class="btn btn-sa-secondary" data-submit-label="Saving…">Reviewed</button></form>{% endif %}
+  </nav>
+  {% endif %}
+
+  {% if can_answer %}
+  <dialog class="sa-dialog" id="dialog-answer" aria-labelledby="answer-dialog-title"{% if answer_form.errors %} data-open-on-load{% endif %}>
+    <div class="sa-dialog-body">
+      {% if submission.is_question %}{% include "includes/ui/dialog_head.html" with title="Answer this question" id="answer-dialog-title" %}{% else %}{% include "includes/ui/dialog_head.html" with title="Write a reply" id="answer-dialog-title" %}{% endif %}
+      <form method="post" action="{% url urls.answer submission.pk %}{% if list_state %}?{{ list_state }}{% endif %}" novalidate data-once-submit>
+        {% csrf_token %}
+        {% include "includes/form_field.html" with field=answer_form.answer hide_optional=True %}
+        <button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">{% if submission.is_question %}Send answer{% else %}Send reply{% endif %}</button>
+      </form>
     </div>
-    {% endif %}
-  </section>
+  </dialog>
+  {% endif %}
+{% else %}
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title" id="ws-list-title">Student Voice</h1>
+      <p class="sa-page-subtitle">{% if read_only %}Department{% else %}Your cohorts{% endif %}</p>
+      {% if has_cohorts %}<p class="visually-hidden">{{ headline }}</p>{% endif %}
+    </div>
+  </header>
+
+  {% if not has_cohorts %}
+    {% include "includes/ui/empty.html" with title="No cohorts are assigned to you yet." text="The Super Admin assigns cohorts. Their submissions will appear here." %}
+  {% else %}
+  <div class="sa-controls">
+    <form method="get" action="{% url urls.list %}" class="sa-pill-search" role="search">
+      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
+      <label class="visually-hidden" for="voice-search">Search by student name, SAP ID or message</label>
+      <input id="voice-search" type="search" name="q" maxlength="100" value="{{ query }}" placeholder="Search submissions">
+      {% for key, value in search_hidden %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    </form>
+    {% include "includes/ui/filter_chip.html" with label="Type" param="type" choices=filters.fields.type.choices current=current.type %}
+    {% include "includes/ui/filter_chip.html" with label="Status" param="status" choices=filters.fields.status.choices current=current.status %}
+    {% include "includes/ui/filter_chip.html" with label="Cohort" param="cohort" choices=filters.fields.cohort.choices current=current.cohort %}
+    {% include "includes/ui/filter_chip.html" with label="Sort" param="sort" choices=filters.fields.sort.choices current=current.sort %}
+    {% if has_filters %}<a class="sa-clear" href="{% url urls.list %}">Clear filters</a>{% endif %}
+    <div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="staff-voice" %}</div>
+  </div>
+
+  <div class="sa-stats">
+    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
+  </div>
+
+  {% if page.object_list %}
+  <ul class="sa-collection" data-view="list" data-view-key="staff-voice">
+    {% for item in page %}
+    <li>
+      <a class="sa-item sa-item--{{ item.tone }}" href="{% url urls.detail item.pk %}{% if list_state %}?{{ list_state }}{% endif %}">
+        <span class="sa-item-ref">{{ item.get_type_display }}</span>
+        <span class="sa-item-who">{{ item.student.get_full_name }}</span>
+        <span class="sa-item-title">{{ item.text|truncatechars:80 }}</span>
+        {% include "includes/ui/cohort.html" with record=item %}
+        {% include "complaints/student/_status.html" with tone=item.tone label=item.get_status_display %}
+        <span class="sa-item-when">{{ item.created_at|date:"j M Y" }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% include "includes/ui/pagination.html" with label="Submission pages" %}
+  {% elif has_filters %}
+    {% url urls.list as clear_url %}{% include "includes/ui/empty.html" with title="No submissions match these filters." link_url=clear_url link_label="Clear filters" %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="No submissions yet." text="Ideas, questions and feedback from students appear here." icon="voice" %}
+  {% endif %}
+  {% endif %}
+{% endif %}
 </div>
 {% endblock %}
 {% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "layouts/app.html" %}
+{% load ui %}
+{# Week view: Monday to Sunday, server-rendered with Python datetime and CSS grid. Phones show one day with tabs. #}
+{% block title %}Week of {{ week.monday|date:"j F Y" }} · Meetings · UOL Student Affairs{% endblock %}
+{% block crumb %}<li>Week of {{ week.monday|date:"j M" }}</li>{% endblock %}
+{% block content %}
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">{{ week.monday|date:"j M" }} – {{ week.sunday|date:"j M Y" }}</h1>
+      <p class="sa-page-subtitle">Confirmed and suggested times</p>
+    </div>
+    <div class="sa-page-actions">{% include "meetings/_view_switch.html" with active="week" %}</div>
+  </header>
+
+  <nav class="sa-week-nav" aria-label="Change week">
+    <a class="btn btn-sa-secondary btn-sm" href="?week={{ week.previous }}" rel="prev">‹ Prev week</a>
+    <a class="btn btn-sa-secondary btn-sm" href="?week={{ week.this_week }}">This week</a>
+    <a class="btn btn-sa-secondary btn-sm" href="?week={{ week.next }}" rel="next">Next week ›</a>
+  </nav>
+
+  <nav class="sa-week-tabs" aria-label="Choose a day">
+    {% for day in week.days %}<a href="?{{ day.query }}"{% if day.is_selected %} aria-current="date"{% endif %}><span>{{ day.date|date:"D" }}</span><b>{{ day.date.day }}</b></a>{% endfor %}
+  </nav>
+
+  <section class="sa-card sa-week-card" aria-label="Week calendar">
+    <div class="sa-week" style="--wk-rows: {{ week.rows }}">
+      <div class="sa-week-corner" aria-hidden="true"></div>
+      {% for day in week.days %}
+      <div class="sa-week-head{% if day.is_today %} is-today{% endif %}{% if day.is_selected %} is-selected{% endif %}"><span>{{ day.date|date:"D" }}</span> <b>{{ day.date.day }}</b></div>
+      {% endfor %}
+
+      <div class="sa-week-times" aria-hidden="true">
+        {% for slot in week.slots %}<span style="grid-row: {{ slot.row }} / span {{ slot.span }}">{{ slot.label }}</span>{% endfor %}
+      </div>
+      {% for day in week.days %}
+      <div class="sa-week-day{% if day.is_today %} is-today{% endif %}{% if day.is_selected %} is-selected{% endif %}" style="--wk-lanes: {{ day.lanes }}" aria-label="{{ day.date|date:'l j F' }}" role="group">
+        {% for slot in week.slots %}<i class="sa-week-line" style="grid-row: {{ slot.row }} / span {{ slot.span }}" aria-hidden="true"></i>{% endfor %}
+        {% for item in day.items %}{% with meeting=item.meeting %}
+        <a class="sa-week-item sa-item--{{ meeting.tone }}{% if item.compact %} is-compact{% endif %}" href="{% url detail_url_name meeting.pk %}" style="grid-row: {{ item.row }} / span {{ item.span }}; grid-column: {{ item.lane }} / span 1" title="{{ meeting.starts_at|date:'H:i' }}, {{ meeting.duration_minutes }} min · {% if show_student %}{{ meeting.student.get_full_name }}{% else %}{{ meeting.location }}{% endif %} · {{ meeting.get_status_display }}">
+          <span class="visually-hidden">{{ meeting.starts_at|date:"H:i" }}, {{ meeting.get_status_display }}: </span>
+          {% if show_student %}<span class="sa-wk-name">{{ meeting.student.get_full_name }}</span><span class="sa-wk-initials" aria-hidden="true">{{ meeting.student.get_full_name|initials }}</span>{% else %}<span class="sa-wk-name">{{ meeting.starts_at|date:"H:i" }}</span><span class="sa-wk-initials" aria-hidden="true">{{ meeting.starts_at|date:"H:i" }}</span>{% endif %}
+        </a>
+        {% endwith %}{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% if not week.has_meetings %}{% include "includes/ui/empty.html" with title="No meetings this week." icon="calendar" %}{% endif %}
+</div>
+{% endblock %}

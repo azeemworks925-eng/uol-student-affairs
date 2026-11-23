@@ -13,11 +13,13 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods, require_POST
 
 from accounts.permissions import batch_advisor_required, student_required, super_admin_required
+from complaints import ordering
+from complaints.presentation import current_post
 from complaints.workspace import advisor_cohorts, cohort_value
 from dsa.sorting import merge_sort
 
@@ -25,12 +27,13 @@ from . import services
 from .forms import AnswerForm, FilterForm, SubmissionForm
 from .models import Submission
 from .permissions import get_visible_submission, visible_submissions
-from .presentation import add_tones, sort_submissions
+from .presentation import add_tones, sort_submissions, voice_stats
 
 STUDENT_PAGE_SIZE = 10
 STAFF_PAGE_SIZE = 20
-LIST_PARAMS = ("type", "cohort", "status", "sort", "page")
-FILTER_PARAMS = ("type", "cohort", "status", "sort")
+LIST_PARAMS = ("q", "type", "cohort", "status", "sort", "page")
+FILTER_PARAMS = ("q", "type", "cohort", "status", "sort")
+STUDENT_LIST_PARAMS = ("q", "type", "status", "sort", "page")
 ADVISOR_URLS = {"list": "advisor_voice", "detail": "advisor_voice_detail",
                 "answer": "advisor_voice_answer", "review": "advisor_voice_review"}
 SUPER_ADMIN_URLS = {"list": "super_admin_voice", "detail": "super_admin_voice_detail"}
@@ -54,18 +57,32 @@ def student_voice(request):
         else:
             messages.success(request, "Thank you. Your Batch Advisors can now see your message.")
             return redirect("student_voice")
-    own = sort_submissions(list(visible_submissions(request.user)))
+    visible = visible_submissions(request.user)
+    filters = FilterForm(request.GET, cohorts=[], all_cohorts_label="")
+    query = _query(request)
+    rows = _filtered(visible, filters)
+    if query:
+        rows = rows.filter(text__icontains=query)
+    own = sort_submissions(list(rows), filters.value("sort"))
     page = Paginator(own, STUDENT_PAGE_SIZE).get_page(request.GET.get("page"))
     add_tones(page.object_list)
-    return render(request, "voice/student.html", {"form": form, "page": page, "total": len(own)},
-                  status=400 if form.is_bound else 200)
+    state = urlencode([(key, request.GET[key]) for key in STUDENT_LIST_PARAMS if request.GET.get(key)])
+    return render(request, "voice/student.html", {
+        "form": form, "page": page, "total": visible.count(), "filters": filters, "query": query,
+        "current": {name: filters.value(name) for name in ("type", "status", "sort")},
+        "has_filters": any(request.GET.get(name) for name in ("q", "type", "status", "sort")),
+        "stats": voice_stats(visible), "list_keys": STUDENT_LIST_PARAMS, "list_state": state,
+        "search_hidden": [(k, request.GET[k]) for k in ("type", "status", "sort") if request.GET.get(k)],
+        "open_new": form.is_bound or bool(request.GET.get("new")),
+    }, status=400 if form.is_bound else 200)
 
 
 @student_required
 def student_voice_detail(request, pk):
     submission = get_visible_submission(request.user, pk)
     add_tones([submission])
-    return render(request, "voice/student_detail.html", {"submission": submission})
+    state = urlencode([(key, request.GET[key]) for key in STUDENT_LIST_PARAMS if request.GET.get(key)])
+    return render(request, "voice/student_detail.html", {"submission": submission, "list_state": state})
 
 
 # --- Staff workspace -------------------------------------------------------------------------
@@ -82,6 +99,10 @@ def _submission_cohorts(visible):
         key=lambda pair: (pair[1].batch.name, pair[1].semester.number, pair[1].section.name),
     )
     return [(value, _cohort_label(submission)) for value, submission in ordered]
+
+
+def _query(request):
+    return " ".join(request.GET.get("q", "").split())[:100]
 
 
 def _filtered(visible, filters):
@@ -117,7 +138,11 @@ def _render_workspace(request, pk=None, *, answer_form=None, status=200):
     cohorts = _submission_cohorts(visible) if read_only else advisor_cohorts(user)
     filters = FilterForm(request.GET, cohorts=cohorts,
                          all_cohorts_label="All cohorts" if read_only else "All assigned cohorts")
-    rows = sort_submissions(list(_filtered(visible, filters)), filters.value("sort"))
+    matches = _filtered(visible, filters)
+    query = _query(request)
+    if query:  # students by name or SAP ID, from a trie of the visible submissions only
+        matches = matches.filter(Q(student_id__in=ordering.matching_student_ids(visible, query)) | Q(text__icontains=query))
+    rows = sort_submissions(list(matches), filters.value("sort"))
     page = Paginator(rows, STAFF_PAGE_SIZE).get_page(request.GET.get("page"))
     add_tones(page.object_list)
     state = _list_state(request)
@@ -128,6 +153,11 @@ def _render_workspace(request, pk=None, *, answer_form=None, status=200):
         "filters": filters,
         "page": page,
         "headline": _headline(visible),
+        "stats": voice_stats(visible),
+        "query": query,
+        "current": {name: filters.value(name) for name in ("type", "cohort", "status", "sort")},
+        "list_keys": LIST_PARAMS,
+        "search_hidden": [(k, request.GET[k]) for k in ("type", "cohort", "status", "sort") if request.GET.get(k)],
         "has_cohorts": read_only or bool(cohorts),
         "has_filters": any(request.GET.get(name) for name in FILTER_PARAMS),
         "list_state": state,
@@ -140,6 +170,7 @@ def _render_workspace(request, pk=None, *, answer_form=None, status=200):
             "submission": submission,
             "cohort_label": _cohort_label(submission),
             "sap_id": submission.student.student_profile.sap_id,
+            "student_post": current_post(submission.student),
             "can_answer": not read_only and not submission.answer,
             "can_review": not read_only and not submission.is_question
             and submission.status == Submission.Status.WAITING,

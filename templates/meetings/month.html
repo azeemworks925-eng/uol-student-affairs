@@ -1,58 +1,58 @@
 {% extends "layouts/app.html" %}
 {# Month view: server-rendered from Python's calendar module, no JavaScript (DEC-328). #}
 {% block title %}{{ month.title|date:"F Y" }} · Meetings · UOL Student Affairs{% endblock %}
+{% block crumb %}<li>{{ month.title|date:"F Y" }}</li>{% endblock %}
 {% block content %}
-<header class="sa-page-head sa-meet-head">
-  <div>
-    <span class="sa-eyebrow">Meetings</span>
-    <h1 class="sa-display">{{ month.title|date:"F Y" }}</h1>
-  </div>
-  {% if list_url_name == "student_meetings" %}
-    {% include "meetings/_view_switch.html" with active="month" list_url="student_meetings" month_url="student_meetings_month" %}
-  {% else %}
-    {% include "meetings/_view_switch.html" with active="month" list_url="advisor_meetings" month_url="advisor_meetings_month" %}
-  {% endif %}
-</header>
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">{{ month.title|date:"F Y" }}</h1>
+      <p class="sa-page-subtitle">Confirmed meetings</p>
+    </div>
+    <div class="sa-page-actions">{% include "meetings/_view_switch.html" with active="month" %}</div>
+  </header>
 
-<div class="sa-cal-layout">
-  <section class="sa-panel sa-cal-panel" aria-label="Month calendar">
-    <nav class="sa-cal-nav" aria-label="Change month">
-      <a class="btn btn-sa-secondary btn-sm" href="?month={{ month.previous }}" rel="prev">Previous</a>
-      <span class="sa-small sa-muted">Confirmed meetings</span>
-      <a class="btn btn-sa-secondary btn-sm" href="?month={{ month.next }}" rel="next">Next</a>
-    </nav>
-    <table class="sa-cal">
-      <thead><tr>{% for name in month.weekdays %}<th scope="col">{{ name }}</th>{% endfor %}</tr></thead>
-      <tbody>
-        {% for week in month.weeks %}
-        <tr>
-          {% for cell in week %}
-          <td class="{% if not cell.in_month %}is-muted{% endif %}{% if cell.is_today %} is-today{% endif %}{% if cell.is_selected %} is-selected{% endif %}">
-            {% if cell.in_month %}
-            <a href="?{{ cell.query }}"{% if cell.is_selected %} aria-current="date"{% endif %} aria-label="{{ cell.date|date:'j F' }}, {{ cell.count }} meeting{{ cell.count|pluralize }}">
-              <span class="num">{{ cell.date.day }}</span>
-              {% if cell.count %}<span class="sa-cal-count"><i aria-hidden="true"></i>{{ cell.count }}</span>{% endif %}
-            </a>
-            {% else %}
-            <span class="sa-cal-out"><span class="num">{{ cell.date.day }}</span></span>
-            {% endif %}
-          </td>
+  <div class="sa-grid-2">
+    <section class="sa-card" aria-label="Month calendar">
+      <nav class="sa-cal-nav" aria-label="Change month">
+        <a class="btn btn-sa-secondary btn-sm" href="?month={{ month.previous }}" rel="prev">Previous</a>
+        <a class="btn btn-sa-secondary btn-sm" href="?month={{ month.next }}" rel="next">Next</a>
+      </nav>
+      <table class="sa-cal">
+        <thead><tr>{% for name in month.weekdays %}<th scope="col">{{ name }}</th>{% endfor %}</tr></thead>
+        <tbody>
+          {% for week in month.weeks %}
+          <tr>
+            {% for cell in week %}
+            <td class="{% if not cell.in_month %}is-muted{% endif %}{% if cell.is_today %} is-today{% endif %}{% if cell.is_selected %} is-selected{% endif %}">
+              {% if cell.in_month %}
+              <a href="?{{ cell.query }}"{% if cell.is_selected %} aria-current="date"{% endif %} aria-label="{{ cell.date|date:'j F' }}, {{ cell.count }} meeting{{ cell.count|pluralize }}">
+                <span class="num">{{ cell.date.day }}</span>
+                {% if cell.count %}<span class="sa-cal-count"><i aria-hidden="true"></i>{{ cell.count }}</span>{% endif %}
+              </a>
+              {% else %}
+              <span class="sa-cal-out"><span class="num">{{ cell.date.day }}</span></span>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
           {% endfor %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </section>
+        </tbody>
+      </table>
+    </section>
 
-  <section aria-labelledby="day-title">
-    <div class="sa-section-head"><h2 class="sa-h2" id="day-title">{% if month.selected %}{{ month.selected|date:"l j F" }}{% else %}Choose a day{% endif %}</h2></div>
-    {% if month.day_meetings %}
-    <ul class="sa-voice-list">
-      {% for meeting in month.day_meetings %}<li>{% if list_url_name == "student_meetings" %}{% include "meetings/_card.html" with detail_url_name=detail_url_name %}{% else %}{% include "meetings/_card.html" with detail_url_name=detail_url_name show_student=True %}{% endif %}</li>{% endfor %}
-    </ul>
-    {% else %}
-    <div class="sa-empty"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg><div><p class="title">{% if month.selected %}No meetings on this day.{% else %}Choose a day to see its meetings.{% endif %}</p></div></div>
-    {% endif %}
-  </section>
+    <section class="sa-card" aria-labelledby="day-title">
+      <h2 class="sa-card-title mb-2" id="day-title">{% if month.selected %}{{ month.selected|date:"l j F" }}{% else %}Choose a day{% endif %}</h2>
+      {% if month.day_meetings %}
+      <ul class="sa-meeting-list">
+        {% for meeting in month.day_meetings %}{% include "includes/ui/meeting_row.html" with url_name=detail_url_name show_calendar=True %}{% endfor %}
+      </ul>
+      {% elif month.selected %}
+        {% include "includes/ui/empty.html" with title="No meetings on this day." icon="calendar" %}
+      {% else %}
+        {% include "includes/ui/empty.html" with title="Choose a day to see its meetings." icon="calendar" %}
+      {% endif %}
+    </section>
+  </div>
 </div>
 {% endblock %}

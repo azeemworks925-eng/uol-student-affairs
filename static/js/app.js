@@ -75,18 +75,20 @@
   // --- List / Cards toggle, remembered per page --------------------------------------------------
   each("[data-view-toggle]", function (group) {
     var key = group.getAttribute("data-view-toggle");
-    var collection = document.querySelector('[data-view-key="' + key + '"]');
-    if (!collection) return;
+    var collections = document.querySelectorAll('[data-view-key="' + key + '"]');
+    if (!collections.length) return;
     function apply(view, animate) {
-      collection.setAttribute("data-view", view);
+      Array.prototype.forEach.call(collections, function (collection) {
+        collection.setAttribute("data-view", view);
+        if (animate) {
+          collection.classList.remove("is-switching");
+          void collection.offsetWidth; // restart the crossfade
+          collection.classList.add("is-switching");
+        }
+      });
       Array.prototype.forEach.call(group.querySelectorAll("[data-view-choice]"), function (button) {
         button.setAttribute("aria-pressed", String(button.getAttribute("data-view-choice") === view));
       });
-      if (animate) {
-        collection.classList.remove("is-switching");
-        void collection.offsetWidth; // restart the crossfade
-        collection.classList.add("is-switching");
-      }
     }
     var saved = read("sa-view-" + key);
     if (saved === "list" || saved === "cards") apply(saved, false);
@@ -98,6 +100,20 @@
       apply(view, true);
     });
   });
+
+  // --- Meetings: List | Month | Week, remembered ---------------------------------------------------
+  var switcher = document.querySelector("[data-meeting-views]");
+  if (switcher) {
+    var active = switcher.getAttribute("data-meeting-views");
+    var explicit = /[?&]view=list\b/.test(window.location.search);
+    var savedView = read("sa-meetings-view");
+    if (active === "list" && !explicit && !window.location.search && (savedView === "month" || savedView === "week")) {
+      var target = switcher.querySelector('[data-view-name="' + savedView + '"]');
+      if (target) window.location.replace(target.href);
+    } else {
+      write("sa-meetings-view", active);
+    }
+  }
 
   // --- Dialogs -----------------------------------------------------------------------------------
   each("[data-dialog-open]", function (button) {
