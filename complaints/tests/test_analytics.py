@@ -265,7 +265,9 @@ class OverviewTestCase(TestCase):
         response = self.client.get(OVERVIEW)
         self.assertEqual(response.status_code, 200)
         html = response.content.decode()
-        region = html[html.index('<header class="sa-masthead"'):html.index('<nav class="sa-goto"')]
+        # The whole page content. Today's date line is not data, so its digits are left out.
+        region = html[html.index('<main'):html.index('</main>')]
+        region = re.sub(r'<p class="sa-greeting-date">.*?</p>', "", region)
         return response.context["analytics"], region
 
     def cohort(self, batch="batch", semester="semester", section="section"):
@@ -463,7 +465,7 @@ class PrivacyLeakTests(OverviewTestCase):
         expected_links = {c.url for r in overview.rows for c in r.cells if c.url}
         expected_links |= {c.url for c in overview.categories}
         expected_links |= {overview.resolved.url} | {p.url for p in overview.not_resolved_parts}
-        links = {href.replace("&amp;", "&") for href in re.findall(r'href="([^"]*)"', region)}
+        links = {href.replace("&amp;", "&") for href in re.findall(r'<a [^>]*href="([^"]*)"', region)}  # every link; icons are <use>, not links
         self.assertEqual(links, expected_links)
         self.assertEqual(len([c for r in overview.rows for c in r.cells if c.url]), 1)  # only the visible cohort
         # Everything else on the page (text and every other attribute) never shows a hidden value.

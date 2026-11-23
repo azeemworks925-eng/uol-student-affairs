@@ -1,0 +1,5 @@
+{# Stat tile. value, label, icon; tone: accent (default), received, review, resolved, rejected; url optional. #}
+{% if url %}<a class="sa-stat sa-stat--{{ tone|default:'accent' }}" href="{{ url }}">{% else %}<div class="sa-stat sa-stat--{{ tone|default:'accent' }}">{% endif %}
+  <span class="sa-stat-icon"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ icon }}"/></svg></span>
+  <span class="sa-stat-text"><span class="sa-stat-value">{{ value }}</span><span class="sa-stat-label">{{ label }}</span></span>
+{% if url %}</a>{% else %}</div>{% endif %}

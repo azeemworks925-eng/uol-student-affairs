@@ -1,5 +1,6 @@
 """How Student Voice appears in lists and on Student Home. All ordering uses dsa.sorting.merge_sort."""
 
+from django.db.models import Count
 from django.urls import reverse
 from django.utils.text import Truncator
 
@@ -19,6 +20,17 @@ def add_tones(submissions):
     for submission in submissions:
         submission.tone = STATUS_TONES[submission.status]
     return submissions
+
+
+def voice_stats(visible):
+    """The stat strip of a Student Voice list, from what this user can see."""
+    counts = dict(visible.order_by().values_list("status").annotate(n=Count("id")))
+    return [
+        {"value": sum(counts.values()), "label": "Total", "icon": "voice", "tone": "accent"},
+        {"value": counts.get(Status.WAITING, 0), "label": "Waiting", "icon": "clock", "tone": "received"},
+        {"value": counts.get(Status.REVIEWED, 0), "label": "Reviewed", "icon": "inbox", "tone": "review"},
+        {"value": counts.get(Status.ANSWERED, 0), "label": "Answered", "icon": "check", "tone": "resolved"},
+    ]
 
 
 def sort_submissions(submissions, sort="newest"):

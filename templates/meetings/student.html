@@ -1,57 +1,54 @@
 {% extends "layouts/app.html" %}
 {% load static %}
-{# Student Meetings: request form, upcoming meetings by day, and past or closed ones (DEC-328). #}
+{# Student Meetings: upcoming and closed meetings, and a request form in a dialog (DEC-328). #}
 {% block title %}Meetings · UOL Student Affairs{% endblock %}
 {% block content %}
-<header class="sa-page-head sa-meet-head">
-  <div>
-    <span class="sa-eyebrow">Meetings</span>
-    <h1 class="sa-display">Meet your Batch Advisor.</h1>
-  </div>
-  {% include "meetings/_view_switch.html" with active="list" list_url="student_meetings" month_url="student_meetings_month" %}
-</header>
-
-<div class="sa-voice-layout">
-  <form method="post" class="sa-panel" novalidate data-once-submit aria-labelledby="meeting-form-title">
-    <h2 class="sa-h2" id="meeting-form-title">Request a meeting</h2>
-    {% csrf_token %}
-    {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
-    {% include "includes/form_field.html" with field=form.reason %}
-    <div class="sa-meet-two">
-      {% include "includes/form_field.html" with field=form.date %}
-      {% include "includes/form_field.html" with field=form.time %}
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Meetings</h1>
+      <p class="sa-page-subtitle">With your Batch Advisor</p>
     </div>
-    <p class="form-text mt-0">Times are in Pakistan time.</p>
-    <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">Send request</button></div>
-  </form>
+    <div class="sa-page-actions">
+      {% include "meetings/_view_switch.html" with active="list" %}
+      <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-meeting"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Request a meeting</button>
+    </div>
+  </header>
 
-  <div class="sa-meet-lists">
-    <section aria-labelledby="upcoming-title">
-      <div class="sa-section-head"><h2 class="sa-h2" id="upcoming-title">Upcoming</h2></div>
-      {% for group in groups %}
-        <h3 class="sa-label sa-meet-day">{{ group.label }}</h3>
-        <ul class="sa-voice-list">
-          {% for meeting in group.meetings %}<li>{% include "meetings/_card.html" with detail_url_name="student_meeting_detail" student_actions=True %}</li>{% endfor %}
-        </ul>
-      {% empty %}
-        <div class="sa-empty">
-          <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg>
-          <div><p class="title">No upcoming meetings.</p><p class="sa-muted sa-small">Send a request and your Batch Advisor will confirm a time.</p></div>
-        </div>
-      {% endfor %}
-    </section>
-
-    <section aria-labelledby="closed-title">
-      <div class="sa-section-head"><h2 class="sa-h2" id="closed-title">Past and closed</h2></div>
-      {% if closed %}
-      <ul class="sa-voice-list">
-        {% for meeting in closed %}<li>{% include "meetings/_card.html" with detail_url_name="student_meeting_detail" %}</li>{% endfor %}
-      </ul>
-      {% else %}
-      <p class="sa-small sa-muted mb-0">Finished, declined and cancelled meetings will appear here.</p>
-      {% endif %}
-    </section>
+  <div class="sa-stats">
+    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
   </div>
+
+  <div class="sa-controls"><h2 class="sa-card-title" id="upcoming-title">Upcoming</h2><div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="student-meetings" %}</div></div>
+  {% if upcoming %}
+    {% include "meetings/_collection.html" with meetings=upcoming key="student-meetings" detail_url_name="student_meeting_detail" student_actions=True %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="No upcoming meetings." text="Send a request and your Batch Advisor will confirm a time." icon="calendar" %}
+  {% endif %}
+
+  <h2 class="sa-card-title" id="closed-title">Past and closed</h2>
+  {% if closed %}
+    {% include "meetings/_collection.html" with meetings=closed key="student-meetings" detail_url_name="student_meeting_detail" %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="Nothing here yet." text="Finished, declined and cancelled meetings will appear here." icon="calendar" %}
+  {% endif %}
 </div>
+
+<dialog class="sa-dialog" id="dialog-meeting" aria-labelledby="meeting-form-title"{% if open_new %} data-open-on-load{% endif %}>
+  <div class="sa-dialog-body">
+    {% include "includes/ui/dialog_head.html" with title="Request a meeting" id="meeting-form-title" %}
+    <form method="post" action="{% url 'student_meetings' %}" novalidate data-once-submit>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+      {% include "includes/form_field.html" with field=form.reason %}
+      <div class="sa-meet-two">
+        {% include "includes/form_field.html" with field=form.date %}
+        {% include "includes/form_field.html" with field=form.time %}
+      </div>
+      <p class="form-text mt-0">Times are in Pakistan time.</p>
+      <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">Send request</button></div>
+    </form>
+  </div>
+</dialog>
 {% endblock %}
 {% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

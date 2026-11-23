@@ -9,8 +9,10 @@ while O27 is open.
 
 from dataclasses import dataclass
 
+from django.db.models import Count, Q
 from django.urls import reverse
 
+from accounts.models import CohortRepresentation
 from dsa.sorting import merge_sort
 from notifications.models import Notification
 
@@ -135,6 +137,25 @@ def staff_timeline(complaint, include_owner_changes=False):
     """Staff history, newest first (P3-7), with names and roles. Owner changes are included
     for the Super Admin workspace; the Batch Advisor workspace keeps its Part 3 history."""
     return _timeline(complaint, "staff", newest_first=True, include_owner_changes=include_owner_changes)
+
+
+def status_stats(visible):
+    """The four status tiles of a complaints list, from the complaints this user can see."""
+    counts = dict(visible.order_by().values_list("status").annotate(n=Count("id")))
+    return [
+        {"value": counts.get(Status.RECEIVED, 0), "label": "Received", "icon": "inbox", "tone": "received"},
+        {"value": counts.get(Status.UNDER_REVIEW, 0), "label": "Under review", "icon": "clock", "tone": "review"},
+        {"value": counts.get(Status.RESOLVED, 0), "label": "Resolved", "icon": "check", "tone": "resolved"},
+        {"value": counts.get(Status.REJECTED, 0), "label": "Rejected", "icon": "x", "tone": "rejected"},
+    ]
+
+
+def current_post(student):
+    """"CR" or "GR" if the student holds a post now, otherwise ""."""
+    period = CohortRepresentation.objects.current().filter(Q(cr=student) | Q(gr=student)).first()
+    if period is None:
+        return ""
+    return "CR" if period.cr_id == student.pk else "GR"
 
 
 def has_cancellation_request(complaint):

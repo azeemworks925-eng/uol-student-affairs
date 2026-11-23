@@ -1,52 +1,76 @@
 {% extends "layouts/app.html" %}
 {% load static %}
-{# Student Voice: a short form and the student's own submissions (DEC-050, DEC-051, DEC-253). #}
+{# Student Voice: the student's own submissions, and a short form in a dialog (DEC-050, DEC-051, DEC-253). #}
 {% block title %}Student Voice · UOL Student Affairs{% endblock %}
 {% block content %}
-<header class="sa-page-head">
-  <span class="sa-eyebrow">Student Voice</span>
-  <h1 class="sa-display">Share an idea, ask a question or give feedback.</h1>
-  <p class="sa-lede"><span class="soft">Private: only you, your section's Batch Advisors and the Super Admin can read it.</span></p>
-</header>
-
-<div class="sa-voice-layout">
-  <form method="post" class="sa-panel" novalidate data-once-submit aria-labelledby="voice-form-title">
-    <h2 class="sa-h2" id="voice-form-title">New message</h2>
-    {% csrf_token %}
-    {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
-    <fieldset class="mb-3">
-      <legend class="form-label">{{ form.type.label }}</legend>
-      <div class="sa-ws-choices">
-        {% for radio in form.type %}<label class="sa-ws-choice" for="{{ radio.id_for_label }}">{{ radio.tag }}{{ radio.choice_label }}</label>{% endfor %}
-      </div>
-      {% if form.type.errors %}<div class="invalid-feedback d-block" role="alert">{{ form.type.errors|join:" " }}</div>{% endif %}
-    </fieldset>
-    {% include "includes/form_field.html" with field=form.text %}
-    <div class="sa-form-actions">
-      <button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">Send</button>
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Student Voice</h1>
+      <p class="sa-page-subtitle">Private to you, your Batch Advisors and the Super Admin.</p>
     </div>
-  </form>
+    <div class="sa-page-actions"><button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-voice"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>New message</button></div>
+  </header>
 
-  <section aria-labelledby="my-voice-title">
-    <div class="sa-section-head"><h2 class="sa-h2" id="my-voice-title">My submissions</h2>{% if total %}<span class="sa-small sa-muted">{{ total }} in total</span>{% endif %}</div>
-    {% if page.object_list %}
-      <ul class="sa-voice-list">
-        {% for submission in page %}<li>{% include "voice/_submission.html" %}</li>{% endfor %}
-      </ul>
-      {% if page.has_other_pages %}
-      <nav class="sa-pagination" aria-label="Submission pages">
-        {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="?page={{ page.previous_page_number }}">Previous</a>{% endif %}
-        <span class="sa-small sa-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
-        {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="?page={{ page.next_page_number }}">Next</a>{% endif %}
-      </nav>
-      {% endif %}
-    {% else %}
-      <div class="sa-empty">
-        <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-voice"/></svg>
-        <div><p class="title">Nothing here yet.</p><p class="sa-muted sa-small">Your first idea, question or feedback will appear here, with your advisor's answer beside it.</p></div>
-      </div>
-    {% endif %}
-  </section>
+  {% if total %}
+  <div class="sa-controls">
+    <form method="get" action="{% url 'student_voice' %}" class="sa-pill-search" role="search">
+      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
+      <label class="visually-hidden" for="voice-search">Search your submissions</label>
+      <input id="voice-search" type="search" name="q" maxlength="100" value="{{ query }}" placeholder="Search messages">
+      {% for key, value in search_hidden %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    </form>
+    {% include "includes/ui/filter_chip.html" with label="Type" param="type" choices=filters.fields.type.choices current=current.type %}
+    {% include "includes/ui/filter_chip.html" with label="Status" param="status" choices=filters.fields.status.choices current=current.status %}
+    {% include "includes/ui/filter_chip.html" with label="Sort" param="sort" choices=filters.fields.sort.choices current=current.sort %}
+    {% if has_filters %}<a class="sa-clear" href="{% url 'student_voice' %}">Clear filters</a>{% endif %}
+    <div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="student-voice" %}</div>
+  </div>
+
+  <div class="sa-stats">
+    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
+  </div>
+  {% endif %}
+
+  {% if page.object_list %}
+  <ul class="sa-collection sa-collection--no-who" data-view="list" data-view-key="student-voice">
+    {% for submission in page %}
+    <li>
+      <a class="sa-item sa-item--{{ submission.tone }}" href="{% url 'student_voice_detail' submission.pk %}{% if list_state %}?{{ list_state }}{% endif %}">
+        <span class="sa-item-ref">{{ submission.get_type_display }}</span>
+        <span class="sa-item-title">{{ submission.text }}{% if submission.answer %}<span class="sa-item-extra"><b>{{ submission.answer_label }}:</b> {{ submission.answer }}</span>{% endif %}</span>
+        {% include "includes/ui/cohort.html" with record=submission %}
+        {% include "complaints/student/_status.html" with tone=submission.tone label=submission.get_status_display %}
+        <span class="sa-item-when">{{ submission.created_at|date:"j M Y" }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% include "includes/ui/pagination.html" with label="Submission pages" %}
+  {% elif has_filters %}
+    {% url 'student_voice' as all_url %}{% include "includes/ui/empty.html" with title="No submissions match these filters." link_url=all_url link_label="Clear filters" %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="Nothing here yet." text="Your ideas, questions and feedback appear here with your advisor's answer." icon="voice" %}
+  {% endif %}
 </div>
+
+<dialog class="sa-dialog" id="dialog-voice" aria-labelledby="voice-form-title"{% if open_new %} data-open-on-load{% endif %}>
+  <div class="sa-dialog-body">
+    {% include "includes/ui/dialog_head.html" with title="New message" id="voice-form-title" %}
+    <form method="post" action="{% url 'student_voice' %}" novalidate data-once-submit>
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+      <fieldset class="mb-3">
+        <legend class="form-label">{{ form.type.label }}</legend>
+        <div class="sa-ws-choices">
+          {% for radio in form.type %}<label class="sa-ws-choice" for="{{ radio.id_for_label }}">{{ radio.tag }}{{ radio.choice_label }}</label>{% endfor %}
+        </div>
+        {% if form.type.errors %}<div class="invalid-feedback d-block" role="alert">{{ form.type.errors|join:" " }}</div>{% endif %}
+      </fieldset>
+      {% include "includes/form_field.html" with field=form.text %}
+      <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">Send</button></div>
+    </form>
+  </div>
+</dialog>
 {% endblock %}
 {% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

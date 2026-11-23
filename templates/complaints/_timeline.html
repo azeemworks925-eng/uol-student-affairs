@@ -1,0 +1,17 @@
+{# Complaint history, newest first. #}
+<section class="sa-card" aria-labelledby="history-title">
+  {% include "includes/ui/card_head.html" with title="History" id="history-title" %}
+  <ol class="sa-timeline">
+    {% for entry in timeline %}
+    <li class="sa-timeline-item{% if entry.by_student %} is-student{% endif %}">
+      <div class="sa-timeline-head">
+        <span class="sa-timeline-title">{{ entry.title }}</span>
+        {% if entry.status %}{% include "complaints/student/_status.html" with tone=entry.tone label=entry.status_label %}{% endif %}
+      </div>
+      <p class="sa-timeline-meta"><time datetime="{{ entry.when|date:'c' }}">{{ entry.when|date:"j M Y, H:i" }}</time>{% if entry.by %} · {{ entry.by }}{% endif %}</p>
+      {% if entry.message %}<div class="sa-timeline-message">{% if entry.message_label %}<span class="sa-label">{{ entry.message_label }}</span>{% endif %}<div class="sa-prose">{{ entry.message|linebreaksbr }}</div></div>{% endif %}
+      {% if entry.note %}<p class="sa-small sa-muted mb-0">{{ entry.note }}</p>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</section>

@@ -1,0 +1,5 @@
+{# Empty state. title, optional text, optional link_url + link_label, icon. #}
+<div class="sa-empty">
+  <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ icon|default:'inbox' }}"/></svg>
+  <div><p class="title">{{ title }}</p>{% if text %}<p class="sa-muted sa-small">{{ text }}</p>{% endif %}{% if link_url %}<p class="sa-small mb-0"><a href="{{ link_url }}">{{ link_label }}</a></p>{% endif %}</div>
+</div>

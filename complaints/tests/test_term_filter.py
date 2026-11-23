@@ -188,7 +188,7 @@ class ChipAndStateTests(TermFilterTestCase):
 
     def test_clear_filters_removes_the_term_too(self):
         response = self.get(term=self.fall.pk, status=Status.RECEIVED)
-        self.assertContains(response, f'<a class="btn btn-sa-secondary btn-sm" href="{LIST}">Clear filters</a>', html=True)
+        self.assertContains(response, f'<a class="sa-clear" href="{LIST}">Clear filters</a>', html=True)
 
     def test_pagination_and_case_links_keep_the_term(self):
         with mock.patch("complaints.workspace.PAGE_SIZE", 1):

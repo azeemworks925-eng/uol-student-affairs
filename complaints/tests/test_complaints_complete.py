@@ -160,7 +160,7 @@ class StudentSortTests(CompleteTestCase):
         self.assertEqual(refs(response)[0], self.a2.reference)
         self.assertContains(response, 'href="?status=received&amp;sort=oldest&amp;page=2"')
         self.assertContains(response, f'href="{STUDENT_LIST}?status=resolved&amp;sort=oldest"')  # status links keep the sort
-        self.assertContains(response, '<option value="oldest" selected>')
+        self.assertContains(response, f'href="{STUDENT_LIST}?status=received&amp;sort=oldest" aria-current="true"')  # the chosen sort
 
 
 class GoToReferenceTests(CompleteTestCase):
@@ -194,9 +194,10 @@ class GoToReferenceTests(CompleteTestCase):
 
     def test_form_is_on_both_lists(self):
         self.client.force_login(self.advisor)
-        self.assertContains(self.client.get(ADVISOR_LIST), f'action="{reverse("advisor_complaint_go")}"')
+        # The top bar's quick search is the reference box now; it uses the same hash-table lookup.
+        self.assertContains(self.client.get(ADVISOR_LIST), f'action="{reverse("quick_search")}"')
         self.client.force_login(self.admin)
-        self.assertContains(self.client.get(ADMIN_LIST), f'action="{reverse("super_admin_complaint_go")}"')
+        self.assertContains(self.client.get(ADMIN_LIST), f'action="{reverse("quick_search")}"')
 
 
 class TrieSearchTests(CompleteTestCase):
@@ -323,7 +324,7 @@ class AdvisorOverviewTests(CompleteTestCase):
         [card] = response.context["assignments"]
         # z1 was resolved on T0 + 4 days (long ago), a2 two days ago; a1 is still open.
         self.assertEqual(card.counts, {"open": 1, "resolved_recently": 1, "total": 4})
-        self.assertContains(response, "Resolved, last 7 days")
+        self.assertContains(response, "Resolved 7d")
 
     def test_cohort_without_complaints_and_other_cohorts(self):
         empty = cohort(self.academics, section="other_section")

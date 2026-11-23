@@ -375,7 +375,7 @@ class SuperAdminTests(VoiceTestCase):
         self.assertContains(response, "Read-only oversight")
         self.assertNotContains(response, 'name="answer"')
         self.assertNotContains(response, "Mark reviewed")
-        self.assertNotIn('method="post"', response.content.decode().split('class="sa-ws-case"')[1].split("</section>")[0])
+        self.assertNotIn('method="post"', response.content.decode().split("<main")[1].split("</main>")[0])  # the whole page content
         self.client.post(url, {"answer": "Not allowed."})
         for route in ("advisor_voice_answer", "advisor_voice_review"):
             self.assertEqual(self.client.post(reverse(route, args=[submission.pk]), {"answer": "No."}).status_code, 403)

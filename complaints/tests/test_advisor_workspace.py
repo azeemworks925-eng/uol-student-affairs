@@ -224,8 +224,7 @@ class SearchFilterSortTests(WorkspaceTestCase):
 
     def test_selected_case_links_keep_the_list_state(self):
         html = self.html(detail(self.mine), q="Ali", status="received")
-        self.assertIn(f'href="{detail(self.mine)}?q=Ali&amp;status=received" aria-current="true"', html)
-        self.assertIn(f'href="{LIST}?q=Ali&amp;status=received"', html)  # back link on phones
+        self.assertIn(f'href="{LIST}?q=Ali&amp;status=received"', html)  # Back to complaints
         self.assertIn(f'action="{action("respond", self.mine)}?q=Ali&amp;status=received"', html)
 
     def test_headline_uses_true_counts_only(self):
@@ -394,7 +393,7 @@ class HistoryAndContextTests(WorkspaceTestCase):
         retired.save()
         other_mine = submit(self.student, self.categories["other"], title="My second complaint")
         html = self.html(detail(self.mine))
-        context = between(html, '<aside class="sa-ws-context"', "</aside>")
+        context = between(html, '<aside class="sa-detail-side"', "</aside>")
         self.assertIn("Ali Khan", context)
         self.assertIn("12345678", context)
         self.assertIn("Fall 2024 · Semester 4 · Section A", context)
@@ -404,7 +403,7 @@ class HistoryAndContextTests(WorkspaceTestCase):
         self.assertNotIn("Ms. Other Advisor", context)
         # P3-1 and DEC-305: no email, and not the student's other complaints.
         self.assertNotIn(self.student.email, html)
-        self.assertNotIn(other_mine.title, between(html, '<section class="sa-ws-case"', "</section>\n</div>"))
+        self.assertNotIn(other_mine.title, html)  # the detail page no longer carries a list
 
     def test_only_the_cohort_at_submission_is_shown(self):
         profile = self.student.student_profile
@@ -420,7 +419,7 @@ class FlagsAndInvariantTests(WorkspaceTestCase):
         services.request_cancellation(self.student, self.mine)
         services.change_status(self.advisor, self.classmates, Status.RESOLVED, "Done.")
         services.mark_still_not_resolved(self.classmate, self.classmates)
-        rows = between(self.html(LIST), '<ul class="sa-ws-rows">', "</ul>")
+        rows = between(self.html(LIST), '<ul class="sa-collection"', "</ul>")
         self.assertEqual(rows.count("Cancellation requested"), 1)
         self.assertEqual(rows.count("Reopened by student"), 1)
 
@@ -445,7 +444,7 @@ class NavigationTests(WorkspaceTestCase):
     def test_complaints_navigation_links_and_stays_current(self):
         for url in (LIST, detail(self.mine)):
             with self.subTest(url=url):
-                self.assertRegex(self.html(url), r'class="sa-rail-link" href="{}"[^>]*aria-current="page"'.format(re.escape(LIST)))
+                self.assertRegex(self.html(url), r'class="sa-nav-link" href="{}"[^>]*aria-current="page"'.format(re.escape(LIST)))
 
     def test_cohort_cards_link_to_the_filtered_workspace(self):
         a = self.academics

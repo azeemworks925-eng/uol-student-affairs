@@ -5,6 +5,8 @@ from django.utils.functional import cached_property
 
 from . import services
 
+LATEST_LIMIT = 5
+
 
 class UnreadNotifications:
     def __init__(self, user):
@@ -13,6 +15,11 @@ class UnreadNotifications:
     @cached_property
     def count(self):
         return services.unread_count(self._user)
+
+    @cached_property
+    def latest(self):
+        """The newest few, for the bell's dropdown."""
+        return list(services.for_user(self._user)[:LATEST_LIMIT])
 
     @property
     def display(self):

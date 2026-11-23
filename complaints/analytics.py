@@ -215,6 +215,8 @@ class Overview:
     not_resolved: Share | None = None
     not_resolved_parts: tuple = ()
     status_takeaway: str = ""
+    # Keys of the cohorts shown with a figure. A hidden cohort is never in this set.
+    visible_cohorts: frozenset = frozenset()
 
 
 def _list_url(**params):
@@ -386,4 +388,5 @@ def build_overview(user):
             status_share(Status.REJECTED, "Rejected"),
         ),
         status_takeaway=_status_takeaway(by_status, total),
+        visible_cohorts=frozenset(universe - hidden),
     )

@@ -41,7 +41,7 @@ from . import ordering, services
 from .forms import AdvisorResponseForm, ComplaintListFilterForm, ResponsibleOwnerForm, StatusUpdateForm
 from .models import Complaint, ComplaintCategory, ComplaintEvent
 from .permissions import get_visible_complaint, visible_complaints
-from .presentation import staff_timeline, status_journey, status_tone
+from .presentation import current_post, staff_timeline, status_journey, status_stats, status_tone
 
 PAGE_SIZE = 20
 LIST_PARAMS = ("q", "cohort", "status", "category", "owner", "sort", "page")
@@ -247,6 +247,8 @@ def _case_context(user, complaint, forms, workspace):
         # P3-1 and P3-5: name and SAP ID, and only the cohort recorded at submission.
         "student_name": complaint.student.get_full_name(),
         "sap_id": profile.sap_id if profile else "",
+        "student_post": current_post(complaint.student),
+        "last_activity": complaint.events.aggregate(latest=Max("created_at"))["latest"],
         "cohort_advisors": [
             {"name": a.advisor.get_full_name(), "is_you": a.advisor_id == user.pk} for a in assignments
         ],
@@ -298,6 +300,10 @@ def render_workspace(request, workspace, reference=None, status=200, **forms):
         ),
         "page": page,
         "headline": _headline(visible, workspace),
+        "stats": status_stats(visible),
+        "list_keys": keys,
+        "current": {name: filters.value(name) for name in (*workspace.filter_params, "sort")},
+        "search_hidden": [(key, request.GET[key]) for key in keys if key not in ("q", "page") and request.GET.get(key)],
         "has_assignments": bool(cohorts) or workspace.department_wide,
         "cohort_labels": [] if workspace.department_wide else [label for _, label in cohorts],
         "empty_cohort_label": empty_cohort_label,

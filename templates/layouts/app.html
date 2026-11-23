@@ -1,44 +1,53 @@
 {% extends "base.html" %}
+{% load static %}
 {% comment %}
-  Application shell for signed-in users (DESIGN_PLAN.md section 3).
-  Student and Super Admin: sidebar. Batch Advisor: 72px icon rail.
-  Phones: header; students get the bottom navigation (DEC-304: its built destinations, no "More"),
-  staff get a navigation drawer. Active navigation uses the ink indicator (DEC-301).
+  Application shell for every signed-in role: top bar, collapsible sidebar (64px icon rail, a
+  drawer on phones) and the page. Students also keep their bottom navigation on phones (DEC-304).
 {% endcomment %}
+{% block head %}<script>try{if(localStorage.getItem("sa-sidebar")==="collapsed")document.documentElement.dataset.sidebar="collapsed"}catch(e){}</script>{% endblock %}
+{% block body_class %}sa-app-body{% endblock %}
 {% block body %}
 {% with role=user.role %}
-<div class="sa-app{% if role == 'batch_advisor' %} sa-app--rail{% endif %}">
-
-  {% if role == "batch_advisor" %}
-  <nav class="sa-rail" aria-label="Main navigation">
-    <a class="sa-rail-mark" href="{% url 'home' %}" aria-label="Student Affairs home">S</a>
-    {% for item in sa_nav_items %}
-      <a class="sa-rail-link" href="{{ item.url }}" title="{{ item.label }}" aria-label="{{ item.label }}"{% if item.current %} aria-current="page"{% endif %}><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></a>
-    {% endfor %}
-    {% include "includes/notifications_link.html" with variant="rail" %}
-    <div class="sa-account">{% include "includes/account_menu.html" with dropup=True button_class="sa-account-btn justify-content-center p-1" %}</div>
-  </nav>
-  {% else %}
-  <aside class="sa-sidebar" aria-label="Sidebar">
+<header class="sa-topbar">
+  <div class="sa-topbar-left">
+    <button class="sa-iconbtn" type="button" data-sidebar-toggle aria-controls="sa-sidebar" aria-label="Toggle navigation"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
     <a class="sa-wordmark" href="{% url 'home' %}"><small>UOL</small><span>Student Affairs</span></a>
+    <nav class="sa-crumbs" aria-label="Breadcrumb">
+      <ol>
+        {% block crumb_root %}{% if sa_nav_current %}<li><a href="{{ sa_nav_current.url }}">{{ sa_nav_current.label }}</a></li>{% endif %}{% endblock %}
+        {% block crumb %}{% endblock %}
+      </ol>
+    </nav>
+  </div>
+
+  <form class="sa-search" method="get" action="{% url 'quick_search' %}" role="search" data-quick-search>
+    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
+    <label class="visually-hidden" for="sa-quick-search">Search</label>
+    <input id="sa-quick-search" type="search" name="q" maxlength="60" placeholder="{% if role == 'student' %}Search your records{% else %}Search reference, name, SAP ID{% endif %}" autocomplete="off" spellcheck="false" value="{% if results.query %}{{ results.query }}{% endif %}">
+    <kbd aria-hidden="true">/</kbd>
+  </form>
+
+  <div class="sa-topbar-right">
+    <button class="sa-iconbtn sa-search-open" type="button" data-search-open aria-label="Search"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg></button>
+    <div class="dropdown sa-new">
+      <button class="btn btn-sa-primary sa-new-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="New"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span>New</span></button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        {% for item in sa_new_menu %}
+        <li><a class="dropdown-item sa-menu-link" href="{{ item.url }}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg>{{ item.label }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% include "includes/notifications_link.html" %}
+    {% include "includes/account_menu.html" %}
+  </div>
+</header>
+
+<div class="sa-app{% if role == 'student' %} sa-app--student{% endif %}">
+  <aside class="sa-sidebar" id="sa-sidebar" aria-label="Sidebar">
     {% include "includes/nav_groups.html" %}
-    {% include "includes/notifications_link.html" with variant="sidebar" %}
-    <div class="sa-account">{% include "includes/account_menu.html" with dropup=True show_name=True %}</div>
   </aside>
-  {% endif %}
 
   <div class="sa-main">
-    <header class="sa-mobilebar">
-      {% if role != "student" %}
-        <button class="sa-iconbtn" type="button" data-bs-toggle="offcanvas" data-bs-target="#sa-drawer" aria-controls="sa-drawer" aria-label="Open navigation"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-menu"/></svg></button>
-      {% endif %}
-      <a class="sa-wordmark" href="{% url 'home' %}"><small>UOL</small><span>Student Affairs</span></a>
-      <div class="sa-mobilebar-actions">
-        {% include "includes/notifications_link.html" with variant="mobile" %}
-        {% include "includes/account_menu.html" with button_class="sa-iconbtn" menu_class="dropdown-menu-end" %}
-      </div>
-    </header>
-
     <main id="main" class="sa-page{% block page_class %}{% endblock %}" tabindex="-1">
       {% block messages %}{% include "includes/messages.html" %}{% endblock %}
       {% block content %}{% endblock %}
@@ -54,7 +63,6 @@
   </div>
 </div>
 
-{% if role != "student" %}
 <div class="offcanvas offcanvas-start" tabindex="-1" id="sa-drawer" aria-labelledby="sa-drawer-title">
   <div class="offcanvas-header">
     <span class="sa-wordmark" id="sa-drawer-title"><small>UOL</small><span>Student Affairs</span></span>
@@ -64,6 +72,6 @@
     {% include "includes/nav_groups.html" %}
   </div>
 </div>
-{% endif %}
 {% endwith %}
+<script src="{% static 'js/app.js' %}" defer></script>
 {% endblock %}

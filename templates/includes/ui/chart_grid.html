@@ -1,0 +1,37 @@
+{% comment %}
+  The cohort map as a shaded grid: darker Forest means more complaints, scaled to visible cells.
+  A hidden cohort arrives with no count and no URL, so nothing about it can be printed (DEC-318).
+{% endcomment %}
+<div class="sa-map-wrap">
+  <table class="sa-map">
+    <caption class="visually-hidden">Complaints submitted in {{ term.name }} by cohort, in academic order.</caption>
+    <thead>
+      <tr><th scope="col">Semester and batch</th>{% for section in sections %}<th scope="col">{{ section }}</th>{% endfor %}</tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <th scope="row"><span class="sem">{{ row.semester }}</span> <span class="batch">{{ row.batch }}</span></th>
+        {% for item in row.cells %}{% with cell=item.cell %}
+        <td data-section="{{ cell.section }}">
+          {% if cell.state == "count" %}
+          <a class="sa-cell sa-cell--count sa-shade-{{ item.shade }}" href="{{ cell.url }}"><span class="visually-hidden">{{ cell.label }}: </span><span class="n">{{ cell.count }}</span><span class="visually-hidden"> complaint{{ cell.count|pluralize }}</span></a>
+          {% elif cell.state == "zero" %}
+          <a class="sa-cell sa-cell--zero" href="{{ cell.url }}"><span class="visually-hidden">{{ cell.label }}: </span>No complaints</a>
+          {% elif cell.state == "hidden" %}
+          <span class="sa-cell sa-cell--hidden"><span class="visually-hidden">{{ cell.label }}: </span>Hidden</span>
+          {% else %}
+          <span class="sa-cell sa-cell--none"><span class="visually-hidden">{{ cell.label }}: no such cohort</span></span>
+          {% endif %}
+        </td>
+        {% endwith %}{% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<ul class="sa-map-key" aria-label="Key">
+  <li><span class="sa-cell sa-cell--zero sa-cell--key" aria-hidden="true"></span>No complaints this term</li>
+  <li><span class="sa-cell sa-cell--hidden sa-cell--key" aria-hidden="true"></span>Hidden for privacy</li>
+  <li><span class="sa-cell sa-cell--none sa-cell--key" aria-hidden="true"></span>No such cohort</li>
+</ul>

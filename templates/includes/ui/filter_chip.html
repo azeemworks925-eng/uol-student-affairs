@@ -1,0 +1,12 @@
+{% load ui %}{# Filter chip: a menu of links that sets one query parameter. label, param, choices [(value, text)], current. #}
+<div class="dropdown sa-chip-menu">
+  <button class="sa-chip{% if current %} is-active{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="sa-chip-label">{{ label }}</span>{% for value, text in choices %}{% if value|stringformat:"s" == current|stringformat:"s" and current %}<span class="sa-chip-value">{{ text }}</span>{% endif %}{% endfor %}
+    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-chevron"/></svg>
+  </button>
+  <ul class="dropdown-menu">
+    {% for value, text in choices %}
+    <li><a class="dropdown-item{% if value|stringformat:'s' == current|default:''|stringformat:'s' %} active{% endif %}" href="{% filter_url param value %}"{% if value|stringformat:'s' == current|default:''|stringformat:'s' %} aria-current="true"{% endif %}>{{ text }}</a></li>
+    {% endfor %}
+  </ul>
+</div>

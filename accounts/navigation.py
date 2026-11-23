@@ -67,7 +67,7 @@ NAVIGATION = {
             NavItem("Complaints", "file", "student_complaints", also_current=STUDENT_COMPLAINT_VIEWS),
             NavItem("Student Voice", "voice", "student_voice", also_current=("student_voice_detail",)),
             NavItem("Meetings", "calendar", "student_meetings",
-                    also_current=("student_meetings_month", "student_meeting_detail")),
+                    also_current=("student_meetings_month", "student_meetings_week", "student_meeting_detail")),
         ]),
     ],
     User.Role.BATCH_ADVISOR: [
@@ -78,7 +78,7 @@ NAVIGATION = {
             NavItem("Student Voice", "voice", "advisor_voice",
                     also_current=("advisor_voice_detail", "advisor_voice_answer", "advisor_voice_review")),
             NavItem("Meetings", "calendar", "advisor_meetings",
-                    also_current=("advisor_meetings_month", "advisor_meeting_detail", "advisor_meeting_schedule",
+                    also_current=("advisor_meetings_month", "advisor_meetings_week", "advisor_meeting_detail", "advisor_meeting_schedule",
                                   "advisor_meeting_confirm", "advisor_meeting_suggest", "advisor_meeting_decline",
                                   "advisor_meeting_cancel")),
             NavItem("Representatives", "users", "advisor_representatives",
@@ -93,7 +93,8 @@ NAVIGATION = {
             NavItem("Complaints", "file", "super_admin_complaints", also_current=SUPER_ADMIN_COMPLAINT_VIEWS),
             NavItem("Collective Issues", "hand"),
             NavItem("Student Voice", "voice", "super_admin_voice", also_current=("super_admin_voice_detail",)),
-            NavItem("Meetings", "calendar", "super_admin_meetings"),
+            NavItem("Meetings", "calendar", "super_admin_meetings",
+                    also_current=("super_admin_meetings_month", "super_admin_meetings_week", "super_admin_meeting_detail")),
         ]),
         ("People", [
             NavItem("Students", "user", "admin:accounts_studentprofile_changelist"),
@@ -106,6 +107,18 @@ NAVIGATION = {
             NavItem("Complaint Categories", "tags", "super_admin_categories", also_current=CATEGORY_VIEWS),
         ]),
     ],
+}
+
+
+# The top bar's "+ New" menu: existing pages only.
+NEW_MENU = {
+    User.Role.STUDENT: [
+        ("New complaint", "file", "student_complaint_new"),
+        ("Student Voice", "voice", "student_voice", "?new=1"),
+        ("Request meeting", "calendar", "student_meetings", "?new=1"),
+    ],
+    User.Role.BATCH_ADVISOR: [("Schedule meeting", "calendar", "advisor_meeting_schedule")],
+    User.Role.SUPER_ADMIN: [("Add Batch Advisor", "user", "admin:accounts_user_add")],
 }
 
 
@@ -130,4 +143,11 @@ def navigation(request):
         built = [_resolve(item, current) for item in items if item.url_name]
         if built:  # a group with nothing built yet is left out, heading included
             groups.append({"heading": heading, "items": built})
-    return {"sa_nav": groups, "sa_nav_items": [i for g in groups for i in g["items"]]}
+    items = [i for g in groups for i in g["items"]]
+    return {
+        "sa_nav": groups,
+        "sa_nav_items": items,
+        "sa_nav_current": next((i for i in items if i["current"]), None),
+        "sa_new_menu": [{"label": entry[0], "icon": entry[1], "url": reverse(entry[2]) + (entry[3] if len(entry) > 3 else "")}
+                        for entry in NEW_MENU[user.role]],
+    }

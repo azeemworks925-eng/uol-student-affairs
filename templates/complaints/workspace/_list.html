@@ -1,92 +1,74 @@
-{# Workspace list: headline, search, filters, rows. Every link carries the list state. #}
-<header class="sa-ws-list-head">
-  <span class="sa-eyebrow">Complaints</span>
-  {% if complaint %}<h2 class="sa-ws-title" id="ws-list-title">{% if workspace.department_wide %}Department{% else %}Your cohorts{% endif %}</h2>{% else %}<h1 class="sa-ws-title" id="ws-list-title">{% if workspace.department_wide %}Department{% else %}Your cohorts{% endif %}</h1>{% endif %}
-  {% if has_assignments %}<p class="sa-ws-headline">{{ headline }}</p>{% endif %}
-  {% if can_take_next %}<a class="btn btn-sa-primary btn-sm sa-ws-next" href="{% url urls.next %}">Next complaint<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>{% endif %}
-</header>
+{% load ui %}{# Full-width complaints list. Every link carries the list state. #}
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title" id="ws-list-title">Complaints</h1>
+      <p class="sa-page-subtitle">{% if workspace.department_wide %}Department{% else %}Your cohorts{% endif %}</p>
+      {% if has_assignments %}<p class="visually-hidden">{{ headline }}</p>{% endif %}
+    </div>
+    {% if can_take_next %}<div class="sa-page-actions"><a class="btn btn-sa-primary" href="{% url urls.next %}">Next complaint<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a></div>{% endif %}
+  </header>
 
-{% if not has_assignments %}
-  <div class="sa-empty">
-    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
-    <div><p class="title">No cohorts are assigned to you yet.</p><p class="sa-muted sa-small">The Super Admin assigns cohorts. Complaints from them will appear here.</p></div>
+  {% if not has_assignments %}
+    {% include "includes/ui/empty.html" with title="No cohorts are assigned to you yet." text="The Super Admin assigns cohorts. Complaints from them will appear here." %}
+  {% else %}
+  <div class="sa-controls">
+    <form method="get" action="{% url urls.list %}" class="sa-pill-search" role="search">
+      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
+      <label class="visually-hidden" for="ws-search">Search complaints by reference, {% if workspace.department_wide %}title, {% endif %}student name or SAP ID</label>
+      <input id="ws-search" type="search" name="q" maxlength="100" value="{{ current.q }}" placeholder="Search complaints">
+      {% for key, value in search_hidden %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    </form>
+    {% include "includes/ui/filter_chip.html" with label="Status" param="status" choices=filters.fields.status.choices current=current.status %}
+    {% if show_cohort_filter %}{% include "includes/ui/filter_chip.html" with label="Cohort" param="cohort" choices=filters.fields.cohort.choices current=current.cohort %}{% endif %}
+    {% include "includes/ui/filter_chip.html" with label="Category" param="category" choices=filters.fields.category.choices current=current.category %}
+    {% if filters.term %}{% include "includes/ui/filter_chip.html" with label="Term" param="term" choices=filters.fields.term.choices current=current.term %}{% endif %}
+    {% if filters.owner %}{% include "includes/ui/filter_chip.html" with label="Owner" param="owner" choices=filters.fields.owner.choices current=current.owner %}{% endif %}
+    {% include "includes/ui/filter_chip.html" with label="Sort" param="sort" choices=filters.fields.sort.choices current=current.sort %}
+    {% if has_filters %}<a class="sa-clear" href="{% url urls.list %}">Clear filters</a>{% endif %}
+    <div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="staff-complaints" %}</div>
   </div>
-{% else %}
-<form method="get" action="{% url urls.list %}" class="sa-ws-search" role="search">
-  <label class="visually-hidden" for="{{ filters.q.id_for_label }}">Search complaints</label>
-  <div class="sa-ws-search-row">
-    {{ filters.q }}
-    <button type="submit" class="btn btn-sa-secondary">Search</button>
-  </div>
-  <p class="sa-small sa-muted mt-1 mb-0" id="ws-search-hint">By reference, {% if workspace.department_wide %}title, {% endif %}student name or SAP ID.</p>
   {% if selected_term %}
   <p class="sa-filter-chip">
     <span><span class="visually-hidden">Filtered to complaints </span>Submitted in <strong>{{ selected_term.name }}</strong> <span class="sa-nowrap">{{ selected_term.dates_label }}</span></span>
     <a class="sa-filter-chip-remove" href="{{ term_clear_url }}" aria-label="Remove the academic term filter ({{ selected_term.name }})">Remove</a>
   </p>
   {% endif %}
-  <details class="sa-ws-filters"{% if has_filters %} open{% endif %}>
-    <summary>Filters and sort</summary>
-    <div class="sa-ws-filter-grid">
-      {% if show_cohort_filter %}<div><label class="form-label" for="{{ filters.cohort.id_for_label }}">Cohort</label>{{ filters.cohort }}</div>{% endif %}
-      <div><label class="form-label" for="{{ filters.status.id_for_label }}">Status</label>{{ filters.status }}</div>
-      <div><label class="form-label" for="{{ filters.category.id_for_label }}">Category</label>{{ filters.category }}</div>
-      {% if filters.term %}<div><label class="form-label" for="{{ filters.term.id_for_label }}">Academic term</label>{{ filters.term }}</div>{% endif %}
-      {% if filters.owner %}<div><label class="form-label" for="{{ filters.owner.id_for_label }}">Responsible owner</label>{{ filters.owner }}</div>{% endif %}
-      <div><label class="form-label" for="{{ filters.sort.id_for_label }}">Sort by</label>{{ filters.sort }}</div>
-    </div>
-    <div class="sa-ws-filter-actions">
-      <button type="submit" class="btn btn-sa-primary btn-sm">Apply</button>
-      {% if has_filters %}<a class="btn btn-sa-secondary btn-sm" href="{% url urls.list %}">Clear filters</a>{% endif %}
-    </div>
-  </details>
-</form>
-<form method="get" action="{% url urls.go %}" class="sa-ws-goto">
-  <label class="sa-ws-goto-label" for="ws-goto-ref">Go to reference</label>
-  <div class="sa-ws-search-row">
-    <input type="text" name="ref" id="ws-goto-ref" class="form-control" placeholder="CMP-2026-00012" maxlength="30" autocomplete="off" spellcheck="false">
-    <button type="submit" class="btn btn-sa-secondary">Go</button>
-  </div>
-</form>
 
-{% if page.object_list %}
-<ul class="sa-ws-rows">
-  {% for item in page %}
-  <li>
-    <a class="sa-ws-row" href="{% url urls.detail item.reference %}{% if list_state %}?{{ list_state }}{% endif %}"{% if item.reference == selected_reference %} aria-current="true"{% endif %}>
-      <span class="sa-ws-row-top"><span class="sa-ref">{{ item.reference }}</span>{% include "complaints/student/_status.html" with tone=item.tone label=item.get_status_display %}</span>
-      <span class="sa-ws-row-title">{{ item.title }}</span>
-      <span class="sa-ws-row-student">{{ item.student.get_full_name }}{% if workspace.department_wide and item.student.student_profile %} <span class="sa-ref">{{ item.student.student_profile.sap_id }}</span>{% endif %}</span>
-      <span class="sa-ws-row-meta"><span class="sa-cohort">{{ item.batch }} · {{ item.semester }} · {{ item.section }}</span>{% if workspace.department_wide %} <span>{{ item.category }}{% if not item.category.is_active %} (inactive){% endif %}</span>{% endif %} <span class="sa-nowrap">Last activity {{ item.last_activity|date:"j M Y" }}</span></span>
-      {% if workspace.department_wide %}<span class="sa-ws-row-owner">{% if item.responsible %}Owner: {{ item.responsible.get_full_name }}{% else %}Unassigned{% endif %}</span>{% endif %}
-      {% if item.cancellation_requested or item.reopened %}
-      <span class="sa-ws-flags">{% if item.cancellation_requested %}<span class="sa-flag">Cancellation requested</span>{% endif %}{% if item.reopened %}<span class="sa-flag">Reopened by student</span>{% endif %}</span>
-      {% endif %}
-    </a>
-  </li>
-  {% endfor %}
-</ul>
-{% if page.has_other_pages %}
-<nav class="sa-pagination" aria-label="Complaint list pages">
-  {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="?{% if list_state_without_page %}{{ list_state_without_page }}&amp;{% endif %}page={{ page.previous_page_number }}">Previous</a>{% endif %}
-  <span class="sa-small sa-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
-  {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="?{% if list_state_without_page %}{{ list_state_without_page }}&amp;{% endif %}page={{ page.next_page_number }}">Next</a>{% endif %}
-</nav>
-{% endif %}
-{% elif empty_cohort_label %}
-  <div class="sa-empty">
-    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
-    <div><p class="title">No complaints have been submitted in {{ empty_cohort_label }}.</p><p class="sa-small mb-0"><a href="{% url urls.list %}">Show all complaints</a></p></div>
+  <div class="sa-stats">
+    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
   </div>
-{% elif has_filters %}
-  <div class="sa-empty">
-    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
-    <div><p class="title">No complaints match these filters.</p><p class="sa-small mb-0"><a href="{% url urls.list %}">Clear filters</a></p></div>
-  </div>
-{% else %}
-  <div class="sa-empty">
-    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
-    {% if workspace.department_wide %}<div><p class="title">No complaints have been submitted yet.</p><p class="sa-muted sa-small">Complaints submitted by students in every cohort appear here.</p></div>{% else %}<div><p class="title">There are no complaints in your cohorts.</p><p class="sa-muted sa-small">Complaints submitted by students in your assigned cohorts appear here.</p></div>{% endif %}
-  </div>
-{% endif %}
-{% endif %}
+
+  {% if page.object_list %}
+  <ul class="sa-collection" data-view="list" data-view-key="staff-complaints">
+    {% for item in page %}
+    <li>
+      <a class="sa-item sa-item--{{ item.tone }}" href="{% url urls.detail item.reference %}{% if list_state %}?{{ list_state }}{% endif %}">
+        <span class="sa-item-ref">{{ item.reference }}</span>
+        <span class="sa-item-who">{{ item.student.get_full_name }}</span>
+        <span class="sa-item-title">{{ item.title }}
+          {% if item.cancellation_requested or item.reopened %}<span class="sa-item-flags">{% if item.cancellation_requested %}<span class="sa-flag">Cancellation requested</span>{% endif %}{% if item.reopened %}<span class="sa-flag">Reopened by student</span>{% endif %}</span>{% endif %}
+          {% if workspace.department_wide %}<span class="sa-item-extra">{% if item.student.student_profile %}<span class="sa-ref">{{ item.student.student_profile.sap_id }}</span> · {% endif %}{{ item.category }}{% if not item.category.is_active %} (inactive){% endif %} · {% if item.responsible %}Owner: {{ item.responsible.get_full_name }}{% else %}Unassigned{% endif %}</span>{% endif %}
+        </span>
+        {% include "includes/ui/cohort.html" with record=item %}
+        {% include "complaints/student/_status.html" with tone=item.tone label=item.get_status_display %}
+        <span class="sa-item-when"><span class="visually-hidden">Last activity </span>{{ item.last_activity|date:"j M Y" }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% include "includes/ui/pagination.html" with label="Complaint list pages" %}
+  {% elif empty_cohort_label %}
+    <div class="sa-empty">
+      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
+      <div><p class="title">No complaints have been submitted in {{ empty_cohort_label }}.</p><p class="sa-small mb-0"><a href="{% url urls.list %}">Show all complaints</a></p></div>
+    </div>
+  {% elif has_filters %}
+    {% url urls.list as clear_url %}{% include "includes/ui/empty.html" with title="No complaints match these filters." link_url=clear_url link_label="Clear filters" %}
+  {% elif workspace.department_wide %}
+    {% include "includes/ui/empty.html" with title="No complaints have been submitted yet." text="Complaints submitted by students in every cohort appear here." %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="There are no complaints in your cohorts." text="Complaints submitted by students in your assigned cohorts appear here." %}
+  {% endif %}
+  {% endif %}
+</div>

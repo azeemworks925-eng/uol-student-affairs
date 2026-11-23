@@ -1,5 +1,6 @@
-{# List and Month tabs. #}
-<nav class="sa-meet-tabs" aria-label="Meeting views">
-  <a href="{% url list_url %}"{% if active == "list" %} aria-current="page"{% endif %}>List</a>
-  <a href="{% url month_url %}"{% if active == "month" %} aria-current="page"{% endif %}>Month</a>
+{# List | Month | Week, remembered by static/js/app.js. #}
+<nav class="sa-view-toggle" aria-label="Meeting views" data-meeting-views="{{ active }}">
+  <a href="{% url view_urls.list %}?view=list" data-view-name="list"{% if active == "list" %} aria-current="page"{% endif %}>List</a>
+  <a href="{% url view_urls.month %}" data-view-name="month"{% if active == "month" %} aria-current="page"{% endif %}>Month</a>
+  <a href="{% url view_urls.week %}" data-view-name="week"{% if active == "week" %} aria-current="page"{% endif %}>Week</a>
 </nav>

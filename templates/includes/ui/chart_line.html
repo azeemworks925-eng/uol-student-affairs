@@ -1,0 +1,14 @@
+{# Line chart. chart: accounts.dashboards.line_chart; label: what it plots. #}
+<figure class="sa-chart sa-line">
+  <div class="sa-line-y" aria-hidden="true">{% for tick in chart.y_ticks %}<span>{{ tick }}</span>{% endfor %}</div>
+  <div class="sa-line-plot">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-labelledby="{{ uid }}-t {{ uid }}-d">
+      <title id="{{ uid }}-t">{{ label }}</title>
+      <desc id="{{ uid }}-d">{{ chart.desc }}</desc>
+      <line class="sa-line-grid" x1="0" y1="0" x2="100" y2="0"/><line class="sa-line-grid" x1="0" y1="50" x2="100" y2="50"/>
+      <path class="sa-line-path sa-line-draw" d="{{ chart.path }}"/>
+    </svg>
+    {% for point in chart.points %}<span class="sa-line-dot {{ point.edge }}" style="left: {{ point.x }}%; top: {{ point.y }}%" tabindex="0"><span class="sa-tip">{{ point.label }}: {{ point.value }}</span></span>{% endfor %}
+  </div>
+  <div class="sa-line-x" aria-hidden="true">{% for text in chart.x_labels %}<span>{{ text }}</span>{% endfor %}</div>
+</figure>

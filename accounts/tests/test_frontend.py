@@ -129,16 +129,16 @@ class StudentHomeTests(TestCase):
             self.assertNotIn(label, bottom)
 
     def test_active_navigation_is_marked_current(self):
-        self.assertRegex(self.html, r'<a class="sa-nav-link" href="/[^"]*" aria-current="page">.*Home</a>')
-        self.assertEqual(self.html.count('aria-current="page"'), 2)  # sidebar and bottom navigation
+        self.assertRegex(self.html, r'<a class="sa-nav-link" href="/[^"]*"[^>]*aria-current="page">.*Home</span></a>')
+        self.assertEqual(self.html.count('aria-current="page"'), 3)  # sidebar, phone drawer, bottom navigation
 
     def test_unbuilt_destinations_are_not_rendered(self):
         for text in UNBUILT_WORDING:
             self.assertNotIn(text, self.html)
-        self.assertRegex(self.html, r'<a class="sa-nav-link" href="{}">.*Complaints</a>'.format(re.escape(reverse("student_complaints"))))
+        self.assertRegex(self.html, r'<a class="sa-nav-link" href="{}"[^>]*>.*Complaints</span></a>'.format(re.escape(reverse("student_complaints"))))
 
-    def test_no_staff_drawer_or_other_students(self):
-        self.assertNotIn('id="sa-drawer"', self.html)
+    def test_phone_drawer_and_no_other_students(self):
+        self.assertIn('id="sa-drawer"', self.html)
         other = make_student("87654321@student.uol.edu.pk", academics=self.academics, full_name="Zara Other")
         self.assertNotContains(self.client.get(reverse("student_home")), other.full_name)
 
@@ -153,26 +153,26 @@ class AdvisorHomeTests(TestCase):
         cls.advisor = make_advisor(cohorts=[cohort(cls.academics), cohort(cls.academics, section="other_section")])
         cls.unassigned = make_advisor("advisor2@uol.edu.pk")
 
-    def test_rail_and_assigned_cohorts(self):
+    def test_sidebar_and_assigned_cohorts(self):
         self.client.force_login(self.advisor)
         response = self.client.get(reverse("advisor_home"))
         html = response.content.decode()
 
         self.assertTemplateUsed(response, "accounts/advisor_home.html")
-        self.assertIn('<nav class="sa-rail"', html)
-        self.assertNotIn('<aside class="sa-sidebar"', html)
+        self.assertIn('<aside class="sa-sidebar"', html)
+        self.assertNotIn('sa-rail-link', html)  # the old fixed advisor rail is gone
         self.assertNotIn('class="sa-bottomnav"', html)
         self.assertIn('id="sa-drawer"', html)
         self.assertContains(response, "You advise 2 cohorts.")
         self.assertContains(response, "Semester 4 · Section A")
         self.assertContains(response, "Semester 4 · Section B")
-        self.assertRegex(html, r'class="sa-rail-link" href="{}"[^>]*aria-current="page"'.format(reverse("advisor_home")))
+        self.assertRegex(html, r'class="sa-nav-link" href="{}"[^>]*aria-current="page"'.format(reverse("advisor_home")))
 
-    def test_rail_shows_only_built_destinations(self):
+    def test_sidebar_shows_only_built_destinations(self):
         self.client.force_login(self.advisor)
         html = self.client.get(reverse("advisor_home")).content.decode()
-        rail = html[html.index('<nav class="sa-rail"'):html.index("</nav>", html.index('<nav class="sa-rail"'))]
-        self.assertEqual(re.findall(r'class="sa-rail-link" href="[^"]+" title="([^"]+)"', rail), ["Overview", "Complaints", "Student Voice", "Meetings", "Representatives"])
+        sidebar = html[html.index('<aside class="sa-sidebar"'):html.index("</aside>")]
+        self.assertEqual(re.findall(r'class="sa-nav-link" href="[^"]+" data-tip="([^"]+)"', sidebar), ["Overview", "Complaints", "Student Voice", "Meetings", "Representatives"])
         for text in ("Collective Issues", "Statistics", *UNBUILT_WORDING):
             self.assertNotIn(text, html)
 
@@ -200,7 +200,7 @@ class SuperAdminHomeTests(TestCase):
 
     def test_sidebar_hides_unbuilt_destinations(self):
         sidebar = self.html[self.html.index('<aside class="sa-sidebar"'):self.html.index("</aside>")]
-        labels = re.findall(r'<a class="sa-nav-link" href="[^"]+"[^>]*>.*?</svg>([^<]+)</a>', sidebar)
+        labels = re.findall(r'<a class="sa-nav-link" href="[^"]+"[^>]*>.*?</svg><span class="sa-nav-text">([^<]+)</span></a>', sidebar)
         self.assertEqual(labels, ["Overview", "Complaints", "Student Voice", "Meetings", "Students", "Batch Advisors", "CR/GR Management",
                                   "Academic Structure", "Complaint Categories"])
         for text in ("Collective Issues", "Calendar", *UNBUILT_WORDING):
@@ -212,7 +212,8 @@ class SuperAdminHomeTests(TestCase):
         self.assertIn(reverse("admin:app_list", kwargs={"app_label": "academics"}), self.html)
         self.assertIn("?role__exact=batch_advisor", self.html)
         # Each linked admin page actually opens for the Super Admin.
-        for url in re.findall(r'class="btn btn-sa-secondary btn-sm" href="([^"]+)"', self.html):
+        sidebar = self.html[self.html.index('<aside class="sa-sidebar"'):self.html.index("</aside>")]
+        for url in re.findall(r'class="sa-nav-link" href="([^"]+)"', sidebar):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url.replace("&amp;", "&")).status_code, 200)
 
@@ -292,10 +293,7 @@ class RoleNavigationScopeTests(TestCase):
         for user, name in ((self.student, "student_home"), (self.advisor, "advisor_home"), (self.admin, "super_admin_home")):
             with self.subTest(page=name):
                 html = self.page(user, name)
-                if user == self.advisor:
-                    self.assertIn('<nav class="sa-rail" aria-label="Main navigation">', html)
-                else:
-                    self.assertIn('<nav aria-label="Main navigation">', html)
+                self.assertIn('<nav aria-label="Main navigation">', html)
                 svgs = re.findall(r"<svg class=\"sa-i\"[^>]*>", html)
                 self.assertTrue(svgs)
                 self.assertTrue(all('aria-hidden="true"' in tag for tag in svgs), svgs)

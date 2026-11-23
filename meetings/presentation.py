@@ -212,6 +212,133 @@ def build_month(visible, month_value, day_value, viewer=None):
     }
 
 
+# --- Week view -------------------------------------------------------------------------------
+
+WEEK_PATTERN = re.compile(r"(\d{4})-W(\d{2})")
+DAY_START, DAY_END = 8 * 60, 18 * 60  # 08:00 to 18:00, extended to fit
+GRID_MINUTES = 5  # one CSS grid row
+SLOT_MINUTES = 30  # one labelled time row
+WEEK_STATUSES = (Status.CONFIRMED, Status.TIME_SUGGESTED)  # the meetings that hold a time
+
+
+def iso_week(day):
+    year, week, _weekday = day.isocalendar()
+    return f"{year:04d}-W{week:02d}"
+
+
+def parse_week(value, today):
+    """The Monday of "YYYY-Www". Anything invalid means the current week."""
+    match = WEEK_PATTERN.fullmatch(value or "")
+    if match and FIRST_YEAR <= int(match.group(1)) <= LAST_YEAR:
+        try:
+            return date.fromisocalendar(int(match.group(1)), int(match.group(2)), 1)
+        except ValueError:
+            pass
+    return today - timedelta(days=today.weekday())
+
+
+def _minutes(moment):
+    local = timezone.localtime(moment)
+    return local.hour * 60 + local.minute
+
+
+def _place_in_lanes(items):
+    """Side-by-side lanes for meetings that overlap on one day (first free lane, by start)."""
+    cluster, cluster_end, lane_ends = [], -1, []
+
+    def close():
+        for item in cluster:
+            item["lanes"] = len(lane_ends)
+
+    for item in items:
+        if cluster and item["start"] >= cluster_end:
+            close()
+            cluster, lane_ends = [], []
+        lane = next((i for i, end in enumerate(lane_ends) if end <= item["start"]), None)
+        if lane is None:
+            lane = len(lane_ends)
+            lane_ends.append(item["end"])
+        else:
+            lane_ends[lane] = item["end"]
+        item["lane"] = lane + 1
+        cluster.append(item)
+        cluster_end = max(cluster_end, item["end"]) if len(cluster) > 1 else item["end"]
+    if cluster:
+        close()
+
+
+def build_week(visible, week_value, day_value, viewer=None):
+    """Monday to Sunday with half-hour rows. Each meeting is placed by start time and sized by duration."""
+    today = timezone.localdate()
+    monday = parse_week(week_value, today)
+    days = [monday + timedelta(days=offset) for offset in range(7)]
+    rows = list(visible.filter(
+        status__in=WEEK_STATUSES, starts_at__gte=_day_start(days[0]), starts_at__lt=_day_start(days[-1] + timedelta(days=1)),
+    ).order_by())
+    meetings = by_start(rows)
+    decorate(meetings, viewer)
+
+    first, last = DAY_START, DAY_END
+    for meeting in meetings:
+        start = _minutes(meeting.starts_at)
+        first = min(first, start - start % SLOT_MINUTES)
+        end = min(start + meeting.duration_minutes, 24 * 60)
+        last = max(last, end + (-end % SLOT_MINUTES))
+
+    by_day = {day: [] for day in days}
+    for meeting in meetings:
+        start = _minutes(meeting.starts_at)
+        end = min(start + meeting.duration_minutes, 24 * 60)
+        by_day[timezone.localtime(meeting.starts_at).date()].append({
+            "meeting": meeting, "start": start, "end": end,
+            "row": (start - first) // GRID_MINUTES + 1,
+            "span": max(1, -((start - end) // GRID_MINUTES)),
+            "lane": 1, "lanes": 1,
+        })
+    try:
+        selected = date.fromisoformat(day_value or "")
+    except ValueError:
+        selected = None
+    if selected not in by_day:
+        selected = today if today in by_day else monday
+
+    current = iso_week(monday)
+    columns = []
+    for day in days:
+        items = by_day[day]
+        _place_in_lanes(items)
+        for item in items:
+            item["compact"] = item["lanes"] > 1 or item["span"] < SLOT_MINUTES // GRID_MINUTES
+        columns.append({
+            "date": day, "items": items, "is_today": day == today, "is_selected": day == selected,
+            "lanes": max((item["lanes"] for item in items), default=1),
+            "query": urlencode({"week": current, "day": day.isoformat()}),
+        })
+    slot_rows = (SLOT_MINUTES // GRID_MINUTES)
+    slots = [{"label": f"{minute // 60:02d}:{minute % 60:02d}", "row": (minute - first) // GRID_MINUTES + 1, "span": slot_rows}
+             for minute in range(first, last, SLOT_MINUTES)]
+    return {
+        "monday": monday, "sunday": days[-1], "days": columns, "slots": slots,
+        "rows": (last - first) // GRID_MINUTES,
+        "week": current,
+        "previous": iso_week(monday - timedelta(days=7)),
+        "next": iso_week(monday + timedelta(days=7)),
+        "this_week": iso_week(today),
+        "has_meetings": bool(meetings),
+    }
+
+
+def meeting_stats(meetings, now=None):
+    """The stat strip of a meetings list, from what this user can see."""
+    upcoming, closed = split_upcoming(list(meetings), now)
+    return [
+        {"value": sum(1 for m in upcoming if m.is_requested), "label": "Requested", "icon": "inbox", "tone": "received"},
+        {"value": sum(1 for m in upcoming if m.is_time_suggested), "label": "Time suggested", "icon": "clock", "tone": "review"},
+        {"value": sum(1 for m in upcoming if m.is_confirmed), "label": "Upcoming", "icon": "calendar", "tone": "resolved"},
+        {"value": len(closed), "label": "Past or closed", "icon": "check", "tone": "accent"},
+    ]
+
+
 # --- Student Home ----------------------------------------------------------------------------
 
 HOME_KINDS = (Kind.CONFIRMED, Kind.SCHEDULED, Kind.SUGGESTED, Kind.DECLINED, Kind.CANCELLED)

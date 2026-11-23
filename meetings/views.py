@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
 from accounts.permissions import batch_advisor_required, student_required, super_admin_required
+from complaints.presentation import current_post
 from complaints.workspace import advisor_cohorts, cohort_value
 from dsa.sorting import merge_sort
 
@@ -24,12 +25,18 @@ from . import services
 from .forms import FilterForm, ReasonForm, RequestForm, ScheduleForm, SlotForm, SuggestForm
 from .models import Meeting
 from .permissions import get_visible_meeting, visible_meetings
-from .presentation import (build_month, decorate, group_by_day, latest_first, overlap_token, overlap_warnings,
-                           split_upcoming)
+from .presentation import (build_month, build_week, decorate, group_by_day, latest_first, meeting_stats, overlap_token,
+                           overlap_warnings, split_upcoming)
 
 Status = Meeting.Status
 ADMIN_PAGE_SIZE = 20
 CLOSED_LIMIT = 20
+# The List | Month | Week switcher for each role.
+VIEW_URLS = {
+    "student_meetings": {"list": "student_meetings", "month": "student_meetings_month", "week": "student_meetings_week"},
+    "advisor_meetings": {"list": "advisor_meetings", "month": "advisor_meetings_month", "week": "advisor_meetings_week"},
+    "super_admin_meetings": {"list": "super_admin_meetings", "month": "super_admin_meetings_month", "week": "super_admin_meetings_week"},
+}
 
 
 def _add_service_errors(form, error):
@@ -71,7 +78,11 @@ def student_meetings(request):
     return render(request, "meetings/student.html", {
         "form": form,
         "groups": group_by_day(upcoming),
+        "upcoming": upcoming,
         "closed": closed,
+        "stats": meeting_stats(own),
+        "view_urls": VIEW_URLS["student_meetings"],
+        "open_new": form.is_bound or bool(request.GET.get("new")),
     }, status=400 if form.is_bound else 200)
 
 
@@ -123,12 +134,33 @@ def student_month(request):
     return _render_month(request, "student_meetings", "student_meeting_detail")
 
 
+@student_required
+def student_week(request):
+    return _render_week(request, "student_meetings", "student_meeting_detail")
+
+
 # --- Month view (student and advisor) ----------------------------------------------------------
 
+def _calendar_viewer(user):
+    """Who a Google Calendar link is for. Read-only oversight has none."""
+    return None if user.is_super_admin else user
+
+
 def _render_month(request, list_url_name, detail_url_name):
-    month = build_month(visible_meetings(request.user), request.GET.get("month"), request.GET.get("day"), request.user)
+    month = build_month(visible_meetings(request.user), request.GET.get("month"), request.GET.get("day"),
+                        _calendar_viewer(request.user))
     return render(request, "meetings/month.html", {
         "month": month, "list_url_name": list_url_name, "detail_url_name": detail_url_name,
+        "view_urls": VIEW_URLS[list_url_name], "show_student": not request.user.is_student,
+    })
+
+
+def _render_week(request, list_url_name, detail_url_name):
+    week = build_week(visible_meetings(request.user), request.GET.get("week"), request.GET.get("day"),
+                      _calendar_viewer(request.user))
+    return render(request, "meetings/week.html", {
+        "week": week, "list_url_name": list_url_name, "detail_url_name": detail_url_name,
+        "view_urls": VIEW_URLS[list_url_name], "show_student": not request.user.is_student,
     })
 
 
@@ -146,6 +178,7 @@ def _advisor_detail(request, meeting, *, confirm_form=None, suggest_form=None, d
     return render(request, "meetings/detail.html", {
         "meeting": meeting,
         "viewer_is_advisor": True,
+        "student_post": current_post(meeting.student),
         "list_url_name": "advisor_meetings",
         "confirm_form": confirm_form or SlotForm(prefix="confirm", initial=initial),
         "suggest_form": suggest_form or SuggestForm(prefix="suggest", initial=initial),
@@ -179,6 +212,9 @@ def advisor_meetings(request):
         "waiting_for_student": [m for m in upcoming if m.is_time_suggested],
         "groups": group_by_day([m for m in upcoming if m.is_confirmed]),
         "closed": closed[:CLOSED_LIMIT],
+        "confirmed": [m for m in upcoming if m.is_confirmed],
+        "stats": meeting_stats(meetings),
+        "view_urls": VIEW_URLS["advisor_meetings"],
         "has_cohorts": bool(advisor_cohorts(request.user)),
     })
 
@@ -273,6 +309,11 @@ def advisor_month(request):
     return _render_month(request, "advisor_meetings", "advisor_meeting_detail")
 
 
+@batch_advisor_required
+def advisor_week(request):
+    return _render_week(request, "advisor_meetings", "advisor_meeting_detail")
+
+
 # --- Super Admin (read-only) -------------------------------------------------------------------
 
 def _meeting_cohorts(visible):
@@ -300,4 +341,32 @@ def super_admin_meetings(request):
     state = urlencode([(key, filters.value(key)) for key in ("status", "cohort") if filters.value(key)])
     return render(request, "meetings/super_admin.html", {
         "filters": filters, "page": page, "page_state": state, "has_filters": bool(state),
+        "stats": meeting_stats(visible.order_by()),
+        "current": {name: filters.value(name) for name in ("status", "cohort")},
+        "list_keys": ("status", "cohort", "page"),
+        "view_urls": VIEW_URLS["super_admin_meetings"],
+    })
+
+
+@super_admin_required
+def super_admin_month(request):
+    return _render_month(request, "super_admin_meetings", "super_admin_meeting_detail")
+
+
+@super_admin_required
+def super_admin_week(request):
+    return _render_week(request, "super_admin_meetings", "super_admin_meeting_detail")
+
+
+@super_admin_required
+def super_admin_meeting_detail(request, pk):
+    """Read-only oversight (DEC-262): no forms and no POST route."""
+    meeting = get_visible_meeting(request.user, pk)
+    decorate([meeting])
+    return render(request, "meetings/detail.html", {
+        "meeting": meeting,
+        "viewer_is_admin": True,
+        "list_url_name": "super_admin_meetings",
+        "student_post": current_post(meeting.student),
+        "events": meeting.events.select_related("actor"),
     })
