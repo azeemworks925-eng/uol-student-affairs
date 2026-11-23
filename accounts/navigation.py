@@ -107,7 +107,11 @@ NAVIGATION = {
                     also_current=("super_admin_representatives_appoint", "super_admin_representatives_replace")),
         ]),
         ("Configuration", [
-            NavItem("Academic Structure", "layers", "admin:app_list", kwargs={"app_label": "academics"}),
+            NavItem("Academic Structure", "layers", "super_admin_structure",
+                    also_current=("super_admin_structure_add", "super_admin_structure_edit", "super_admin_structure_active")),
+            NavItem("Academic Terms", "calendar", "super_admin_terms",
+                    also_current=("super_admin_term_add", "super_admin_term_edit", "super_admin_term_current",
+                                  "super_admin_term_clear")),
             NavItem("Complaint Categories", "tags", "super_admin_categories", also_current=CATEGORY_VIEWS),
         ]),
     ],

@@ -1,0 +1,96 @@
+{% extends "layouts/app.html" %}
+{% block title %}Academic Terms · UOL Student Affairs{% endblock %}
+{% block content %}
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Academic Terms</h1>
+      <p class="sa-page-subtitle">Terms are kept for history and are never deleted.</p>
+    </div>
+    <div class="sa-page-actions"><button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-add-term"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Add term</button></div>
+  </header>
+
+  <div class="sa-notice" role="note">
+    {% if current %}
+    <p class="mb-0"><strong>The Overview analytics use {{ current.name }}</strong> <span class="sa-nowrap">({{ current.dates_label }})</span>. Complaints are counted by submission date.</p>
+    {% else %}
+    <p class="mb-0"><strong>No term is current,</strong> so the Overview has no figures. Make a term current to show them.</p>
+    {% endif %}
+  </div>
+
+  {% if rows %}
+  <section class="sa-card" aria-label="Academic terms">
+    <ul class="sa-cat-list">
+      {% for row in rows %}
+      <li class="sa-cat-row">
+        <div class="sa-cat-main">
+          <span class="sa-cat-name">{{ row.term.name }}</span>
+          {% if row.term.is_current %}<span class="sa-flag sa-flag--new">Current</span>{% endif %}
+          <span class="sa-cat-meta">{{ row.term.dates_label }}</span>
+        </div>
+        <div class="sa-cat-actions">
+          <button type="button" class="btn btn-sa-secondary btn-sm" data-dialog-open="{{ row.edit_id }}">Edit<span class="visually-hidden"> {{ row.term.name }}</span></button>
+          <button type="button" class="btn btn-sa-secondary btn-sm" data-dialog-open="{{ row.current_id }}">{% if row.term.is_current %}Clear current{% else %}Make current{% endif %}<span class="visually-hidden"> {{ row.term.name }}</span></button>
+        </div>
+
+        <dialog class="sa-dialog" id="{{ row.edit_id }}" aria-labelledby="{{ row.edit_title }}"{% if row.open %} data-open-on-load{% endif %}>
+          <div class="sa-dialog-body">
+            {% include "includes/ui/dialog_head.html" with title="Edit term" id=row.edit_title %}
+            <form method="post" action="{% url 'super_admin_term_edit' row.term.pk %}" novalidate>
+              {% csrf_token %}
+              {% if row.form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ row.form.non_field_errors|join:" " }}</div>{% endif %}
+              {% include "includes/form_field.html" with field=row.form.name %}
+              <div class="sa-field-row">
+                {% include "includes/form_field.html" with field=row.form.start_date %}
+                {% include "includes/form_field.html" with field=row.form.end_date %}
+              </div>
+              {% if row.term.is_current %}<p class="sa-muted sa-small">This is the current term, so new dates change the Overview figures.</p>{% endif %}
+              <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary">Save</button><button type="button" class="btn btn-sa-secondary" data-dialog-close>Cancel</button></div>
+            </form>
+          </div>
+        </dialog>
+
+        <dialog class="sa-dialog" id="{{ row.current_id }}" aria-labelledby="{{ row.current_title }}">
+          <div class="sa-dialog-body">
+            {% if row.term.is_current %}
+            {% include "includes/ui/dialog_head.html" with title="Clear the current term?" id=row.current_title %}
+            <form method="post" action="{% url 'super_admin_term_clear' row.term.pk %}">
+              {% csrf_token %}
+              <p>No term will be current, and the Overview will show no figures until you make one current. No complaints or terms are changed.</p>
+              <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary">Clear current term</button><button type="button" class="btn btn-sa-secondary" data-dialog-close>Cancel</button></div>
+            </form>
+            {% else %}
+            {% include "includes/ui/dialog_head.html" with title="Make this the current term?" id=row.current_title %}
+            <form method="post" action="{% url 'super_admin_term_current' row.term.pk %}">
+              {% csrf_token %}
+              <p>The Overview analytics will report <strong>{{ row.term.name }}</strong> ({{ row.term.dates_label }}).{% if current %} It replaces {{ current.name }}.{% endif %} Only one term is current at a time.</p>
+              <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary">Make current</button><button type="button" class="btn btn-sa-secondary" data-dialog-close>Cancel</button></div>
+            </form>
+            {% endif %}
+          </div>
+        </dialog>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% else %}
+    {% include "includes/ui/empty.html" with title="No academic terms yet." text="Add a term, then make it current so the Overview can report it." icon="calendar" %}
+  {% endif %}
+</div>
+
+<dialog class="sa-dialog" id="dialog-add-term" aria-labelledby="add-term-title"{% if add_open %} data-open-on-load{% endif %}>
+  <div class="sa-dialog-body">
+    {% include "includes/ui/dialog_head.html" with title="Add term" id="add-term-title" %}
+    <form method="post" action="{% url 'super_admin_term_add' %}" novalidate>
+      {% csrf_token %}
+      {% if add_form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ add_form.non_field_errors|join:" " }}</div>{% endif %}
+      {% include "includes/form_field.html" with field=add_form.name %}
+      <div class="sa-field-row">
+        {% include "includes/form_field.html" with field=add_form.start_date %}
+        {% include "includes/form_field.html" with field=add_form.end_date %}
+      </div>
+      <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary">Add term</button><button type="button" class="btn btn-sa-secondary" data-dialog-close>Cancel</button></div>
+    </form>
+  </div>
+</dialog>
+{% endblock %}

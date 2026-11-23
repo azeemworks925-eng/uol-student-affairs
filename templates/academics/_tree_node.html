@@ -1,0 +1,17 @@
+{# One node of the department outline, with its DFS subtree totals. Recursive. #}
+<li class="sa-tree-node{% if node.inactive %} is-inactive{% endif %}">
+  {% if node.children %}
+  <details{% if node.depth < 2 %} open{% endif %}>
+    <summary class="sa-tree-row">
+      <span class="sa-tree-label"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-chevron"/></svg>{{ node.label }}{% if node.inactive %} <span class="sa-flag sa-flag--muted">Inactive</span>{% endif %}</span>
+      {% include "academics/_tree_totals.html" %}
+    </summary>
+    <ul class="sa-tree-children">{% for child in node.children %}{% include "academics/_tree_node.html" with node=child %}{% endfor %}</ul>
+  </details>
+  {% else %}
+  <div class="sa-tree-row">
+    <span class="sa-tree-label sa-tree-label--leaf">{{ node.label }}{% if node.inactive %} <span class="sa-flag sa-flag--muted">Inactive</span>{% endif %}</span>
+    {% include "academics/_tree_totals.html" %}
+  </div>
+  {% endif %}
+</li>

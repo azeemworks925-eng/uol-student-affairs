@@ -17,6 +17,7 @@ If that ever fires (for example after raw SQL), the transaction has already roll
 the IntegrityError is caught here, and CurrentTermConflict is raised for the caller to report.
 """
 
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
 from .models import AcademicTerm, Batch, Section, Semester
@@ -118,3 +119,75 @@ def set_entry_active(entry, active, *, actor=None):
     entry.is_active = active
     model.objects.filter(pk=entry.pk).update(is_active=active)
     return entry
+
+
+# ---------------------------------------------------------------------------------------------
+# Portal management of entries and terms (DEC-330). Nothing here deletes (DEC-210).
+# ---------------------------------------------------------------------------------------------
+
+ENTRY_FIELDS = {Batch: "name", Semester: "number", Section: "name"}
+ENTRY_EXISTS = "An entry with this value already exists."
+TERM_EXISTS = "A term with this name already exists."
+
+
+def _entry_value(value):
+    return " ".join(value.split()) if isinstance(value, str) else value
+
+
+@transaction.atomic
+def create_entry(model, value):
+    """Add a Batch, Semester or Section. It starts active."""
+    field = ENTRY_FIELDS[model]
+    entry = model(**{field: _entry_value(value)})
+    entry.full_clean()
+    try:
+        with transaction.atomic():
+            entry.save()
+    except IntegrityError as error:
+        raise ValidationError({field: ENTRY_EXISTS}) from error
+    return entry
+
+
+@transaction.atomic
+def update_entry(entry, value):
+    """Rename a Batch or Section, or renumber a Semester, under the same locks as
+    set_entry_active: every Section row first, then the Batch or Semester row."""
+    model = type(entry)
+    field = ENTRY_FIELDS[model]
+    list(Section.objects.select_for_update().order_by("pk"))
+    fresh = model.objects.select_for_update().get(pk=entry.pk)
+    setattr(fresh, field, _entry_value(value))
+    fresh.full_clean()
+    try:
+        with transaction.atomic():
+            fresh.save(update_fields=[field])
+    except IntegrityError as error:
+        raise ValidationError({field: ENTRY_EXISTS}) from error
+    return fresh
+
+
+@transaction.atomic
+def create_term(*, name, start_date, end_date):
+    """Add an academic term. A new term is never current."""
+    term = AcademicTerm(name=name, start_date=start_date, end_date=end_date)
+    term.full_clean(exclude=["is_current"])
+    try:
+        with transaction.atomic():
+            term.save()
+    except IntegrityError as error:
+        raise ValidationError({"name": TERM_EXISTS}) from error
+    return term
+
+
+@transaction.atomic
+def update_term(term, *, name, start_date, end_date):
+    """Change a term's name or dates. Its current flag is never written here."""
+    fresh = AcademicTerm.objects.select_for_update().get(pk=term.pk)
+    fresh.name, fresh.start_date, fresh.end_date = name, start_date, end_date
+    fresh.full_clean(exclude=["is_current"])
+    try:
+        with transaction.atomic():
+            fresh.save()
+    except IntegrityError as error:
+        raise ValidationError({"name": TERM_EXISTS}) from error
+    return fresh
