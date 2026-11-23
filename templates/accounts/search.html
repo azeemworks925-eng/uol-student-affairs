@@ -1,0 +1,70 @@
+{% extends "layouts/app.html" %}
+{% load ui %}
+{# Quick search results: only what this user can already see (accounts.search). #}
+{% block title %}Search · UOL Student Affairs{% endblock %}
+{% block crumb_root %}<li>Search</li>{% endblock %}
+{% block content %}
+<div class="sa-stack-page">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Search</h1>
+      <p class="sa-page-subtitle">{% if results.query %}{{ results.total }} result{{ results.total|pluralize }} for “{{ results.query }}”{% else %}Type a reference{% if not user.is_student %}, name or SAP ID{% else %} or title{% endif %}{% endif %}</p>
+    </div>
+  </header>
+
+  {% if results.students %}
+  <section class="sa-card" aria-labelledby="search-students">
+    {% include "includes/ui/card_head.html" with title="Students" id="search-students" %}
+    <ul class="sa-activity">
+      {% for person in results.students %}
+      <li>
+        {% include "includes/ui/avatar.html" with name=person.name size="sm" %}
+        <span class="sa-activity-text"><a href="{{ person.url }}"><b>{{ person.name }}</b></a></span>
+        <span class="sa-ref">{{ person.sap_id }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if results.complaints %}
+  <section aria-labelledby="search-complaints">
+    <h2 class="sa-card-title mb-2" id="search-complaints">Complaints</h2>
+    <ul class="sa-collection{% if user.is_student %} sa-collection--no-who{% endif %}" data-view="list">
+      {% for complaint in results.complaints %}
+      <li><a class="sa-item sa-item--{{ complaint.tone }}" href="{{ complaint.url }}">
+        <span class="sa-item-ref">{{ complaint.reference }}</span>
+        {% if not user.is_student %}<span class="sa-item-who">{{ complaint.student.get_full_name }}</span>{% endif %}
+        <span class="sa-item-title">{{ complaint.title }}</span>
+        {% include "includes/ui/cohort.html" with record=complaint %}
+        {% include "complaints/student/_status.html" with tone=complaint.tone label=complaint.get_status_display %}
+        <span class="sa-item-when">{{ complaint.created_at|date:"j M" }}</span>
+      </a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if results.submissions %}
+  <section aria-labelledby="search-voice">
+    <h2 class="sa-card-title mb-2" id="search-voice">Student Voice</h2>
+    <ul class="sa-collection{% if user.is_student %} sa-collection--no-who{% endif %}" data-view="list">
+      {% for submission in results.submissions %}
+      <li><a class="sa-item sa-item--{{ submission.tone }}" href="{{ submission.url }}">
+        <span class="sa-item-ref">{{ submission.get_type_display }}</span>
+        {% if not user.is_student %}<span class="sa-item-who">{{ submission.student.get_full_name }}</span>{% endif %}
+        <span class="sa-item-title">{{ submission.text|truncatechars:90 }}</span>
+        {% include "includes/ui/cohort.html" with record=submission %}
+        {% include "complaints/student/_status.html" with tone=submission.tone label=submission.get_status_display %}
+        <span class="sa-item-when">{{ submission.created_at|date:"j M" }}</span>
+      </a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if results.query and not results.total %}
+    {% include "includes/ui/empty.html" with title="No results." icon="search" %}
+  {% endif %}
+</div>
+{% endblock %}

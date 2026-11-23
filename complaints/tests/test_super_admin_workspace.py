@@ -111,7 +111,7 @@ class AccessTests(SuperAdminWorkspaceTestCase):
     def test_navigation_links_and_stays_current(self):
         for url in (LIST, detail(self.mine)):
             with self.subTest(url=url):
-                self.assertRegex(self.html(url), r'<a class="sa-nav-link" href="{}" aria-current="page">'.format(re.escape(LIST)))
+                self.assertRegex(self.html(url), r'<a class="sa-nav-link" href="{}"[^>]*aria-current="page">'.format(re.escape(LIST)))
 
 
 class ListTests(SuperAdminWorkspaceTestCase):

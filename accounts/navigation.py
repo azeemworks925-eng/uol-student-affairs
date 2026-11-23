@@ -109,6 +109,18 @@ NAVIGATION = {
 }
 
 
+# The top bar's "+ New" menu: existing pages only.
+NEW_MENU = {
+    User.Role.STUDENT: [
+        ("New complaint", "file", "student_complaint_new"),
+        ("Student Voice", "voice", "student_voice"),
+        ("Request meeting", "calendar", "student_meetings"),
+    ],
+    User.Role.BATCH_ADVISOR: [("Schedule meeting", "calendar", "advisor_meeting_schedule")],
+    User.Role.SUPER_ADMIN: [("Add Batch Advisor", "user", "admin:accounts_user_add")],
+}
+
+
 def _resolve(item, current_url_name):
     return {
         "label": item.label,
@@ -130,4 +142,10 @@ def navigation(request):
         built = [_resolve(item, current) for item in items if item.url_name]
         if built:  # a group with nothing built yet is left out, heading included
             groups.append({"heading": heading, "items": built})
-    return {"sa_nav": groups, "sa_nav_items": [i for g in groups for i in g["items"]]}
+    items = [i for g in groups for i in g["items"]]
+    return {
+        "sa_nav": groups,
+        "sa_nav_items": items,
+        "sa_nav_current": next((i for i in items if i["current"]), None),
+        "sa_new_menu": [{"label": label, "icon": icon, "url": reverse(name)} for label, icon, name in NEW_MENU[user.role]],
+    }

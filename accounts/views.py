@@ -7,7 +7,8 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_GET, require_http_methods
 
 from complaints.analytics import build_overview
 from complaints.workspace import advisor_cohort_counts, cohort_value
@@ -18,6 +19,7 @@ from .identity import extract_sap_id
 from .models import StudentProfile, User
 from .permissions import batch_advisor_required, student_required, super_admin_required
 from .presentation import first_name, greeting, personal_summary
+from .search import quick_search
 from .services import AlreadyRegistered, register_student
 
 ROLE_HOME_URL_NAMES = {
@@ -118,6 +120,16 @@ def super_admin_home(request):
         "analytics": build_overview(request.user),
         "term_admin_url": reverse("admin:academics_academicterm_changelist"),
     })
+
+
+@login_required
+@require_GET
+def quick_search_view(request):
+    """Top-bar search, scoped by accounts.search to what this user can already see."""
+    results = quick_search(request.user, request.GET.get("q"))
+    if results.jump_url:
+        return redirect(results.jump_url)
+    return render(request, "accounts/search.html", {"results": results})
 
 
 def admin_login_redirect(request):

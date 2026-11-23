@@ -175,32 +175,34 @@ class ListTests(ViewTestCase):
 
 class HeaderTests(ViewTestCase):
     def header_links(self, html):
-        return re.findall(r'<a class="[^"]*sa-notify-[a-z]+[^"]*" href="/notifications/"[^>]*aria-label="([^"]+)"', html)
+        bell = html[html.index('<div class="dropdown sa-bell">'):]
+        return re.findall(r'<button class="sa-iconbtn"[^>]*aria-label="(Notifications[^"]+)"', bell[:bell.index("</button>") + 9])
 
     def test_every_role_has_the_entry_point_with_an_accurate_label(self):
         student_html = self.client.get(reverse("student_home")).content.decode()
-        self.assertEqual(self.header_links(student_html), ["Notifications, 1 unread", "Notifications, 1 unread"])  # sidebar + phone header
+        self.assertEqual(self.header_links(student_html), ["Notifications, 1 unread"])  # one bell, every viewport
         self.client.force_login(self.advisor)
         advisor_html = self.client.get(reverse("advisor_home")).content.decode()
-        self.assertEqual(self.header_links(advisor_html), ["Notifications, none unread", "Notifications, none unread"])  # rail + phone
-        self.assertIn('class="sa-rail-link sa-notify-icon"', advisor_html)
+        self.assertEqual(self.header_links(advisor_html), ["Notifications, none unread"])
         self.client.force_login(self.admin)
         admin_html = self.client.get(reverse("super_admin_home")).content.decode()
-        self.assertIn('class="sa-nav-link sa-notify-row"', admin_html)
+        self.assertEqual(self.header_links(admin_html), ["Notifications, none unread"])
 
     def test_badge_counts_and_caps(self):
-        self.assertContains(self.client.get(reverse("student_home")), '<span class="sa-badge" aria-hidden="true">1</span>')
+        self.assertContains(self.client.get(reverse("student_home")), '<span class="sa-badge sa-badge--dot" aria-hidden="true">1</span>')
         for i in range(10):
             complaint_services.respond(self.advisor, self.complaint, f"More {i}")
         html = self.client.get(reverse("student_home")).content.decode()
-        self.assertIn('<span class="sa-badge" aria-hidden="true">9+</span>', html)
+        self.assertIn('<span class="sa-badge sa-badge--dot" aria-hidden="true">9+</span>', html)
         self.assertIn('aria-label="Notifications, 11 unread"', html)
         services.mark_all_read(self.student)
         self.assertNotIn('class="sa-badge', self.client.get(reverse("student_home")).content.decode())
 
-    def test_entry_point_is_current_on_the_notifications_page_and_not_in_role_navigation(self):
+    def test_entry_point_links_to_the_page_and_is_not_in_role_navigation(self):
         html = self.client.get(LIST).content.decode()
-        self.assertIn('href="/notifications/" aria-label="Notifications, 1 unread" aria-current="page"', html)
+        self.assertIn('<a class="sa-bell-all" href="/notifications/">See all</a>', html)
+        sidebar = html[html.index('<aside class="sa-sidebar"'):html.index("</aside>")]
+        self.assertNotIn("/notifications/", sidebar)  # moved from the sidebar to the bell
         bottom = html[html.index('<nav class="sa-bottomnav"'):]
         bottom = bottom[:bottom.index("</nav>")]
         self.assertNotIn("/notifications/", bottom)  # still exactly the four DEC-304 destinations

@@ -378,4 +378,4 @@ class NavigationIntegrationTests(StudentPagesTestCase):
         for url in (reverse("student_complaints"), reverse("student_complaint_new"), self.detail_url(complaint)):
             with self.subTest(url=url):
                 html = self.client.get(url).content.decode()
-                self.assertRegex(html, r'<a class="sa-nav-link" href="{}" aria-current="page">'.format(re.escape(reverse("student_complaints"))))
+                self.assertRegex(html, r'<a class="sa-nav-link" href="{}"[^>]*aria-current="page">'.format(re.escape(reverse("student_complaints"))))

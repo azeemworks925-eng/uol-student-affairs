@@ -445,7 +445,7 @@ class NavigationTests(WorkspaceTestCase):
     def test_complaints_navigation_links_and_stays_current(self):
         for url in (LIST, detail(self.mine)):
             with self.subTest(url=url):
-                self.assertRegex(self.html(url), r'class="sa-rail-link" href="{}"[^>]*aria-current="page"'.format(re.escape(LIST)))
+                self.assertRegex(self.html(url), r'class="sa-nav-link" href="{}"[^>]*aria-current="page"'.format(re.escape(LIST)))
 
     def test_cohort_cards_link_to_the_filtered_workspace(self):
         a = self.academics

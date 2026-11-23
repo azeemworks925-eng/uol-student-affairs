@@ -1,11 +1,18 @@
-{# Account menu. Profile and appearance join it as those features are built (DESIGN_PLAN.md 3). #}
-<div class="dropdown{% if dropup %} dropup{% endif %}">
-  <button class="{{ button_class|default:'sa-account-btn' }}" type="button" data-bs-toggle="dropdown" aria-expanded="false"{% if not show_name %} aria-label="Account menu for {{ user.get_full_name }}"{% endif %}>
-    <span class="sa-avatar" aria-hidden="true">{{ user.get_full_name|slice:":1"|upper }}</span>
-    {% if show_name %}<span class="meta">{{ user.get_full_name }}<span>{{ user.get_role_display }}</span></span>{% endif %}
+{% load ui %}{# Avatar menu: who is signed in, and Sign out (the existing POST). #}
+<div class="dropdown sa-account">
+  <button class="sa-iconbtn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu for {{ user.get_full_name }}">
+    {% include "includes/ui/avatar.html" with name=user.get_full_name %}
   </button>
-  <div class="dropdown-menu {{ menu_class }}">
-    <h6 class="dropdown-header">{{ user.email }}</h6>
+  <div class="dropdown-menu dropdown-menu-end sa-account-menu">
+    <div class="sa-account-who">
+      {% include "includes/ui/avatar.html" with name=user.get_full_name size="lg" %}
+      <div>
+        <p class="sa-account-name">{{ user.get_full_name }}</p>
+        <p class="sa-account-line">{{ user.email }}</p>
+        <p class="sa-account-line">{{ user.get_role_display }}</p>
+        {% if user.is_student and user.student_profile %}<p class="sa-account-cohort">{% include "includes/ui/cohort.html" with record=user.student_profile %}</p>{% endif %}
+      </div>
+    </div>
     <form method="post" action="{% url 'account_logout' %}">
       {% csrf_token %}
       <button class="dropdown-item" type="submit">Sign out</button>
