@@ -7,8 +7,9 @@
 - Keeps the existing demo accounts (demo.admin@uol.edu.pk, demo.advisor@uol.edu.pk,
   12345678@student.uol.edu.pk) and the "DEMO — Fall 2026" batch.
 - Complaints, status changes, responses, owner changes and student actions go only through
-  complaints.services, Student Voice only through voice.services and meetings only through
-  meetings.services, so their history and notifications are the real ones. Only the clock
+  complaints.services, Student Voice only through voice.services, meetings only through
+  meetings.services and section issues only through issues.services and
+  accounts.representation, so their history and notifications are the real ones. Only the clock
   is simulated: each step runs with django.utils.timezone.now set to a moment in the past few
   weeks, so lists, "Oldest first", "Next complaint" and the Overview counts look realistic.
 """
@@ -23,11 +24,14 @@ from django.utils import timezone
 
 from academics import services as academic_services
 from academics.models import AcademicTerm, Batch, Section, Semester
-from accounts import identity
+from accounts import identity, representation
 from accounts import services as account_services
 from accounts.models import AdvisorAssignment, StudentProfile, User
+from accounts.representation import Cohort
 from complaints import services
 from complaints.models import Complaint, ComplaintCategory
+from issues import services as issue_services
+from issues.models import CollectiveIssue, IssueEvent
 from notifications import services as notification_services
 from notifications.models import Notification
 from meetings import services as meeting_services
@@ -160,6 +164,41 @@ MEETINGS = [
     ("70126010@student.uol.edu.pk", "I need to talk about the Database Systems practical exam.", "student_cancel", 3, "09:00", 15),
 ]
 
+# Section representatives: (CR email, GR email). Used only for a cohort that has none yet.
+REPRESENTATIVES = {
+    "DEMO-A": (DEMO_STUDENT, "70126001@student.uol.edu.pk"),
+    "DEMO-B": ("70126006@student.uol.edu.pk", "70126007@student.uol.edu.pk"),
+}
+# A former CR of DEMO-A, who raised one issue before being replaced (the predecessor-history rule).
+FORMER_CR = "70126004@student.uol.edu.pk"
+# Section issues: (section, raiser, title, description, days ago, supporters, steps).
+# raiser: "cr", "gr" or "former". Steps: (days ago, action, text); action is review, respond or resolve.
+SECTION_ISSUES = [
+    ("DEMO-A", "former", "Lab timetable clashes with the Data Structures lecture",
+     "The Tuesday Operating Systems lab overlaps the Data Structures lecture, so the whole section misses one of them every week.",
+     24, 5, [(22, "review", ""), (20, "respond", "The timetable office is checking which room is free on Thursday."),
+             (16, "resolve", "The lab moved to Thursday 14:00 for the whole section.")]),
+    ("DEMO-A", "cr", "Projector in Room 204 needs replacing",
+     "The projector in Room 204 has been too dim to read for two weeks, and lecturers have stopped using slides.",
+     6, 4, []),
+    ("DEMO-A", "gr", "Projector in Room 204 needs repairing",
+     "The Room 204 projector flickers and switches off during lectures. Please ask maintenance to look at it.",
+     5, 2, []),
+    ("DEMO-A", "cr", "Extra revision class before the final exams",
+     "Our section would like one extra Data Structures revision class in the week before the final exams.",
+     9, 3, [(7, "review", "")]),
+    ("DEMO-A", "gr", "Water cooler on the second floor stays empty",
+     "The second-floor water cooler is empty most afternoons, and students have to go to another block for water.",
+     13, 4, [(11, "review", ""), (10, "respond", "Maintenance will refill it twice a day from next week.")]),
+    ("DEMO-B", "cr", "Evening bus leaves before the last lecture ends",
+     "The evening university bus leaves at 17:00, but our last lecture ends at 17:10 on two days a week.",
+     4, 3, []),
+    ("DEMO-B", "gr", "Too few Linear Algebra books in the library",
+     "The library has only three copies of the Linear Algebra textbook for the whole section during exam preparation.",
+     15, 5, [(13, "respond", "The librarian has been asked for more copies."),
+             (8, "resolve", "Ten more copies are now on the reserve shelf.")]),
+]
+
 
 class Command(BaseCommand):
     help = "Create demo data for local development (DEBUG only). Safe to run again."
@@ -178,6 +217,7 @@ class Command(BaseCommand):
             self._meetings(people)
             if created_demo_complaints:
                 self._mark_older_updates_read(people["students"][DEMO_STUDENT])
+            self._section_issues(structure, people)
         if self.created:
             for line in self.created:
                 self.stdout.write(f"  created {line}")
@@ -318,6 +358,67 @@ class Command(BaseCommand):
                     else:
                         voice_services.mark_reviewed(advisor, submission)
             self.created.append(f"Student Voice {kind} from {email}")
+
+    # --- section issues ----------------------------------------------------------------------
+
+    def _section_issues(self, structure, people):
+        """Real issues through issues.services and accounts.representation. An existing one (same
+        cohort and title) is left alone, and existing representatives are never replaced for good."""
+        admin, students = people["admin"], people["students"]
+        cohorts = {name: Cohort(structure["batch"].pk, structure["semester"].pk, section.pk)
+                   for name, section in structure["sections"].items()}
+        for name, (cr_email, gr_email) in REPRESENTATIVES.items():
+            if representation.current_period(cohorts[name]) is None:
+                with mock.patch("django.utils.timezone.now", return_value=self._at(30, 0)):
+                    representation.appoint_representatives(admin, cohorts[name], cr=students[cr_email], gr=students[gr_email])
+                self.created.append(f"CR and GR of {name}")
+
+        created_any = False
+        for index, (section, raiser, title, description, days_ago, supporters, steps) in enumerate(SECTION_ISSUES):
+            cohort = cohorts[section]
+            if CollectiveIssue.objects.filter(title=title, **cohort.filter()).exists():
+                continue
+            with mock.patch("django.utils.timezone.now", return_value=self._at(days_ago, index)):
+                if raiser == "former":
+                    issue = self._publish_as_former_cr(admin, cohort, students[FORMER_CR], title, description)
+                else:
+                    period = representation.current_period(cohort)
+                    author = period.cr if raiser == "cr" else period.gr
+                    issue = issue_services.publish_issue(author, title=title, description=description)
+                members = list(representation.active_members(cohort).order_by("email")[:supporters])
+                for student in members:
+                    issue_services.support_issue(student, issue)
+            advisor = people["advisors"][SECTION_ADVISOR[section]]
+            for step, (step_days_ago, action, text) in enumerate(steps):
+                with mock.patch("django.utils.timezone.now", return_value=self._at(step_days_ago, index + step)):
+                    current = CollectiveIssue.objects.get(pk=issue.pk)
+                    if action == "review":
+                        issue_services.mark_under_review(advisor, current)
+                    elif action == "respond":
+                        issue_services.send_response(advisor, current, text)
+                    else:
+                        issue_services.resolve(advisor, current, text)
+            self.created.append(f"section issue {issue.reference} ({title})")
+            created_any = True
+        if created_any:
+            self._keep_newest_issue_notice_unread(students[DEMO_STUDENT])
+
+    def _publish_as_former_cr(self, admin, cohort, former, title, description):
+        """The former CR takes the post, raises the issue and is replaced by the CR who holds it
+        today, so the history is real and the current representatives end up unchanged."""
+        period = representation.current_period(cohort)
+        current_cr = period.cr
+        period = representation.replace_representatives(admin, cohort, expected_period=period.pk, cr=former)
+        issue = issue_services.publish_issue(former, title=title, description=description)
+        representation.replace_representatives(admin, cohort, expected_period=period.pk, cr=current_cr)
+        return issue
+
+    def _keep_newest_issue_notice_unread(self, student):
+        notices = list(Notification.objects.filter(
+            recipient=student, source_type=IssueEvent._meta.label_lower, read_at__isnull=True,
+        ).order_by("-created_at", "-id"))
+        for notification in notices[1:]:
+            notification_services.mark_read(student, notification.pk)
 
     # --- meetings ----------------------------------------------------------------------------
 
