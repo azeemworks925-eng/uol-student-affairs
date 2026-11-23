@@ -401,7 +401,7 @@ class Command(BaseCommand):
             self.created.append(f"section issue {issue.reference} ({title})")
             created_any = True
         if created_any:
-            self._keep_newest_issue_notice_unread(students[DEMO_STUDENT])
+            self._mark_issue_notices_read(students[DEMO_STUDENT])
 
     def _publish_as_former_cr(self, admin, cohort, former, title, description):
         """The former CR takes the post, raises the issue and is replaced by the CR who holds it
@@ -413,11 +413,12 @@ class Command(BaseCommand):
         representation.replace_representatives(admin, cohort, expected_period=period.pk, cr=current_cr)
         return issue
 
-    def _keep_newest_issue_notice_unread(self, student):
-        notices = list(Notification.objects.filter(
+    def _mark_issue_notices_read(self, student):
+        """The demo student's "two still new" updates stay the complaint ones."""
+        notices = Notification.objects.filter(
             recipient=student, source_type=IssueEvent._meta.label_lower, read_at__isnull=True,
-        ).order_by("-created_at", "-id"))
-        for notification in notices[1:]:
+        )
+        for notification in list(notices):
             notification_services.mark_read(student, notification.pk)
 
     # --- meetings ----------------------------------------------------------------------------
