@@ -10,6 +10,8 @@ Email identity rules for UOL Student Affairs.
 import re
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 
 STUDENT_EMAIL_DOMAIN = "student.uol.edu.pk"
 _STUDENT_EMAIL_RE = re.compile(r"^(?P<sap_id>\d{8})@student\.uol\.edu\.pk$")
@@ -38,6 +40,31 @@ def staff_email_domains():
     return {normalize_email(d) for d in settings.UOL_STAFF_EMAIL_DOMAINS if d.strip()}
 
 
+def demo_staff_emails():
+    """
+    The laptop-only demo staff addresses (DEC-327), in the order listed. Empty unless DEBUG is
+    True, so the setting has no effect on a production server. A student-domain or malformed
+    address is never a demo staff address.
+    """
+    if not settings.DEBUG:
+        return []
+    emails = []
+    for email in map(normalize_email, settings.DEMO_STAFF_EMAILS):
+        try:
+            validate_email(email)
+        except ValidationError:
+            continue
+        if email_domain(email) != STUDENT_EMAIL_DOMAIN and email not in emails:
+            emails.append(email)
+    return emails
+
+
+def is_demo_staff_email(email):
+    return normalize_email(email) in demo_staff_emails()
+
+
 def is_staff_email(email):
     domain = email_domain(email)
-    return bool(domain) and domain != STUDENT_EMAIL_DOMAIN and domain in staff_email_domains()
+    if not domain or domain == STUDENT_EMAIL_DOMAIN:
+        return False
+    return domain in staff_email_domains() or is_demo_staff_email(email)

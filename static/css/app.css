@@ -192,6 +192,7 @@ svg.sa-i { width: 18px; height: 18px; flex: none; fill: none; stroke: currentCol
 .sa-auth .sa-display { font-size: var(--sa-display-l); margin: 10px 0 12px; }
 .sa-auth .panel { margin-top: clamp(16px, 3vh, 24px); padding: clamp(18px, 3vh, 24px); background: var(--sa-surface); border: 1px solid var(--sa-border); border-radius: 16px; }
 .sa-auth .note { font-size: 13px; color: var(--sa-muted); margin: 12px 0 0; }
+.sa-denied-email { margin: 0 0 12px; font-weight: 600; overflow-wrap: anywhere; }
 .sa-auth .note .btn-link { font-size: inherit; padding: 10px 2px; margin: -10px 0; } /* larger hit area, same line */
 .sa-google { width: 100%; }
 

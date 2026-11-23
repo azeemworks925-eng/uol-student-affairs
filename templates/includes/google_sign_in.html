@@ -7,7 +7,7 @@
     {% if redirect_field_value %}
       <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
     {% endif %}
-    <button type="submit" class="btn btn-sa-primary btn-lg sa-google"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-google"/></svg>Sign in with Google</button>
+    <button type="submit" class="btn btn-sa-primary btn-lg sa-google"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-google"/></svg>{{ button_label|default:"Sign in with Google" }}</button>
   </form>
 {% else %}
   <div class="sa-signin-off">
