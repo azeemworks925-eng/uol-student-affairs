@@ -282,7 +282,7 @@ class SetupStateTests(OverviewTestCase):
         overview, region = self.overview()
         self.assertEqual(overview.state, "setup")
         self.assertIn("Set the current academic term", region)
-        self.assertIn(reverse("admin:academics_academicterm_changelist"), region)
+        self.assertIn(reverse("super_admin_terms"), region)
         self.assertNotIn(LIST, region)
         self.assertNotIn("sa-analytics", region)
         self.assertIsNone(re.search(r"\b7\b", region))  # never an all-time fallback

@@ -319,8 +319,8 @@ def add_advisor_assignment(advisor, cohort, *, actor):
 
 
 @transaction.atomic
-def remove_advisor_assignment(assignment):
-    """Remove one assignment. Returns True when its cohort now has no active advisor, so the
+def end_advisor_assignment(assignment):
+    """End one assignment. Returns True when its cohort now has no active advisor, so the
     caller can warn; an uncovered cohort is allowed."""
     section_id = AdvisorAssignment.objects.filter(pk=assignment.pk).values_list("section_id", flat=True).first()
     if section_id is None:

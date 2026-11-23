@@ -78,8 +78,8 @@ class ShellTests(RedesignTestCase):
         expected = {
             self.student: ["Home", "Complaints", "Student Voice", "Meetings"],
             self.advisor: ["Overview", "Complaints", "Student Voice", "Meetings", "Representatives"],
-            self.admin: ["Overview", "Complaints", "Student Voice", "Meetings", "Students", "Batch Advisors", "CR/GR Management",
-                         "Academic Structure", "Complaint Categories"],
+            self.admin: ["Overview", "Complaints", "Student Voice", "Meetings", "Students", "Staff", "CR/GR Management",
+                         "Academic Structure", "Academic Terms", "Complaint Categories"],
         }
         for user, home in self.users():
             with self.subTest(role=user.role):

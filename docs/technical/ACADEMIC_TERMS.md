@@ -100,7 +100,7 @@ Removing the row lock makes these tests fail.
 
 ## 4. Administration (Configuration → Academic Structure)
 
-`AcademicTermAdmin` sits in the Django admin `academics` app, next to batches, semesters and sections. Only active Super Admins can open the admin, because the role sets `is_staff`. Other roles, anonymous visitors and inactive accounts are redirected away.
+The normal interface is now the portal's Academic Terms page (DEC-330); the admin remains an emergency fallback. `AcademicTermAdmin` sits in the Django admin `academics` app, next to batches, semesters and sections. Only active Super Admins can open the admin, because the role sets `is_staff`. Other roles, anonymous visitors and inactive accounts are redirected away.
 
 - **List:** name, start date, end date and a "Current term" / "Not current" column. The change form shows the designation read-only, and a posted `is_current` is ignored.
 - **Edits never touch the current designation:** an edit saved after another Super Admin changed the current term keeps both the edit and the new designation. That case was an HTTP 500 or a silently lost current term before the review fix.

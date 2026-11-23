@@ -131,7 +131,7 @@ def super_admin_home(request):
         "today": timezone.localdate(),
         "greeting": greeting(),
         "first_name": first_name(request.user),
-        "term_admin_url": reverse("admin:academics_academicterm_changelist"),
+        "terms_url": reverse("super_admin_terms"),
     })
 
 

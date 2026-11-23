@@ -18,7 +18,7 @@ from .models import AdvisorAssignment, User
 from .people_forms import AccountActiveForm, AssignmentForm, NameForm, StaffCreateForm
 from .people_views import PAGE_SIZE, apply_service_error, change_active, choice
 from .permissions import super_admin_or_404
-from .services import add_advisor_assignment, create_staff_account, remove_advisor_assignment, set_account_name
+from .services import add_advisor_assignment, create_staff_account, end_advisor_assignment, set_account_name
 
 STAFF_KEYS = ("tab", "q", "status", "sort", "page")
 ROLE_OF_TAB = {"advisors": User.Role.BATCH_ADVISOR, "admins": User.Role.SUPER_ADMIN}
@@ -216,7 +216,7 @@ def assignment_remove(request, pk, assignment_pk):
     label = _assignment_labels([assignment])
     owned = people.owned_open_complaints(user, assignment)
     try:
-        uncovered = remove_advisor_assignment(assignment)
+        uncovered = end_advisor_assignment(assignment)
     except ValidationError as error:
         messages.error(request, " ".join(error.messages))
         return redirect("super_admin_staff_detail", pk)

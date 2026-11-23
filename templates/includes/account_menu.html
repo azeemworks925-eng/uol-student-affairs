@@ -13,6 +13,7 @@
         {% if user.is_student and user.student_profile %}<p class="sa-account-cohort">{% include "includes/ui/cohort.html" with record=user.student_profile %}</p>{% endif %}
       </div>
     </div>
+    {% if user.is_super_admin %}<a class="dropdown-item sa-small" href="{% url 'admin:index' %}">Advanced: Django admin</a>{% endif %}
     <form method="post" action="{% url 'account_logout' %}">
       {% csrf_token %}
       <button class="dropdown-item" type="submit">Sign out</button>

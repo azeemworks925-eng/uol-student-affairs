@@ -201,17 +201,15 @@ class SuperAdminHomeTests(TestCase):
     def test_sidebar_hides_unbuilt_destinations(self):
         sidebar = self.html[self.html.index('<aside class="sa-sidebar"'):self.html.index("</aside>")]
         labels = re.findall(r'<a class="sa-nav-link" href="[^"]+"[^>]*>.*?</svg><span class="sa-nav-text">([^<]+)</span></a>', sidebar)
-        self.assertEqual(labels, ["Overview", "Complaints", "Student Voice", "Meetings", "Students", "Batch Advisors", "CR/GR Management",
-                                  "Academic Structure", "Complaint Categories"])
+        self.assertEqual(labels, ["Overview", "Complaints", "Student Voice", "Meetings", "Students", "Staff", "CR/GR Management",
+                                  "Academic Structure", "Academic Terms", "Complaint Categories"])
         for text in ("Collective Issues", "Calendar", *UNBUILT_WORDING):
             self.assertNotIn(text, self.html)
 
-    def test_manage_links_reach_existing_admin_pages(self):
-        for name in ("admin:accounts_studentprofile_changelist", "admin:accounts_user_changelist"):
+    def test_manage_links_reach_portal_pages(self):
+        for name in ("super_admin_students", "super_admin_staff", "super_admin_structure", "super_admin_terms"):
             self.assertIn(reverse(name), self.html)
-        self.assertIn(reverse("admin:app_list", kwargs={"app_label": "academics"}), self.html)
-        self.assertIn("?role__exact=batch_advisor", self.html)
-        # Each linked admin page actually opens for the Super Admin.
+        # Each linked page actually opens for the Super Admin.
         sidebar = self.html[self.html.index('<aside class="sa-sidebar"'):self.html.index("</aside>")]
         for url in re.findall(r'class="sa-nav-link" href="([^"]+)"', sidebar):
             with self.subTest(url=url):

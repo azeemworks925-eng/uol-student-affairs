@@ -10,7 +10,7 @@
 <div class="sa-flow">
   {% if a.state == "setup" %}
   {% include "includes/ui/greeting.html" with lead="Set the current academic term to see this term’s figures." %}
-  <p class="mb-0"><a class="btn btn-sa-primary" href="{{ term_admin_url }}">Set the current term</a></p>
+  <p class="mb-0"><a class="btn btn-sa-primary" href="{{ terms_url }}">Set the current term</a></p>
   {% elif a.state == "withheld" %}
   <header class="sa-greeting">
     <p class="sa-greeting-date">{{ today|date:"l, j F" }}</p>
