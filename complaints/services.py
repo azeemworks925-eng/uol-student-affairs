@@ -12,6 +12,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from accounts.models import StudentProfile, User
+from dsa.edit_distance import find_similar
 
 from .models import Complaint, ComplaintCategory, ComplaintEvent, ComplaintSubcategory
 from .notifications import notify_student
@@ -248,12 +249,12 @@ def assign_responsible(actor, complaint, owner):
     return complaint
 
 
-def possible_duplicates(student, category):
+def possible_duplicates(student, title):
     """
-    The student's own open complaints in the same category, for a "you may have already
-    raised this" warning before submitting (DEC-225). It never blocks a submission, and
-    it never looks at other students' complaints.
+    The student's own open complaints whose titles are similar to `title` (edit distance,
+    dsa.edit_distance), most similar first, for a "you may have already raised this" warning
+    before submitting (DEC-225). It never blocks a submission, and it never looks at other
+    students' complaints.
     """
-    return Complaint.objects.filter(student=student, category=category, status__in=OPEN_STATUSES).order_by(
-        "-created_at", "-id"
-    )
+    own_open = Complaint.objects.filter(student=student, status__in=OPEN_STATUSES).order_by("-created_at", "-id")
+    return find_similar(title, list(own_open), key=lambda complaint: complaint.title)

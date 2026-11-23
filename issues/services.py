@@ -14,6 +14,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from accounts.representation import Cohort, cohort_is_active, current_representative, lock_sections, post_in
+from dsa.edit_distance import find_similar
 
 from .models import (
     DESCRIPTION_MAX,
@@ -56,6 +57,14 @@ def validate_content(title, description):
     if errors:
         raise ValidationError(errors)
     return title, description
+
+
+def similar_open_issues(period, title):
+    """Issues still open for support in the representative's cohort with a similar title (edit
+    distance), most similar first. Only a warning: publishing is never blocked (DEC-324)."""
+    open_issues = (CollectiveIssue.objects.filter(first_response_at__isnull=True, **Cohort.of(period).filter())
+                   .order_by("-created_at", "-id"))
+    return find_similar(title, list(open_issues), key=lambda issue: issue.title)
 
 
 @transaction.atomic

@@ -17,19 +17,20 @@
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
     {% include "includes/form_field.html" with field=form.category %}
-    <div class="sa-notice mb-3" data-duplicate-notice hidden role="status">
-      <p class="mb-1"><b>You already have an open complaint in this category.</b></p>
-      <p class="sa-small sa-muted mb-2">If it is about the same problem, you can add information to it instead. You can still submit a new complaint.</p>
-      <ul class="sa-notice-list" data-duplicate-list></ul>
-    </div>
     {% if form.has_subcategories %}{% include "includes/form_field.html" with field=form.subcategory wrapper_attrs="data-subcategory-field" %}{% endif %}
     {% include "includes/form_field.html" with field=form.title %}
+    <div class="sa-notice mb-3" data-duplicate-notice data-similar-url="{% url 'student_complaint_similar' %}"{% if not similar %} hidden{% endif %} role="status">
+      <p class="mb-1"><b>You may have already raised this.</b></p>
+      <p class="sa-small sa-muted mb-2">These open complaints have a similar title. You can add information to one of them, or still submit a new complaint.</p>
+      <ul class="sa-notice-list" data-duplicate-list>
+        {% for item in similar %}<li><a href="{{ item.url }}"><span class="sa-ref">{{ item.reference }}</span> {{ item.title }}</a></li>{% endfor %}
+      </ul>
+    </div>
     {% include "includes/form_field.html" with field=form.description %}
     <div class="sa-form-actions">
       <button type="submit" class="btn btn-sa-primary btn-lg" data-submit-label="Submitting…">Submit complaint</button>
     </div>
   </form>
 </div>
-{{ open_by_category|json_script:"open-complaints" }}
 {% endblock %}
 {% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

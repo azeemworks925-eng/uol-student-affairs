@@ -15,9 +15,10 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db.models import Count, Max, Q
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from accounts.permissions import student_required
 
@@ -48,16 +49,21 @@ def _field_errors(form, error):
     return hasattr(error, "error_dict") and any(field in form.fields for field in error.error_dict)
 
 
-def _open_complaints_by_category(student):
-    """For the non-blocking duplicate warning (DEC-225): the student's own open complaints in
-    each active category, from services.possible_duplicates. Only reference and title."""
-    return {
-        str(category.pk): [
-            {"reference": c.reference, "title": c.title, "url": reverse("student_complaint_detail", args=[c.reference])}
-            for c in services.possible_duplicates(student, category)[:3]
-        ]
-        for category in ComplaintCategory.objects.active()
-    }
+def _similar_complaints(student, title):
+    """For the non-blocking duplicate warning (DEC-225): the student's own open complaints with
+    a similar title, from services.possible_duplicates. Only reference and title."""
+    return [
+        {"reference": c.reference, "title": c.title, "url": reverse("student_complaint_detail", args=[c.reference])}
+        for c in services.possible_duplicates(student, title)
+    ]
+
+
+@student_required
+@require_GET
+def complaint_similar(request):
+    """The duplicate warning's data while the student types a title. It changes nothing."""
+    title = request.GET.get("title", "")[:Complaint._meta.get_field("title").max_length]
+    return JsonResponse({"matches": _similar_complaints(request.user, title)})
 
 
 @student_required
@@ -83,7 +89,8 @@ def complaint_new(request):
             return redirect("student_complaint_detail", reference=complaint.reference)
     return render(request, "complaints/student/new.html", {
         "form": form,
-        "open_by_category": _open_complaints_by_category(request.user),
+        # After a failed submit the warning is already there, even without JavaScript.
+        "similar": _similar_complaints(request.user, request.POST.get("title", "")) if form.is_bound else [],
     })
 
 
