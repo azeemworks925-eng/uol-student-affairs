@@ -247,7 +247,7 @@ class ListPageTests(StudentPagesTestCase):
         self.assertContains(response, "Resolved one")
         self.assertNotContains(response, "Open one")
         self.assertContains(response, "Last update")
-        self.assertContains(response, f'href="{reverse("student_complaints")}?status=resolved" aria-current="page"')
+        self.assertContains(response, f'href="{reverse("student_complaints")}?status=resolved" aria-current="true"')
         # An unknown status shows everything rather than failing.
         response = self.client.get(reverse("student_complaints"), {"status": "overdue"})
         self.assertContains(response, "Resolved one")
@@ -327,7 +327,7 @@ class DetailPageTests(StudentPagesTestCase):
         response = self.client.post(self.action_url("add_information", self.complaint), {"message": "  "})
         self.assertEqual(response.status_code, 400)
         self.assertContains(response, "Write the information you want to add.", status_code=400)
-        self.assertContains(response, "<details class=\"sa-action\" open>", status_code=400)
+        self.assertContains(response, 'id="dialog-information" aria-labelledby="information-title" data-open-on-load', status_code=400)
         self.assertEqual(self.complaint.events.count(), 1)
 
     def test_still_not_resolved_only_for_resolved_complaints(self):

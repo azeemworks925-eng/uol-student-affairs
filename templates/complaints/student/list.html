@@ -2,65 +2,54 @@
 {# My Submissions (DEC-031): the student's own complaints only. #}
 {% block title %}My Submissions · UOL Student Affairs{% endblock %}
 {% block content %}
-<header class="sa-page-head sa-page-head--split">
-  <div>
-    <span class="sa-eyebrow">My Submissions · Complaints</span>
-    <h1 class="sa-display">{% if not total %}You have not submitted any complaints.{% elif open_count %}You have {{ open_count }} open complaint{{ open_count|pluralize }}.{% else %}You have no open complaints.{% endif %}</h1>
-    <p class="sa-lede"><span class="soft">Only you and the staff who handle your complaints can see them.</span></p>
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">My submissions</h1>
+      <p class="sa-page-subtitle">{% if not total %}You have not submitted any complaints.{% elif open_count %}You have {{ open_count }} open complaint{{ open_count|pluralize }}.{% else %}You have no open complaints.{% endif %}</p>
+    </div>
+    <div class="sa-page-actions"><a class="btn btn-sa-primary" href="{% url 'student_complaint_new' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Submit a complaint</a></div>
+  </header>
+
+  {% if total %}
+  <div class="sa-controls">
+    <form method="get" action="{% url 'student_complaints' %}" class="sa-pill-search" role="search">
+      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
+      <label class="visually-hidden" for="list-search">Search your complaints</label>
+      <input id="list-search" type="search" name="q" maxlength="100" value="{{ query }}" placeholder="Search complaints">
+      {% for key, value in search_hidden %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    </form>
+    {% include "includes/ui/filter_chip.html" with label="Status" param="status" choices=filters current=status %}
+    {% include "includes/ui/filter_chip.html" with label="Category" param="category" choices=category_choices current=category %}
+    {% include "includes/ui/filter_chip.html" with label="Sort" param="sort" choices=sorts current=sort_current %}
+    {% if has_filters %}<a class="sa-clear" href="{% url 'student_complaints' %}">Clear filters</a>{% endif %}
+    <div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="student-complaints" %}</div>
   </div>
-  <a class="btn btn-sa-primary" href="{% url 'student_complaint_new' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Submit a complaint</a>
-</header>
 
-{% if total %}
-<div class="sa-list-tools">
-<nav class="sa-filter" aria-label="Filter by status">
-  {% for value, label in filters %}
-    <a href="{% url 'student_complaints' %}{% if value %}?status={{ value }}{% if sort_query %}&amp;{{ sort_query }}{% endif %}{% elif sort_query %}?{{ sort_query }}{% endif %}"{% if value == status %} aria-current="page"{% endif %}>{{ label }}</a>
-  {% endfor %}
-</nav>
-<form method="get" action="{% url 'student_complaints' %}" class="sa-sort-form">
-  {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
-  <label for="list-sort">Sort by</label>
-  <select id="list-sort" name="sort" class="form-select form-select-sm">
-    {% for value, label in sorts %}<option value="{{ value }}"{% if value == sort %} selected{% endif %}>{{ label }}</option>{% endfor %}
-  </select>
-  <button type="submit" class="btn btn-sa-secondary btn-sm">Sort</button>
-</form>
-</div>
+  <div class="sa-stats">
+    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
+  </div>
 
-{% if page.object_list %}
-<ul class="sa-case-list">
-  {% for complaint in page %}
-  <li>
-    <a class="sa-case-row" href="{% url 'student_complaint_detail' complaint.reference %}">
-      <span class="sa-case-main">
-        <span class="sa-ref">{{ complaint.reference }}</span>
-        <span class="sa-case-title">{{ complaint.title }}</span>
-        <span class="sa-case-meta">{{ complaint.category }} · <span class="sa-nowrap">Submitted {{ complaint.created_at|date:"j M Y" }}</span>{% if complaint.event_count > 1 %} · <span class="sa-nowrap">Last update {{ complaint.last_activity|date:"j M Y" }}</span>{% endif %}</span>
-      </span>
-      {% include "complaints/student/_status.html" with tone=complaint.tone label=complaint.get_status_display %}
-    </a>
-  </li>
-  {% endfor %}
-</ul>
-
-{% if page.has_other_pages %}
-<nav class="sa-pagination" aria-label="Pages">
-  {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="?{% if list_query %}{{ list_query }}&amp;{% endif %}page={{ page.previous_page_number }}">Previous</a>{% endif %}
-  <span class="sa-small sa-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
-  {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="?{% if list_query %}{{ list_query }}&amp;{% endif %}page={{ page.next_page_number }}">Next</a>{% endif %}
-</nav>
-{% endif %}
-{% else %}
-<div class="sa-empty">
-  <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
-  <div><p class="title">No complaints with this status.</p><p class="sa-muted sa-small"><a href="{% url 'student_complaints' %}{% if sort_query %}?{{ sort_query }}{% endif %}">Show all your complaints</a></p></div>
+  {% if page.object_list %}
+  <ul class="sa-collection sa-collection--no-who" data-view="list" data-view-key="student-complaints">
+    {% for complaint in page %}
+    <li>
+      <a class="sa-item sa-item--{{ complaint.tone }}" href="{% url 'student_complaint_detail' complaint.reference %}{% if list_query %}?{{ list_query }}{% endif %}">
+        <span class="sa-item-ref">{{ complaint.reference }}</span>
+        <span class="sa-item-title">{{ complaint.title }}<span class="sa-item-extra">{{ complaint.category }}</span></span>
+        {% include "includes/ui/cohort.html" with record=complaint %}
+        {% include "complaints/student/_status.html" with tone=complaint.tone label=complaint.get_status_display %}
+        <span class="sa-item-when">{% if complaint.event_count > 1 %}<span class="visually-hidden">Last update </span>{{ complaint.last_activity|date:"j M Y" }}{% else %}<span class="visually-hidden">Submitted </span>{{ complaint.created_at|date:"j M Y" }}{% endif %}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% include "includes/ui/pagination.html" %}
+  {% else %}
+    {% url 'student_complaints' as all_url %}{% include "includes/ui/empty.html" with title="No complaints with this status." link_url=all_url link_label="Show all your complaints" %}
+  {% endif %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="Nothing here yet." text="Your complaints appear here with their reference and status." icon="file" %}
+  {% endif %}
 </div>
-{% endif %}
-{% else %}
-<div class="sa-empty">
-  <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-file"/></svg>
-  <div><p class="title">Nothing here yet.</p><p class="sa-muted sa-small">When you submit a complaint, it appears here with its reference and status, and every reply and change is recorded in its history.</p></div>
-</div>
-{% endif %}
 {% endblock %}

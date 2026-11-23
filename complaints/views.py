@@ -14,7 +14,7 @@ from urllib.parse import urlencode
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Count, Max
+from django.db.models import Count, Max, Q
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
@@ -26,9 +26,10 @@ from .forms import CancellationRequestForm, ComplaintSubmissionForm, FurtherInfo
 from .models import Complaint, ComplaintCategory
 from .ordering import DEFAULT_SORT, STUDENT_SORTS, clean_sort, sort_complaints
 from .permissions import get_visible_complaint, visible_complaints
-from .presentation import has_cancellation_request, status_journey, status_tone, student_timeline
+from .presentation import has_cancellation_request, status_journey, status_stats, status_tone, student_timeline
 
 PAGE_SIZE = 10
+LIST_PARAMS = ("q", "status", "category", "sort", "page")
 Status = Complaint.Status
 OPEN_STATUSES = (Status.RECEIVED, Status.UNDER_REVIEW)
 
@@ -93,7 +94,16 @@ def complaint_list(request):
         status = ""
     sort = clean_sort(request.GET.get("sort"), STUDENT_SORTS)
     own = visible_complaints(request.user)
+    query = " ".join(request.GET.get("q", "").split())[:100]
+    categories = list(ComplaintCategory.objects.filter(pk__in=own.order_by().values("category_id")).order_by("position", "name"))
+    category = request.GET.get("category", "")
+    if category not in {str(c.pk) for c in categories}:
+        category = ""
     complaints = own.filter(status=status) if status else own
+    if category:
+        complaints = complaints.filter(category_id=int(category))
+    if query:
+        complaints = complaints.filter(Q(reference__icontains=query) | Q(title__icontains=query))
     complaints = complaints.annotate(last_activity=Max("events__created_at"), event_count=Count("events")).order_by()
     # Filtered in the database, merge-sorted in Python (dsa.sorting), then paginated.
     page = Paginator(sort_complaints(list(complaints), sort), PAGE_SIZE).get_page(request.GET.get("page"))
@@ -105,24 +115,38 @@ def complaint_list(request):
         "page": page,
         "status": status,
         "filters": [("", "All")] + list(Status.choices),
+        "category": category,
+        "category_choices": [("", "All categories")] + [(str(c.pk), c.name) for c in categories],
+        "query": query,
+        "has_filters": bool(status or category or query),
         "sort": sort,
+        "sort_current": sort if sort != DEFAULT_SORT else "",
         "sorts": STUDENT_SORTS,
-        # Query strings that keep the other choice: sort for the status links, both for pages.
-        "sort_query": urlencode({"sort": sort}) if sort != DEFAULT_SORT else "",
-        "list_query": urlencode([(k, v) for k, v in (("status", status), ("sort", sort if sort != DEFAULT_SORT else "")) if v]),
+        "list_keys": LIST_PARAMS,
+        "list_query": _student_list_state(request.GET),
+        "search_hidden": [(k, request.GET[k]) for k in ("status", "category", "sort") if request.GET.get(k)],
+        "stats": status_stats(own),
         "total": total,
         "open_count": open_count,
     })
 
 
+def _student_list_state(params):
+    """The list's search, filters, sort and page, carried to a complaint and back."""
+    return urlencode([(key, params[key]) for key in LIST_PARAMS if params.get(key)])
+
+
 def _render_detail(request, complaint, status=200, **forms):
     is_open = complaint.status in OPEN_STATUSES
+    list_state = _student_list_state(request.GET)
     cancellation_requested = has_cancellation_request(complaint)
     context = {
         "complaint": complaint,
         "tone": status_tone(complaint.status),
         "journey": status_journey(complaint),
-        "timeline": student_timeline(complaint),
+        "timeline": student_timeline(complaint),  # students keep oldest first (P3-7)
+        "last_activity": complaint.events.aggregate(latest=Max("created_at"))["latest"],
+        "back_url": reverse("student_complaints") + (f"?{list_state}" if list_state else ""),
         "information_form": forms.get("information_form") or FurtherInformationForm(),
         "still_form": forms.get("still_form") or StillNotResolvedForm(),
         "cancel_form": forms.get("cancel_form") or CancellationRequestForm(),

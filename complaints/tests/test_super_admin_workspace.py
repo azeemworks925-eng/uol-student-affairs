@@ -122,7 +122,7 @@ class ListTests(SuperAdminWorkspaceTestCase):
 
     def test_rows_show_sap_id_cohort_category_owner_and_status(self):
         services.assign_responsible(self.admin, self.mine, self.advisor)
-        rows = between(self.html(LIST), '<ul class="sa-ws-rows">', "</ul>")
+        rows = between(self.html(LIST), '<ul class="sa-collection"', "</ul>")
         for text in ("Ali Khan", "12345678", "Fall 2024 · Semester 4 · Section A", "Test Academic",
                      "Owner: Dr. Ayesha Rahman", "Unassigned", "Received", "Last activity"):
             self.assertIn(text, rows)
@@ -184,7 +184,7 @@ class ListTests(SuperAdminWorkspaceTestCase):
 
     def test_case_links_and_redirects_keep_the_list_state(self):
         html = self.html(detail(self.mine), q="Ali", owner="unassigned")
-        self.assertIn(f'href="{detail(self.mine)}?q=Ali&amp;owner=unassigned" aria-current="true"', html)
+        self.assertIn(f'href="{LIST}?q=Ali&amp;owner=unassigned"', html)  # Back to complaints
         self.assertIn(f'action="{action("owner", self.mine)}?q=Ali&amp;owner=unassigned"', html)
         response = self.assign(self.mine, self.advisor, "q=Ali&owner=unassigned")
         self.assertRedirects(response, detail(self.mine, "q=Ali&owner=unassigned"), fetch_redirect_response=False)
@@ -210,7 +210,7 @@ class CaseTests(SuperAdminWorkspaceTestCase):
             "Responsible owner set to Dr. Ayesha Rahman (Batch Advisor)",
             "Ali Khan submitted this complaint",
         ])
-        context = between(response.content.decode(), '<aside class="sa-ws-context"', "</aside>")
+        context = between(response.content.decode(), '<aside class="sa-detail-side"', "</aside>")
         for text in ("Ali Khan", "12345678", "Fall 2024 · Semester 4 · Section A", "Head of Batch Advisors (Super Admin)",
                      "Dr. Ayesha Rahman", "Mr. Bilal Shah"):
             self.assertIn(text, context)

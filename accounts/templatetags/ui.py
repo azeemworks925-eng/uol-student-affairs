@@ -1,5 +1,7 @@
 """Small display helpers shared by the design-system partials in templates/includes/ui/."""
 
+from urllib.parse import urlencode
+
 from django import template
 from django.utils import timezone
 
@@ -48,13 +50,20 @@ def ago(moment):
 
 @register.simple_tag(takes_context=True)
 def filter_url(context, param, value=""):
-    """This page's URL with one filter set (or cleared when empty), back on the first page."""
+    """This page's query with one filter set (or cleared when empty), back on the first page.
+    Only the page's own parameters (`list_keys`) are carried, so nothing leaks between roles."""
     request = context["request"]
-    query = request.GET.copy()
-    query.pop("page", None)
+    allowed = context.get("list_keys")
+    keys = list(allowed) if allowed is not None else list(request.GET)
+    if param not in keys:
+        keys.append(param)
+    values = {key: request.GET[key] for key in keys if request.GET.get(key)}
+    values.pop("page", None)
     if value in ("", None):
-        query.pop(param, None)
+        values.pop(param, None)
     else:
-        query[param] = str(value)
-    encoded = query.urlencode()
+        values[param] = str(value)
+    encoded = urlencode([(key, values[key]) for key in keys if key in values])  # a stable order
+    if param == "page":
+        return f"?{encoded}"
     return f"{request.path}?{encoded}" if encoded else request.path

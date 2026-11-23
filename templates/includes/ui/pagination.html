@@ -1,0 +1,8 @@
+{% load ui %}{# Pagination that keeps the page's search, filters and sort. #}
+{% if page.has_other_pages %}
+<nav class="sa-pagination" aria-label="{{ label|default:'Pages' }}">
+  {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="{% filter_url 'page' page.previous_page_number %}">{{ previous|default:"Previous" }}</a>{% endif %}
+  <span class="sa-small sa-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+  {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="{% filter_url 'page' page.next_page_number %}">{{ next|default:"Next" }}</a>{% endif %}
+</nav>
+{% endif %}
