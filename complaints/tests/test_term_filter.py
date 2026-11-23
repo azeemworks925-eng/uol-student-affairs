@@ -257,7 +257,9 @@ class BatchAdvisorListTests(TermFilterTestCase):
         def sql(params):
             with CaptureQueriesContext(connection) as captured:
                 self.client.get(ADVISOR_LIST, params)
-            return [q["sql"] for q in captured.captured_queries if "django_session" not in q["sql"]]
+            # The session is saved on every request (idle timeout), inside a randomly named savepoint.
+            return [q["sql"] for q in captured.captured_queries
+                    if "django_session" not in q["sql"] and "SAVEPOINT" not in q["sql"]]
 
         plain, forged = sql({}), sql({"term": self.fall.pk})
         self.assertEqual(forged, plain)

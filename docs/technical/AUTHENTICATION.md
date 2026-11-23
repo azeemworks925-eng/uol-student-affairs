@@ -1,7 +1,7 @@
 # Authentication and Account Foundation
 
 **Status:** Implemented and tested with simulated Google responses. **Not yet verified with a real UOL Google account** (see section 8).
-**Related decisions:** DEC-010 to DEC-016, DEC-020, DEC-021, DEC-200 to DEC-205, DEC-210 to DEC-212. Open items O2, O3, O20 and O26.
+**Related decisions:** DEC-010 to DEC-016, DEC-020, DEC-021, DEC-200 to DEC-205, DEC-210 to DEC-212, DEC-327. Open items O2, O3, O20 and O26.
 
 ## 1. Sign-in flow
 
@@ -12,9 +12,17 @@ Every role uses one sign-in page with one "Sign in with Google" button. There is
 3. Google redirects back with an authorization code. The server exchanges it for an ID token directly with Google over TLS.
 4. django-allauth validates the ID token's issuer (`https://accounts.google.com`), audience (our client ID), expiry and `state`.
 5. `accounts.adapters.PortalSocialAccountAdapter` applies the portal's identity rules (section 3).
-6. The user is signed in and sent to `/`, which redirects by stored role. A student who has not registered is sent to registration first.
+6. The user is signed in and returned to the page they were opening (`next`), or sent to `/`, which redirects by stored role. A student who has not registered is sent to registration first.
 
 Google's OAuth tokens are not stored (`SOCIALACCOUNT_STORE_TOKENS = False`). Only the identity claims are kept, in allauth's `SocialAccount.extra_data`.
+
+### Session and return behaviour (DEC-327)
+
+- **Idle timeout.** A session ends after 30 minutes without activity. `SESSION_SAVE_EVERY_REQUEST` makes every request extend it.
+- **Timed-out or signed-out message.** `SessionMarkerMiddleware` sets a cookie, `sa_had_session=1`, while someone is signed in and clears it on sign-out. If the cookie is there but the session is not, the session timed out, so the sign-in page says so once. The cookie holds no personal data and grants no access.
+- **Back where you left off.** `next` travels through the Google sign-in POST. `PortalAccountAdapter.is_safe_url` accepts only same-site paths. A page in another role's area goes Home instead of showing a 403. A form sent after the timeout returns to the page the form was on, because its POST-only address cannot be opened with a GET. The text typed into that form is not kept.
+- **Choose an account.** Every sign-in sends `prompt=select_account`.
+- **Refused sign-in.** `accounts/sign_in_denied.html` shows the email used, the reason, a "Try another account" button that restarts Google sign-in, and a link to the landing page.
 
 ## 2. Approved authentication library
 
@@ -109,16 +117,17 @@ Access is decided only from the stored role and assignments, never from URL or r
 | `UOL_STAFF_EMAIL_DOMAINS` | Comma-separated staff email domains | `uol.edu.pk` |
 | `UOL_GOOGLE_REQUIRE_HOSTED_DOMAIN` | Require the `hd` claim | `True` |
 | `UOL_GOOGLE_ALLOWED_HOSTED_DOMAINS` | Accepted `hd` values | `student.uol.edu.pk,uol.edu.pk` |
-| `DJANGO_SESSION_COOKIE_AGE` | Session length in seconds | `28800` (8 hours) |
+| `DEMO_STAFF_EMAILS` | Laptop demo only. Comma-separated addresses that may sign in as staff while `DEBUG` is True. The account must already exist and the email must be verified. Ignored when `DEBUG` is False. `seed_demo` makes the first a Super Admin and the second a Batch Advisor of both demo cohorts. | empty |
+| `DJANGO_SESSION_COOKIE_AGE` | Idle timeout in seconds; every request extends it | `1800` (30 minutes) |
 | `DJANGO_SECURE_COOKIES` | Secure-only session and CSRF cookies | `True` whenever `DEBUG` is off |
 
 Secrets live only in `.env`, which is never committed. Session cookies are HttpOnly with `SameSite=Lax`, which keeps the session across Google's top-level redirect back.
 
-**Local setup.** In Google Cloud Console, create an OAuth client of type "Web application" with the authorized redirect URI `http://localhost:8000/accounts/google/login/callback/`. Then put the client ID and secret in `.env`. There is no development bypass: a manual end-to-end test needs a real Google account that passes the identity rules.
+**Local setup.** In Google Cloud Console, create an OAuth client of type "Web application" with the authorized redirect URI `http://localhost:8000/accounts/google/login/callback/`. Then put the client ID and secret in `.env`. Open the site at `http://localhost:8000`, so the address matches that redirect URI. A manual end-to-end test needs a real Google account that passes the identity rules. The only development exception is `DEMO_STAFF_EMAILS`, which still needs a real, verified Google account and an existing portal account. While the Google app is in "Testing" status, each account must also be listed as a test user.
 
 ## 8. External verification required
 
-None of the following has been verified. No real UOL Google account has signed in. The automated tests prove the portal's logic against simulated Google responses only. Before claiming that UOL accounts work, confirm each item and record the outcome in `DEVELOPMENT_LOG.md`:
+**Real sign-in with UOL accounts is still to be verified.** None of the following has been verified. No real UOL Google account has signed in. The automated tests prove the portal's logic against simulated Google responses only. Before claiming that UOL accounts work, confirm each item and record the outcome in `DEVELOPMENT_LOG.md`:
 
 1. **UOL uses Google Workspace for both domains.** `@student.uol.edu.pk` and `@uol.edu.pk` must be Google Workspace accounts, not Microsoft 365 or another provider. If students are not on Google Workspace, Google sign-in with those addresses is not possible as designed.
 2. **UOL permits the app.**

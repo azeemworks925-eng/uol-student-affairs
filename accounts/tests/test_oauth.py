@@ -79,7 +79,8 @@ class StudentGoogleSignInTests(TestCase):
 
         response = google_sign_in(self.client, google_claims(STUDENT_EMAIL))
 
-        self.assertRedirects(response, reverse("account_inactive"), fetch_redirect_response=False)
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, "deactivated", status_code=403)
         self.assertIsNone(signed_in_user(self.client))
 
 
@@ -99,7 +100,7 @@ class StaffGoogleSignInTests(TestCase):
         response = google_sign_in(self.client, google_claims("new.teacher@uol.edu.pk"))
 
         self.assertEqual(response.status_code, 403)
-        self.assertContains(response, "created by the Super Admin", status_code=403)
+        self.assertContains(response, "been set up yet. Contact the Super Admin.", status_code=403)
         self.assertFalse(User.objects.exists())
         self.assertIsNone(signed_in_user(self.client))
 

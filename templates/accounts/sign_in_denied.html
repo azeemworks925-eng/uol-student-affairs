@@ -1,10 +1,13 @@
 {% extends "layouts/auth.html" %}
+{# A refused sign-in: which account was used, why, and a way to choose another (DEC-327). #}
 {% block title %}Sign-in not allowed · UOL Student Affairs{% endblock %}
 {% block content %}
   <span class="sa-eyebrow">Sign in</span>
   <h1 class="sa-display">We couldn't sign you in.</h1>
   <div class="panel">
-    <p class="mb-0" role="alert">{{ reason }}</p>
+    {% if email %}<p class="sa-label">You used</p><p class="sa-denied-email">{{ email }}</p>{% endif %}
+    <p role="alert">{{ reason }}</p>
+    {% include "includes/google_sign_in.html" with button_label="Try another account" redirect_field_name="next" redirect_field_value=next_url %}
   </div>
-  <p class="sa-auth-links"><a href="{% url 'account_login' %}">Try a different account</a>{% include "includes/back_home.html" %}</p>
+  <p class="sa-auth-links">{% include "includes/back_home.html" %}</p>
 {% endblock %}

@@ -14,6 +14,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.core.exceptions import ImmediateHttpResponse
@@ -25,10 +26,47 @@ from . import identity
 from .models import User
 
 
-def deny_sign_in(request, reason):
-    """Abort the sign-in and show why. Nothing is logged in or saved."""
-    response = render(request, "accounts/sign_in_denied.html", {"reason": reason}, status=403)
+# Why a sign-in was refused, in words the person can act on (DEC-327).
+DENIAL_MESSAGES = {
+    "wrong_email": "Please use your UOL student email, like 12345678@student.uol.edu.pk",
+    "not_uol_google": "This is not a UOL Google account. Please sign in with your UOL Google account.",
+    "staff_not_set_up": "Your staff account hasn't been set up yet. Contact the Super Admin.",
+    "deactivated": "Your account has been deactivated. If you think this is a mistake, contact the Super Admin.",
+    "no_email": "Google did not provide an email address for this account.",
+    "unverified": "Google has not verified the email address of this account.",
+    "email_changed": "This Google account's email address no longer matches its portal account. "
+                     "Please contact the Super Admin.",
+    "already_linked": "This portal account is already linked to a different Google identity. "
+                      "Please contact the Super Admin.",
+    "linking": "Linking additional Google accounts is not supported.",
+    "not_created": "This account could not be created. Please contact the Super Admin.",
+}
+
+# Which role each area of the site belongs to, so "back where you left off" never lands
+# someone who chose a different account on a page their role cannot open.
+ROLE_AREAS = {
+    "/student/": User.Role.STUDENT,
+    "/advisor/": User.Role.BATCH_ADVISOR,
+    "/super-admin/": User.Role.SUPER_ADMIN,
+    "/admin/": User.Role.SUPER_ADMIN,
+}
+
+
+def deny_sign_in(request, sociallogin, code, email=""):
+    """Abort the sign-in and show why. Nothing is logged in or saved. "Try another account"
+    keeps the page the person was trying to open."""
+    response = render(request, "accounts/sign_in_denied.html", {
+        "reason": DENIAL_MESSAGES[code],
+        "reason_code": code,
+        "email": email,
+        "next_url": sociallogin.state.get("next") or "",
+    }, status=403)
     raise ImmediateHttpResponse(response)
+
+
+def page_allowed_for_role(url, role):
+    """False when the path is inside another role's area of the site."""
+    return all(role == owner for prefix, owner in ROLE_AREAS.items() if url.startswith(prefix))
 
 
 class PortalAccountAdapter(DefaultAccountAdapter):
@@ -39,54 +77,57 @@ class PortalAccountAdapter(DefaultAccountAdapter):
     def get_login_redirect_url(self, request):
         return reverse("home")
 
+    def is_safe_url(self, url):
+        """`next` must be a path on this site. Anything else is dropped, so sign-in goes Home."""
+        return bool(url) and url.startswith("/") and url_has_allowed_host_and_scheme(url, allowed_hosts=None)
+
+    def post_login(self, request, user, *, redirect_url=None, **kwargs):
+        if redirect_url and not (self.is_safe_url(redirect_url) and page_allowed_for_role(redirect_url, user.role)):
+            redirect_url = None
+        return super().post_login(request, user, redirect_url=redirect_url, **kwargs)
+
 
 class PortalSocialAccountAdapter(DefaultSocialAccountAdapter):
     def pre_social_login(self, request, sociallogin):
         if sociallogin.state.get("process") == AuthProcess.CONNECT:
-            deny_sign_in(request, "Linking additional Google accounts is not supported.")
+            deny_sign_in(request, sociallogin, "linking")
 
         email = self._verified_email(request, sociallogin)
 
         if sociallogin.is_existing:
             if sociallogin.user.email != email:
-                deny_sign_in(
-                    request,
-                    "This Google account's email address no longer matches its portal account. "
-                    "Please contact the Super Admin.",
-                )
+                deny_sign_in(request, sociallogin, "email_changed", email)
+            if not sociallogin.user.is_active:
+                deny_sign_in(request, sociallogin, "deactivated", email)
             return
 
         user = User.objects.filter(email=email).first()
         if user is not None:
+            if not user.is_active:
+                deny_sign_in(request, sociallogin, "deactivated", email)
             if SocialAccount.objects.filter(user=user, provider=sociallogin.account.provider).exists():
-                deny_sign_in(
-                    request,
-                    "This portal account is already linked to a different Google identity. "
-                    "Please contact the Super Admin.",
-                )
+                deny_sign_in(request, sociallogin, "already_linked", email)
             sociallogin.connect(request, user)
             return
 
         if not identity.is_student_email(email):
-            deny_sign_in(
-                request,
-                "No portal account exists for this email address. Students must sign in with "
-                f"their eight-digit SAP ID address at @{identity.STUDENT_EMAIL_DOMAIN}. "
-                "Batch Advisor accounts are created by the Super Admin.",
-            )
+            code = "staff_not_set_up" if identity.is_staff_email(email) else "wrong_email"
+            deny_sign_in(request, sociallogin, code, email)
 
     def _verified_email(self, request, sociallogin):
         claims = sociallogin.account.extra_data or {}
         email = identity.normalize_email(claims.get("email"))
         if not email:
-            deny_sign_in(request, "Google did not provide an email address for this account.")
+            deny_sign_in(request, sociallogin, "no_email")
         if claims.get("email_verified") not in (True, "true", "True"):
-            deny_sign_in(request, "Google has not verified the email address of this account.")
-        if settings.UOL_GOOGLE_REQUIRE_HOSTED_DOMAIN:
+            deny_sign_in(request, sociallogin, "unverified", email)
+        # Only a listed demo address skips the hosted-domain check, and only when DEBUG is True.
+        if settings.UOL_GOOGLE_REQUIRE_HOSTED_DOMAIN and not identity.is_demo_staff_email(email):
             hosted_domain = identity.normalize_email(claims.get("hd"))
             allowed = {identity.normalize_email(d) for d in settings.UOL_GOOGLE_ALLOWED_HOSTED_DOMAINS}
             if not hosted_domain or hosted_domain not in allowed:
-                deny_sign_in(request, "Please sign in with your UOL Google account.")
+                looks_like_uol = identity.is_student_email(email) or identity.is_staff_email(email)
+                deny_sign_in(request, sociallogin, "not_uol_google" if looks_like_uol else "wrong_email", email)
         return email
 
     def is_open_for_signup(self, request, sociallogin):
@@ -107,7 +148,7 @@ class PortalSocialAccountAdapter(DefaultSocialAccountAdapter):
         try:
             user.full_clean()
         except ValidationError:
-            deny_sign_in(request, "This account could not be created. Please contact the Super Admin.")
+            deny_sign_in(request, sociallogin, "not_created", user.email)
         return super().save_user(request, sociallogin, form)
 
     def validate_disconnect(self, account, accounts):

@@ -48,6 +48,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "accounts.middleware.SessionMarkerMiddleware",
     "accounts.middleware.StudentRegistrationMiddleware",
 ]
 
@@ -148,10 +149,14 @@ UOL_GOOGLE_REQUIRE_HOSTED_DOMAIN = env_bool("UOL_GOOGLE_REQUIRE_HOSTED_DOMAIN", 
 UOL_GOOGLE_ALLOWED_HOSTED_DOMAINS = env_list(
     "UOL_GOOGLE_ALLOWED_HOSTED_DOMAINS", "student.uol.edu.pk,uol.edu.pk"
 )
+# Laptop demo only (DEC-327): used only while DEBUG is True (see accounts.identity).
+DEMO_STAFF_EMAILS = env_list("DEMO_STAFF_EMAILS")
 
 # --- Sessions and cookies --------------------------------------------------------------
 
-SESSION_COOKIE_AGE = int(os.getenv("DJANGO_SESSION_COOKIE_AGE", str(8 * 60 * 60)))
+# Idle timeout (DEC-327): 30 minutes without activity. Every request extends it.
+SESSION_COOKIE_AGE = int(os.getenv("DJANGO_SESSION_COOKIE_AGE", "1800"))
+SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"  # Lax keeps the session on Google's top-level redirect back.
 SESSION_COOKIE_SECURE = env_bool("DJANGO_SECURE_COOKIES", not DEBUG)
