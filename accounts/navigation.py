@@ -100,7 +100,9 @@ NAVIGATION = {
             NavItem("Students", "user", "super_admin_students",
                     also_current=("super_admin_student_detail", "super_admin_student_changes", "super_admin_student_edit",
                                   "super_admin_student_active")),
-            NavItem("Batch Advisors", "users", "admin:accounts_user_changelist", {"role__exact": User.Role.BATCH_ADVISOR}),
+            NavItem("Staff", "users", "super_admin_staff",
+                    also_current=("super_admin_staff_detail", "super_admin_staff_name", "super_admin_staff_active",
+                                  "super_admin_staff_assignment_add", "super_admin_staff_assignment_remove")),
             NavItem("CR/GR Management", "badge", "super_admin_representatives",
                     also_current=("super_admin_representatives_appoint", "super_admin_representatives_replace")),
         ]),
@@ -120,7 +122,7 @@ NEW_MENU = {
         ("Request meeting", "calendar", "student_meetings", "?new=1"),
     ],
     User.Role.BATCH_ADVISOR: [("Schedule meeting", "calendar", "advisor_meeting_schedule")],
-    User.Role.SUPER_ADMIN: [("Add Batch Advisor", "user", "admin:accounts_user_add")],
+    User.Role.SUPER_ADMIN: [("Add Batch Advisor", "user", "super_admin_staff", "?new=1")],
 }
 
 

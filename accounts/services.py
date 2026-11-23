@@ -9,7 +9,7 @@ change. Every caller (the admin now, portal pages later) must use them.
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 
-from .models import CohortRepresentation, StudentProfile, StudentProfileChange, User
+from .models import AdvisorAssignment, CohortRepresentation, StudentProfile, StudentProfileChange, User
 from .representation import (  # noqa: F401  (the representation operations are part of this API)
     DETAILS_CHANGED,
     Cohort,
@@ -272,3 +272,63 @@ def create_student_account(*, email, full_name):
     """A student account made ahead of the student's first Google sign-in. The student still
     completes the one-time registration (DEC-201), which sets their cohort."""
     return _create_account(email, clean_full_name(full_name), User.Role.STUDENT)
+
+
+DUPLICATE_ASSIGNMENT = "This advisor is already assigned to that exact cohort."
+INACTIVE_ADVISOR = "Reactivate this advisor before adding a cohort."
+ASSIGNMENT_GONE = "This assignment was already removed."
+
+
+@transaction.atomic
+def create_staff_account(*, email, full_name, role, actor, cohorts=()):
+    """A Batch Advisor (with any exact cohorts) or Super Admin who signs in with Google. The
+    model enforces the staff email rule, including DEMO_STAFF_EMAILS only while DEBUG."""
+    if role not in User.STAFF_ROLES:
+        raise ValueError("Only staff accounts are created here.")
+    if cohorts and role != User.Role.BATCH_ADVISOR:
+        raise ValueError("Only a Batch Advisor has cohort assignments.")
+    name = clean_full_name(full_name)
+    wanted = list(dict.fromkeys(cohorts))
+    lock_sections([cohort.section_id for cohort in wanted])
+    if not all(cohort_is_active(cohort) for cohort in wanted):
+        raise ValidationError({"cohorts": INACTIVE_TARGET})
+    user = _create_account(email, name, role)
+    for cohort in wanted:
+        AdvisorAssignment.objects.create(advisor=user, assigned_by=actor, **cohort.filter())
+    return user
+
+
+@transaction.atomic
+def add_advisor_assignment(advisor, cohort, *, actor):
+    """Assign an active Batch Advisor to one exact, active cohort (DEC-205)."""
+    lock_sections([cohort.section_id])
+    if not cohort_is_active(cohort):
+        raise ValidationError(INACTIVE_TARGET)
+    fresh = lock_users([advisor.pk]).get(advisor.pk)
+    if fresh is None or not fresh.is_batch_advisor:
+        raise ValidationError("Only Batch Advisor accounts can be assigned to cohorts.")
+    if not fresh.is_active:
+        raise ValidationError(INACTIVE_ADVISOR)
+    if AdvisorAssignment.objects.filter(advisor=fresh, **cohort.filter()).exists():
+        raise ValidationError(DUPLICATE_ASSIGNMENT)
+    try:
+        with transaction.atomic():
+            return AdvisorAssignment.objects.create(advisor=fresh, assigned_by=actor, **cohort.filter())
+    except IntegrityError as error:
+        raise ValidationError(DUPLICATE_ASSIGNMENT) from error
+
+
+@transaction.atomic
+def remove_advisor_assignment(assignment):
+    """Remove one assignment. Returns True when its cohort now has no active advisor, so the
+    caller can warn; an uncovered cohort is allowed."""
+    section_id = AdvisorAssignment.objects.filter(pk=assignment.pk).values_list("section_id", flat=True).first()
+    if section_id is None:
+        raise ValidationError(ASSIGNMENT_GONE)
+    lock_sections([section_id])
+    fresh = AdvisorAssignment.objects.select_for_update().filter(pk=assignment.pk).first()
+    if fresh is None:
+        raise ValidationError(ASSIGNMENT_GONE)
+    cohort = Cohort.of(fresh)
+    fresh.delete()
+    return not AdvisorAssignment.objects.filter(advisor__is_active=True, **cohort.filter()).exists()

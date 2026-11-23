@@ -238,6 +238,7 @@ def advisor_assignments(advisor):
         row.only_advisor = key not in others
         row.is_active_cohort = row.batch.is_active and row.semester.is_active and row.section.is_active
         row.owned_open = owned_open_complaints(advisor, row)
+        row.dialog_title_id = f"remove-title-{row.pk}"
     return merge_sort(rows, key=lambda r: (r.batch.name, r.semester.number, r.section.name))
 
 
