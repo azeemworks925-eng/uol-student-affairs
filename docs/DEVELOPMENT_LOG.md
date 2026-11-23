@@ -12,6 +12,23 @@ Rules:
 
 ---
 
+## 2026-11-23 — Sign-in, finished
+
+Branch `feat/sign-in-finished`, created from `main` at `e9ffb77`. No migrations and no new dependencies. Decisions are recorded as DEC-327.
+
+**What was done**
+
+- A 30-minute idle timeout, with separate "timed out" and "signed out" messages.
+- The user returns to the page they were opening after signing in, with only same-site paths accepted.
+- A refused sign-in shows the email used, a specific reason and "Try another account".
+- `DEMO_STAFF_EMAILS` allows listed staff accounts on the laptop while `DEBUG` is True, and `seed_demo` sets them up.
+
+**Not verified**
+
+- Real Google sign-in has not been run. All sign-in tests use simulated Google responses, and real UOL accounts are still to be verified (`AUTHENTICATION.md`, section 8).
+
+---
+
 ## 2026-11-23 — Student Voice, finished
 
 Branch `feat/student-voice`, created from `main` at `c9cd4e2`. Adds the `voice` app with one migration and no new dependencies. Workflow decisions are recorded as DEC-326, which resolves O27 for Student Voice.
