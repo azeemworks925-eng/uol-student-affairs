@@ -10,15 +10,17 @@ from academics.models import AcademicTerm, Batch, Section, Semester
 from accounts.models import AdvisorAssignment, StudentProfile, User
 from complaints.models import Complaint, ComplaintCategory, ComplaintEvent
 from notifications.models import Notification
+from meetings.models import Meeting, MeetingEvent
 from voice.models import Submission
 
 
 def snapshot():
     return [model.objects.count() for model in (
         User, StudentProfile, AdvisorAssignment, Batch, Section, AcademicTerm, ComplaintCategory,
-        Complaint, ComplaintEvent, Notification, Submission)]
+        Complaint, ComplaintEvent, Notification, Submission, Meeting, MeetingEvent)]
 
 
+@override_settings(DEMO_STAFF_EMAILS=[])  # independent of the laptop's .env
 class SeedDemoTests(TestCase):
     def run_seed(self):
         out = StringIO()

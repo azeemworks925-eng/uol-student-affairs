@@ -7,13 +7,13 @@
 - Keeps the existing demo accounts (demo.admin@uol.edu.pk, demo.advisor@uol.edu.pk,
   12345678@student.uol.edu.pk) and the "DEMO — Fall 2026" batch.
 - Complaints, status changes, responses, owner changes and student actions go only through
-  complaints.services, and Student Voice only through voice.services, so their history and
-  notifications are the real ones. Only the clock
+  complaints.services, Student Voice only through voice.services and meetings only through
+  meetings.services, so their history and notifications are the real ones. Only the clock
   is simulated: each step runs with django.utils.timezone.now set to a moment in the past few
   weeks, so lists, "Oldest first", "Next complaint" and the Overview counts look realistic.
 """
 
-from datetime import date, timedelta
+from datetime import date, time, timedelta
 from unittest import mock
 
 from django.conf import settings
@@ -30,6 +30,9 @@ from complaints import services
 from complaints.models import Complaint, ComplaintCategory
 from notifications import services as notification_services
 from notifications.models import Notification
+from meetings import services as meeting_services
+from meetings.models import Meeting, MeetingEvent
+from meetings.presentation import local_datetime
 from voice import services as voice_services
 from voice.models import Submission
 
@@ -139,6 +142,24 @@ VOICE_SUBMISSIONS = [
      3, "review", 2, ""),
 ]
 
+# Meetings: (student email, reason, action, days from today, "HH:MM", minutes). Dates are relative
+# to the day of seeding. The two on day 4 at 10:00 and 10:15 overlap for the demo advisor, and the
+# open request at 10:20 that day shows the overlap warning when it is confirmed.
+MEETING_ROOM = "Room 204, CS Block"
+MEETINGS = [
+    (DEMO_STUDENT, "I would like advice on choosing my electives for next semester.", "request", 4, "10:20", 30),
+    ("70126006@student.uol.edu.pk", "I need guidance about re-checking my Linear Algebra paper.", "request", 2, "11:00", 30),
+    (DEMO_STUDENT, "Can we discuss my attendance shortfall in Operating Systems?", "suggest", 2, "12:00", 30),
+    ("70126001@student.uol.edu.pk", "I want to discuss my Discrete Mathematics quiz marks.", "confirm", 4, "10:00", 30),
+    ("70126008@student.uol.edu.pk", "Let us review your elective change for next semester.", "schedule", 4, "10:15", 30),
+    (DEMO_STUDENT, "I would like feedback on my semester project proposal.", "confirm", 3, "16:00", 45),
+    ("70126002@student.uol.edu.pk", "I need advice on managing my course load this semester.", "confirm", -3, "11:30", 30),
+    ("70126003@student.uol.edu.pk", "I want to talk about the assignment deadlines clashing.", "decline", 1, "09:30", 15),
+    ("70126009@student.uol.edu.pk", "I would like to discuss the transport bus issue in person.", "student_decline", 2, "15:00", 30),
+    (DEMO_STUDENT, "Could we go over my mid-term results together?", "advisor_cancel", 1, "14:00", 30),
+    ("70126010@student.uol.edu.pk", "I need to talk about the Database Systems practical exam.", "student_cancel", 3, "09:00", 15),
+]
+
 
 class Command(BaseCommand):
     help = "Create demo data for local development (DEBUG only). Safe to run again."
@@ -154,6 +175,7 @@ class Command(BaseCommand):
             self._demo_staff(structure, people)
             created_demo_complaints = self._complaints(structure, people)
             self._voice(people)
+            self._meetings(people)
             if created_demo_complaints:
                 self._mark_older_updates_read(people["students"][DEMO_STUDENT])
         if self.created:
@@ -292,6 +314,75 @@ class Command(BaseCommand):
                     else:
                         voice_services.mark_reviewed(advisor, submission)
             self.created.append(f"Student Voice {kind} from {email}")
+
+    # --- meetings ----------------------------------------------------------------------------
+
+    def _meeting_advisor(self, people):
+        """The DEMO_STAFF_EMAILS advisor if one is set, otherwise the first demo advisor."""
+        emails = identity.demo_staff_emails()
+        if len(emails) > 1:
+            return User.objects.get(email=emails[1])
+        return people["advisors"][ADVISORS[0][0]]
+
+    def _meeting_time(self, day_offset, clock):
+        """A weekday `day_offset` days from today at "HH:MM" (Asia/Karachi). A weekend moves to
+        Monday for a future day and to Friday for a past one."""
+        day = timezone.localdate(self.now) + timedelta(days=day_offset)
+        while day.weekday() >= 5:
+            day += timedelta(days=1 if day_offset >= 0 else -1)
+        hour, minute = clock.split(":")
+        return local_datetime(day, time(int(hour), int(minute)))
+
+    def _meetings(self, people):
+        """Real meetings through meetings.services. An existing one (same student and reason) is left alone."""
+        advisor = self._meeting_advisor(people)
+        created_for_demo_student = False
+        for index, (email, reason, action, day_offset, clock, duration) in enumerate(MEETINGS):
+            student = people["students"][email]
+            if Meeting.objects.filter(student=student, reason=reason).exists():
+                continue
+            at = self._meeting_time(day_offset, clock)
+            # The clock is set before the meeting, so its dates are valid when each step runs.
+            requested_at = min(self.now, at) - timedelta(days=3, minutes=index)
+            acted_at = requested_at + timedelta(days=1)
+            with mock.patch("django.utils.timezone.now", return_value=requested_at):
+                if action == "schedule":
+                    meeting_services.schedule(advisor, student, reason=reason, starts_at=at, duration=duration,
+                                              location=MEETING_ROOM)
+                else:
+                    meeting = meeting_services.request_meeting(student, reason=reason, preferred_at=at)
+            if action not in ("schedule", "request"):
+                with mock.patch("django.utils.timezone.now", return_value=acted_at):
+                    self._meeting_step(meeting, action, advisor, student, at, duration)
+            self.created.append(f"meeting ({action}) for {email}")
+            created_for_demo_student = created_for_demo_student or email == DEMO_STUDENT
+        if created_for_demo_student:
+            self._keep_newest_meeting_notice_unread(people["students"][DEMO_STUDENT])
+
+    def _meeting_step(self, meeting, action, advisor, student, at, duration):
+        slot = {"starts_at": at, "duration": duration, "location": MEETING_ROOM}
+        if action == "confirm":
+            meeting_services.confirm(advisor, meeting, **slot)
+        elif action == "suggest":
+            meeting_services.suggest(advisor, meeting, note="This time suits me better, if it works for you.", **slot)
+        elif action == "decline":
+            meeting_services.decline(advisor, meeting, "Please raise this through the complaints page instead.")
+        elif action == "student_decline":
+            meeting_services.suggest(advisor, meeting, **slot)
+            meeting_services.decline_suggestion(student, meeting)
+        elif action in ("advisor_cancel", "student_cancel"):
+            meeting_services.confirm(advisor, meeting, **slot)
+            actor = advisor if action == "advisor_cancel" else student
+            meeting_services.cancel(actor, meeting, "Something urgent came up at that time.")
+        else:
+            raise CommandError(f"Unknown demo meeting step: {action}")
+
+    def _keep_newest_meeting_notice_unread(self, student):
+        notices = list(Notification.objects.filter(
+            recipient=student, source_type=MeetingEvent._meta.label_lower, read_at__isnull=True,
+        ).order_by("-created_at", "-id"))
+        for notification in notices[1:]:
+            notification_services.mark_read(student, notification.pk)
 
     def _step(self, complaint, action, text, *, student, advisor, admin):
         complaint = Complaint.objects.get(pk=complaint.pk)

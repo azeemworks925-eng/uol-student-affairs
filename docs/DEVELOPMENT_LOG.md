@@ -12,6 +12,25 @@ Rules:
 
 ---
 
+## 2026-11-23 — Meetings, finished
+
+Branch `feat/meetings`, created from `main` at `4fe9c11`. Adds the `meetings` app with one migration and no new dependencies. Workflow decisions are recorded as DEC-328, which resolves O27 for meetings and O29 and amends DEC-061 and DEC-308.
+
+**What was done**
+
+- **Model and rules:** `Meeting` plus a write-once `MeetingEvent` history, with the five statuses and every transition enforced in `meetings.services`. The exact cohort is stored on the meeting.
+- **Student:** a Meetings page with a request form, Upcoming grouped Today / Tomorrow / later dates, Past and closed, Accept/Decline, Cancel and the Google Calendar link.
+- **Batch Advisor:** a workspace with Needs a decision, Waiting for the student, Upcoming confirmed, Past and closed, confirm / suggest / decline / cancel, and Schedule a meeting.
+- **Month view:** for students and advisors, from Python's `calendar` module, with `?month=YYYY-MM`, previous/next links and a day list. It counts Confirmed meetings.
+- **Super Admin:** a read-only list of all meetings with status and cohort filters.
+- **DSA:** `dsa/intervals.py` merge-sorts intervals by start and sweeps once against the latest end. It powers the overlap warning, which never blocks.
+- **Notifications and Student Home:** advisor actions notify the student, and Student Home merges meeting updates with merge sort, still at most five.
+- **Demo data:** `seed_demo` adds 11 meetings across both demo cohorts in every status, with an overlapping pair for the demo advisor, and remains safe to run twice.
+- **Tests:** two older tests no longer depend on the laptop's `.env`.
+- **Checked:** 15 page states at 1280×590 and 360px in headless Chrome, with no horizontal scroll or clipped controls, and touch targets of at least 44px at 360px.
+
+---
+
 ## 2026-11-23 — Sign-in, finished
 
 Branch `feat/sign-in-finished`, created from `main` at `e9ffb77`. No migrations and no new dependencies. Decisions are recorded as DEC-327.
@@ -188,7 +207,7 @@ Branch `feat/collective-issues-ci-1-representation`, created from `main` at `a0e
 | Design | Forest palette (Light and Dark) and Design D approved (DEC-300 to DEC-308). Written specification: `docs/design/DESIGN_PLAN.md`. Open: O30 and O34; O25 is resolved by DEC-315. |
 | Production frontend | Milestone 1 (application shell, role navigation, role home pages, sign-in pages) merged into `main` through PR #6 (merge commit `c9a4cd3`). Verified locally only; not deployed. "Look and feel, finished" (landing page, restyled sign-in pages, Forest admin, unbuilt items hidden) on branch `feat/look-and-feel`. |
 | Complaints | "Complaints, finished" (DSA-backed sorting, Go to reference, trie search, Next complaint, Student Home updates, Overview counts, `seed_demo`) on branch `feat/complaints-complete`, awaiting review. Parts 1–3 merged into main through PRs #7–#11. Part 4 specification merged through PR #12 (`4348b15`); Stage 1 (Super Admin workspace and owner assignment) through PR #14 (`5bed61e`); Stage 2 (category management) through PR #15 (`b30d29d`); Stage 3 (in-app notifications) through PR #16 (`d857d27`). Stage 4a (academic terms and the Super Admin term filter) through PR #18 (`1809730`). Stage 4b (analytics) is specified (COMPLAINTS_PART4_SPEC.md section 6, DEC-316 to DEC-322; PR #19, `b7d48a9`) and merged through PR #20 (`0df6dd4`). Stage 5 (final acceptance) is not started. |
-| Other product features | Collective issues: Stage CI-1 (CR/GR cohort representation) merged through PR #23 (`efec6f2`); CI-2 to CI-4 (issues, support, Batch Advisor workspace) not implemented. Student Voice is built (entry of 2026-11-23, DEC-326). Meetings are not implemented. |
+| Other product features | Collective issues: Stage CI-1 (CR/GR cohort representation) merged through PR #23 (`efec6f2`); CI-2 to CI-4 (issues, support, Batch Advisor workspace) not implemented. Student Voice is built (entry of 2026-11-23, DEC-326). Meetings are built (entry of 2026-11-23, DEC-328). |
 | Deployment | Not done. Production static-file serving and HTTPS settings are not configured. |
 
 ---

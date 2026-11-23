@@ -11,7 +11,7 @@ from django.views.decorators.http import require_http_methods
 
 from complaints.analytics import build_overview
 from complaints.workspace import advisor_cohort_counts, cohort_value
-from voice.presentation import student_home_updates
+from meetings.presentation import student_home_updates
 
 from .forms import StudentRegistrationForm
 from .identity import extract_sap_id
@@ -71,7 +71,7 @@ def cohort_label(batch, semester, section):
 QUICK_ACCESS = [
     {"label": "Submit a complaint", "description": "Raise a problem with your Batch Advisor", "icon": "plus", "url_name": "student_complaint_new", "primary": True},
     {"label": "Student Voice", "description": "An idea, a question or feedback", "icon": "voice", "url_name": "student_voice"},
-    {"label": "My meetings", "description": "Request or review meetings", "icon": "calendar", "url_name": None},
+    {"label": "My meetings", "description": "Request or review meetings", "icon": "calendar", "url_name": "student_meetings"},
 ]
 
 
@@ -82,8 +82,8 @@ def quick_access():
 @student_required
 def student_home(request):
     profile = request.user.student_profile
-    # The student's latest staff updates: complaint status changes and responses, and Student
-    # Voice answers and replies, merged newest first. Meetings will add theirs when built.
+    # The student's latest staff updates: complaint status changes and responses, Student Voice
+    # answers and replies, and meeting updates, merged newest first.
     updates = student_home_updates(request.user)
     return render(request, "accounts/student_home.html", {
         "profile": profile,

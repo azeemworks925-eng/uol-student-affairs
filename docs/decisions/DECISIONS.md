@@ -119,10 +119,11 @@ Rules for every collaborator (human or AI):
 |---|---|
 | DEC-060 (revised) | Students can request a meeting with their assigned BA, giving a reason and preferred availability. The BA can accept/confirm, suggest another time, or decline with a reason. |
 | DEC-260 | A BA can also invite students. A BA can view and manage meetings involving assigned students, and can schedule, reschedule and cancel meetings. |
-| DEC-061 (revised) | The BA calendar has month, week and day views. It is an internal portal calendar, not a Google Calendar integration. |
+| DEC-061 (revised) | The BA calendar has month, week and day views. It is an internal portal calendar, not a Google Calendar integration. *Amended by DEC-328: a month view with a day list.* |
 | DEC-261 | Students see only their own meetings: date, time, location and status. |
 | DEC-262 | The Super Admin has department-wide meeting oversight. |
 | DEC-263 | There is no chat in the meeting workflow. |
+| DEC-328 | Meetings workflow (resolves O27 for meetings and O29; amends DEC-061 and DEC-308). **Routing:** a student requests a meeting with a reason (10 to 500 characters) and a preferred future date and time (Asia/Karachi). Every BA assigned to the student's exact cohort can act; the BA who confirms becomes the meeting's advisor. **Statuses:** Requested, Time suggested, Confirmed, Declined, Cancelled. **BA:** Confirm (date, start time, 15/30/45/60 minutes, location), Suggest another time (the same, with an optional note), or Decline (reason required), and can schedule a meeting directly with a student of an assigned cohort (created as Confirmed). **Student:** Accept (to Confirmed) or Decline (to Declined) a suggested time. **Cancel:** either side can cancel a Confirmed meeting with a reason. Rescheduling is a cancellation plus a new request. Declined and Cancelled are final. **Privacy:** a student sees only their own meetings, BAs only those of their exact assigned cohorts, the Super Admin all meetings read-only; CR/GR get no extra access. No chat or meeting messages. **Notifications:** in-app to the student when a BA confirms or schedules, suggests a time, declines or cancels. **Calendar (amends DEC-061, DEC-308):** a server-rendered month view with a day list replaces the month, week and day views. Confirmed meetings offer the prefilled "Add to Google Calendar" link, which now also carries the location; no Google API or new scopes, and the portal stays the source of truth. **Overlap:** a BA is warned, not blocked, before confirming or scheduling a time that overlaps another of their Confirmed meetings that day. **Implementation defaults:** a meeting that has started can no longer be cancelled, a suggested time that has passed can only be declined, and the private reason is left out of the Google Calendar link. |
 
 ### 1.8 Notifications
 
@@ -199,7 +200,7 @@ Confirmed by the owner on 2026-11-16. Details in `docs/design/DESIGN_PLAN.md`, t
 | DEC-305 | Batch Advisor Complaints: Respond and Update status are separate actions, and sending a response never changes a complaint's status. "Other complaints from this student" is not shown in V1. |
 | DEC-306 | The Super Admin Overview carries the three DEC-281 analytics with written takeaways; there is no separate Statistics destination for the Super Admin. Cohort map cells are exact batch + semester + section cohorts in academic order, and a section with zero complaints is shown differently from a section that does not exist. |
 | DEC-307 | Laptop acceptance target: HP EliteBook 840 G8 (1920×1080 at 150% Windows scaling) in Opera at 100% zoom, a viewport of about 1280×590. Every page must also work at 360px wide. Both are checked throughout implementation. |
-| DEC-308 | Meetings: an in-app calendar with month, week and day views, with visibility per DEC-246, DEC-260, DEC-261 and DEC-262. Confirmed meetings offer "Add to Google Calendar" as a prefilled event link (title, date, start and end time, description); no Google Calendar API, extra OAuth scopes or new sign-in flow. The portal remains the source of truth, and adding to Google Calendar never changes a meeting's status. This is a link, not the integration excluded by DEC-061. |
+| DEC-308 | Meetings: an in-app calendar with month, week and day views, with visibility per DEC-246, DEC-260, DEC-261 and DEC-262. Confirmed meetings offer "Add to Google Calendar" as a prefilled event link (title, date, start and end time, description); no Google Calendar API, extra OAuth scopes or new sign-in flow. The portal remains the source of truth, and adding to Google Calendar never changes a meeting's status. This is a link, not the integration excluded by DEC-061. *Amended by DEC-328: a month view with a day list, and the link also carries the location.* |
 
 ---
 
@@ -255,12 +256,12 @@ Kept for traceability. These items appeared as NEEDS CONFIRMATION (Q) or OPEN (O
 | O6 | Collective issue visibility and support | DEC-241, DEC-243 |
 | O7 | Student Voice visibility and answers | DEC-051, DEC-252, DEC-253, DEC-254 |
 | O8 | The "did not solve" mechanism | DEC-222, DEC-223 |
-| O9 | Complaint ownership with several advisors | DEC-227, DEC-228, DEC-310. Complaint owner designation is settled. Collective issues: DEC-324. Student Voice: DEC-326. BA routing for meetings remains open. |
+| O9 | Complaint ownership with several advisors | DEC-227, DEC-228, DEC-310. Complaint owner designation is settled. Collective issues: DEC-324. Student Voice: DEC-326. Meetings: DEC-328. |
 | O10 | Complaints about a student's own BA | Out of scope. DEC-231 |
 | O11 | Calendar scope | DEC-061, DEC-261 |
 | O12 | Complaint categories and statuses | DEC-220, DEC-221 |
 | O13 | Statuses for collective issues and Student Voice | Collective issues: DEC-244. Student Voice: DEC-326. |
-| O14 | Meeting rules | DEC-060, DEC-260. Remaining details are open as O29. |
+| O14 | Meeting rules | DEC-060, DEC-260, DEC-328. |
 | O15 | Notification events | DEC-270 |
 | O16 | Analytics | DEC-090, DEC-280, DEC-281, DEC-313 to DEC-322. Small-cohort privacy, classification and reporting window are settled. |
 | O17 | Role and permission matrix | Settled at the product level by DEC-015, DEC-228, DEC-229, DEC-240, DEC-245, DEC-246, DEC-253, DEC-261 and DEC-262. |
@@ -297,9 +298,9 @@ These are gaps found while reconciling, not reopened decisions. Each needs a sho
 
 | ID | Open item |
 |---|---|
-| O27 | Complaint owner designation is resolved by DEC-310. Collective-issue routing is resolved by DEC-324: all BAs assigned to the exact cohort can see and act, with no designated owner. Student Voice routing is resolved by DEC-326 on the same rule. BA routing for meeting requests remains open. |
+| O27 | Complaint owner designation is resolved by DEC-310. Collective-issue routing is resolved by DEC-324: all BAs assigned to the exact cohort can see and act, with no designated owner. Student Voice routing is resolved by DEC-326 on the same rule. Meeting routing is resolved by DEC-328 on the same rule. |
 | O28 | Resolved by DEC-311: cancellation requests are record-only, with no status change or approval/decline workflow. |
-| O29 | Meeting status names, and whether a student can cancel or ask to reschedule a meeting that has been confirmed. |
+| O29 | Resolved by DEC-328: Requested, Time suggested, Confirmed, Declined, Cancelled. Either side can cancel a Confirmed meeting; rescheduling is a cancellation plus a new request. |
 | O31 | Resolved by DEC-313. |
 | O32 | Resolved by DEC-314. |
 | O33 | Resolved by DEC-312: no response-required classification or "Waiting for you" queue is added. |

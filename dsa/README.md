@@ -25,9 +25,11 @@ separate demo.
 | Hash table (separate chaining) | `hash_table.py` | "Go to reference" in both staff workspaces: a table from reference to complaint | `put`/`get`/`contains`: O(k) average, O(k + n) worst; resize O(n), amortised O(1) per put; `len`: O(1); space O(n) |
 | Trie (prefix tree) | `trie.py` | The staff workspace search: student names, each word of a name, and SAP IDs, by prefix | `insert`: O(L·s); `starts_with`: O(L·s + m); space O(total characters) |
 | Binary min-heap | `heap.py` | "Next complaint" (Batch Advisor): the oldest complaint still Received or Under Review | `push`/`pop`: O(log n); `peek`/`len`: O(1); space O(n) |
+| Interval overlap sweep | `intervals.py` | Meetings: warns a Batch Advisor before they confirm or schedule a time that overlaps another of their Confirmed meetings that day | `find_overlaps`: O(n log n) time, O(n) space; `overlaps_with`: O((c + 1) · n log n) time, O(n) space |
 
 The variables in the table are:
 - *n*: the number of items;
+- *c*: the meetings that overlap the chosen time;
 - *k*: the key length;
 - *L*: the length of the word or prefix;
 - *s*: the children per trie node (at most the alphabet);
@@ -35,7 +37,8 @@ The variables in the table are:
 
 ## How each one is wired
 
-All four are wired through `complaints/ordering.py`.
+The first four are wired through `complaints/ordering.py`. The interval sweep is wired through
+`meetings/presentation.py`.
 
 - **Merge sort:** `sort_complaints` merge-sorts the filtered list in Python before it is paginated.
   - The database only filters; it does not order the rows.
@@ -51,3 +54,9 @@ All four are wired through `complaints/ordering.py`.
   whose student matches it by prefix. For the Super Admin, a matching title also counts.
 - **Min-heap:** `next_waiting` pushes every waiting complaint with the priority
   (submitted at, id), then pops the root, which is the oldest.
+- **Interval sweep:** `overlap_warnings` loads the advisor's Confirmed meetings for that day.
+  - `find_overlaps` merge-sorts them by start time, then makes one pass comparing each meeting
+    with the latest end seen so far.
+  - `overlaps_with` repeats that sweep without the meetings already found, so the warning names
+    every clash, even one hidden behind a longer meeting.
+  - It is a warning, not a block: the advisor can continue with the same time.

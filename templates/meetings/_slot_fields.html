@@ -1,0 +1,10 @@
+{# Date, start time, duration and location. #}
+{% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+<div class="sa-meet-two">
+  {% include "includes/form_field.html" with field=form.date %}
+  {% include "includes/form_field.html" with field=form.time %}
+</div>
+<div class="sa-meet-two">
+  {% include "includes/form_field.html" with field=form.duration %}
+  {% include "includes/form_field.html" with field=form.location %}
+</div>

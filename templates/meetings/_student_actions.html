@@ -1,0 +1,22 @@
+{# The student's actions on one meeting: answer a suggested time, or cancel a confirmed meeting. #}
+{% if meeting.is_time_suggested %}
+<div class="sa-meet-actions">
+  {% if not meeting.has_started %}
+  <form method="post" action="{% url 'student_meeting_accept' meeting.pk %}" data-once-submit>{% csrf_token %}<button type="submit" class="btn btn-sa-primary btn-sm" data-submit-label="Saving…">Accept</button></form>
+  {% endif %}
+  <form method="post" action="{% url 'student_meeting_decline' meeting.pk %}" data-once-submit>{% csrf_token %}<button type="submit" class="btn btn-sa-secondary btn-sm" data-submit-label="Saving…">Decline</button></form>
+  {% if meeting.has_started %}<span class="sa-small sa-muted">This suggested time has passed.</span>{% endif %}
+</div>
+{% elif meeting.is_confirmed and not meeting.has_started %}
+<details class="sa-meet-panel"{% if cancel_form.errors %} open{% endif %}>
+  <summary>Cancel this meeting</summary>
+  <form method="post" action="{% url 'student_meeting_cancel' meeting.pk %}" novalidate data-once-submit>
+    {% csrf_token %}
+    <label class="form-label" for="cancel-reason-{{ meeting.pk }}">Reason</label>
+    <textarea class="form-control{% if cancel_form.reason.errors %} is-invalid{% endif %}" id="cancel-reason-{{ meeting.pk }}" name="cancel-reason" rows="2" maxlength="300" required></textarea>
+    {% if cancel_form.reason.errors %}<div class="invalid-feedback d-block" role="alert">{{ cancel_form.reason.errors|join:" " }}</div>{% endif %}
+    <p class="form-text">To change the time, cancel and send a new request.</p>
+    <button type="submit" class="btn btn-sa-secondary btn-sm" data-submit-label="Cancelling…">Cancel meeting</button>
+  </form>
+</details>
+{% endif %}

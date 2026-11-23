@@ -42,8 +42,10 @@ Each event type declares a `NotificationType`: the `source_model` its source rec
 |---|---|---|
 | `complaint.status_changed` | `complaints.complaintevent` | `student_complaint_detail` |
 | `complaint.response` | `complaints.complaintevent` | `student_complaint_detail` |
+| `voice.answered`, `voice.replied` | `voice.submission` | `student_voice_detail` |
+| `meeting.confirmed`, `meeting.time_suggested`, `meeting.declined`, `meeting.cancelled` | `meetings.meetingevent` | `student_meeting_detail` |
 
-**Adding a future producer** (DEC-270: official Student Voice answers; meeting confirmation, rescheduling and cancellation; new CR/GR issues):
+**Adding a future producer** (DEC-270: new CR/GR issues):
 1. register the type with its source model and destinations;
 2. call `notify()` from the module's service, inside its transaction;
 3. decide the recipients with that module's own requirements. None are decided here.

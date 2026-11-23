@@ -630,3 +630,80 @@ a.sa-cat-name:hover { color: var(--sa-accent); }
   .sa-journey--steps li:not(:last-child) .step::after { display: none; }
   .sa-journey--steps .desc { max-width: none; }
 }
+
+/* ---------- Meetings ---------- */
+.sa-meet-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; }
+.sa-meet-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.sa-meet-tabs { display: inline-flex; padding: 3px; gap: 2px; background: var(--sa-subtle); border: 1px solid var(--sa-border); border-radius: 10px; }
+.sa-meet-tabs a { display: inline-flex; align-items: center; min-height: 34px; padding: 0 14px; border-radius: 7px; color: var(--sa-muted); font-weight: 500; font-size: 14px; }
+.sa-meet-tabs a:hover { text-decoration: none; color: var(--sa-ink); }
+.sa-meet-tabs a[aria-current] { background: var(--sa-surface); color: var(--sa-ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--sa-ink); }
+.sa-meet-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 12px; }
+.sa-meet-two input[type="date"], .sa-meet-two input[type="time"] { min-width: 0; }
+.sa-meet-lists { display: grid; gap: 24px; min-width: 0; }
+.sa-meet-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
+.sa-meet-columns > section { min-width: 0; }
+.sa-meet-day { margin: 14px 0 8px; }
+.sa-section-head + .sa-meet-day { margin-top: 0; }
+.sa-meet-subhead { margin: 20px 0 12px; }
+.sa-meet-card { min-width: 0; background: var(--sa-surface); border: 1px solid var(--sa-border); border-radius: 12px; }
+.sa-meet-link { display: flex; align-items: center; gap: 12px; padding: 10px 14px; min-height: 60px; color: var(--sa-ink); border-radius: 12px; }
+a.sa-meet-link:hover { text-decoration: none; background: var(--sa-subtle); }
+.sa-meet-time { display: grid; flex: none; width: 58px; line-height: 1.25; }
+.sa-meet-time b { font-weight: 600; font-size: 15px; }
+.sa-meet-time span { font-size: 12px; color: var(--sa-muted); white-space: nowrap; }
+.sa-meet-main { display: grid; flex: 1; min-width: 0; gap: 1px; overflow-wrap: anywhere; }
+.sa-meet-title { font-weight: 500; }
+.sa-meet-gcal { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; margin: 0 14px 8px; font-weight: 500; }
+.sa-meet-gcal svg { width: 15px; height: 15px; }
+.sa-meet-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 14px 12px; }
+.sa-meet-card .sa-meet-panel { margin: 0 14px 10px; }
+.sa-meet-panel > summary { display: flex; align-items: center; min-height: 32px; cursor: pointer; font-weight: 500; font-size: 14px; color: var(--sa-accent); }
+.sa-meet-panel[open] > summary { margin-bottom: 10px; }
+.sa-panel.sa-meet-panel { padding-top: 12px; padding-bottom: 12px; }
+.sa-meet-closed { margin-top: 18px; }
+.sa-meet-detail { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.sa-meet-side { display: grid; gap: 12px; min-width: 0; }
+.sa-meet-history { list-style: none; margin: 10px 0 0; padding: 0 0 0 12px; display: grid; gap: 8px; border-left: 2px solid var(--sa-border); }
+.sa-meet-history li { display: grid; }
+.sa-meet-history b { font-weight: 500; font-size: 14px; }
+.sa-meet-warning { margin-bottom: 14px; padding: 12px 14px; background: var(--sa-progress-bg); color: var(--sa-progress); border-left: 3px solid var(--sa-progress); border-radius: 0 10px 10px 0; font-size: 14px; }
+.sa-meet-warning ul { margin: 0 0 4px; padding-left: 18px; }
+.sa-meet-form { max-width: 640px; }
+.sa-meet-filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px 14px; margin-bottom: 18px; align-items: end; }
+.sa-cal-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start; }
+.sa-cal-layout > section { min-width: 0; }
+.sa-cal-panel { padding: 12px; }
+.sa-cal-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.sa-cal { width: 100%; table-layout: fixed; border-collapse: collapse; }
+.sa-cal th { padding: 2px 0 4px; text-align: center; font: 600 11px/16px var(--sa-ui); letter-spacing: .04em; text-transform: uppercase; color: var(--sa-muted); }
+.sa-cal td { padding: 1px; text-align: center; }
+.sa-cal td > a, .sa-cal-out { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 44px; border-radius: 8px; color: var(--sa-ink); font-size: 14px; line-height: 1.1; }
+.sa-cal td > a:hover { text-decoration: none; background: var(--sa-subtle); }
+.sa-cal .is-muted .sa-cal-out { color: var(--sa-disabled); }
+.sa-cal .is-today .num { font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.sa-cal .is-selected > a { background: var(--sa-ink); color: var(--sa-on-accent); }
+.sa-cal .is-selected > a:hover { background: var(--sa-ink); }
+.sa-cal-count { display: inline-flex; align-items: center; gap: 3px; margin-top: 2px; font-size: 11px; font-weight: 600; }
+.sa-cal-count i { width: 6px; height: 6px; border-radius: 50%; background: var(--sa-accent); }
+.sa-cal .is-selected .sa-cal-count i { background: var(--sa-on-accent); }
+@media (min-width: 768px) {
+  .sa-meet-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sa-meet-filters { grid-template-columns: 220px minmax(0, 320px) auto; }
+}
+@media (min-width: 1000px) {
+  .sa-meet-detail { grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); }
+  .sa-cal-layout { grid-template-columns: minmax(0, 560px) minmax(280px, 1fr); }
+}
+@media (max-width: 767.98px) {
+  .sa-meet-tabs a { min-height: 44px; }
+  .sa-meet-head-actions, .sa-meet-head-actions .btn { width: 100%; }
+  .sa-meet-head-actions .btn { min-height: 44px; }
+  .sa-meet-link { flex-wrap: wrap; }
+  .sa-meet-main { flex-basis: calc(100% - 72px); }
+  .sa-meet-link > .sa-status { margin-left: 70px; }
+  .sa-meet-gcal, .sa-meet-panel > summary { min-height: 44px; }
+  .sa-meet-actions .btn, .sa-meet-panel .btn, .sa-cal-nav .btn, .sa-meet-filters .btn, .sa-meet-detail .btn, .sa-meet-form .btn { min-height: 44px; }
+  .sa-cal-panel { padding: 8px; }
+  .sa-meet-two input[type="date"], .sa-meet-two input[type="time"] { padding-left: 8px; padding-right: 6px; }
+}

@@ -104,12 +104,12 @@ class StudentHomeTests(TestCase):
 
     def test_quick_access_shows_only_built_actions(self):
         quick = section(self.html, '<nav class="sa-quick"')
-        # Only built destinations appear: complaints and Student Voice. Meetings are hidden.
-        self.assertEqual(re.findall(r'<a [^>]*href="([^"]+)"', quick), [reverse("student_complaint_new"), reverse("student_voice")])
+        # Only built destinations appear: complaints, Student Voice and meetings.
+        self.assertEqual(re.findall(r'<a [^>]*href="([^"]+)"', quick), [reverse("student_complaint_new"), reverse("student_voice"), reverse("student_meetings")])
         self.assertIn("Submit a complaint", quick)
         self.assertIn("Raise a problem with your Batch Advisor", quick)
         self.assertIn("Student Voice", quick)
-        for label in ("My meetings", *UNBUILT_WORDING):
+        for label in UNBUILT_WORDING:
             self.assertNotIn(label, quick)
 
     def test_quick_access_keeps_unbuilt_actions_for_later(self):
@@ -123,9 +123,9 @@ class StudentHomeTests(TestCase):
     def test_bottom_navigation_lists_only_built_destinations(self):
         bottom = section(self.html, '<nav class="sa-bottomnav"')
         self.assertEqual(re.findall(r'<a href="([^"]+)"', bottom),
-                         [reverse("student_home"), reverse("student_complaints"), reverse("student_voice")])
+                         [reverse("student_home"), reverse("student_complaints"), reverse("student_voice"), reverse("student_meetings")])
         self.assertIn("Voice", bottom)
-        for label in ("Meetings", "More", *UNBUILT_WORDING):
+        for label in ("More", *UNBUILT_WORDING):
             self.assertNotIn(label, bottom)
 
     def test_active_navigation_is_marked_current(self):
@@ -133,7 +133,7 @@ class StudentHomeTests(TestCase):
         self.assertEqual(self.html.count('aria-current="page"'), 2)  # sidebar and bottom navigation
 
     def test_unbuilt_destinations_are_not_rendered(self):
-        for text in ("Meetings", "My meetings", *UNBUILT_WORDING):
+        for text in UNBUILT_WORDING:
             self.assertNotIn(text, self.html)
         self.assertRegex(self.html, r'<a class="sa-nav-link" href="{}">.*Complaints</a>'.format(re.escape(reverse("student_complaints"))))
 
@@ -172,8 +172,8 @@ class AdvisorHomeTests(TestCase):
         self.client.force_login(self.advisor)
         html = self.client.get(reverse("advisor_home")).content.decode()
         rail = html[html.index('<nav class="sa-rail"'):html.index("</nav>", html.index('<nav class="sa-rail"'))]
-        self.assertEqual(re.findall(r'class="sa-rail-link" href="[^"]+" title="([^"]+)"', rail), ["Overview", "Complaints", "Student Voice", "Representatives"])
-        for text in ("Collective Issues", "Meetings", "Statistics", *UNBUILT_WORDING):
+        self.assertEqual(re.findall(r'class="sa-rail-link" href="[^"]+" title="([^"]+)"', rail), ["Overview", "Complaints", "Student Voice", "Meetings", "Representatives"])
+        for text in ("Collective Issues", "Statistics", *UNBUILT_WORDING):
             self.assertNotIn(text, html)
 
     def test_no_assignments(self):
@@ -201,7 +201,7 @@ class SuperAdminHomeTests(TestCase):
     def test_sidebar_hides_unbuilt_destinations(self):
         sidebar = self.html[self.html.index('<aside class="sa-sidebar"'):self.html.index("</aside>")]
         labels = re.findall(r'<a class="sa-nav-link" href="[^"]+"[^>]*>.*?</svg>([^<]+)</a>', sidebar)
-        self.assertEqual(labels, ["Overview", "Complaints", "Student Voice", "Students", "Batch Advisors", "CR/GR Management",
+        self.assertEqual(labels, ["Overview", "Complaints", "Student Voice", "Meetings", "Students", "Batch Advisors", "CR/GR Management",
                                   "Academic Structure", "Complaint Categories"])
         for text in ("Collective Issues", "Calendar", *UNBUILT_WORDING):
             self.assertNotIn(text, self.html)
@@ -223,6 +223,7 @@ class SuperAdminHomeTests(TestCase):
 
 
 class AuthLayoutTests(TestCase):
+    @override_settings(SOCIALACCOUNT_PROVIDERS={"google": {"SCOPE": ["openid", "email", "profile"]}})  # no client set up
     def test_login_uses_auth_layout(self):
         response = self.client.get(reverse("account_login"))
         self.assertTemplateUsed(response, "layouts/auth.html")
@@ -427,9 +428,9 @@ class NavigationDataTests(TestCase):
     def test_unbuilt_items_stay_in_the_data(self):
         unbuilt = {role: [item.label for _, items in groups for item in items if not item.url_name]
                    for role, groups in navigation.NAVIGATION.items()}
-        self.assertEqual(unbuilt[User.Role.STUDENT], ["Meetings"])
-        self.assertEqual(unbuilt[User.Role.BATCH_ADVISOR], ["Collective Issues", "Meetings", "Statistics"])
-        self.assertEqual(unbuilt[User.Role.SUPER_ADMIN], ["Collective Issues", "Calendar"])
+        self.assertEqual(unbuilt[User.Role.STUDENT], [])
+        self.assertEqual(unbuilt[User.Role.BATCH_ADVISOR], ["Collective Issues", "Statistics"])
+        self.assertEqual(unbuilt[User.Role.SUPER_ADMIN], ["Collective Issues"])
 
     def test_an_item_reappears_when_its_url_name_is_set(self):
         heading, items = navigation.NAVIGATION[User.Role.STUDENT][0]

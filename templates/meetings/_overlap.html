@@ -1,0 +1,9 @@
+{# A warning, not a block: the advisor can continue with the same time. #}
+{% if overlap_warnings %}
+<div class="sa-meet-warning" role="alert">
+  <p class="fw-semibold mb-1">This time overlaps another meeting.</p>
+  <ul>{% for warning in overlap_warnings %}<li>{{ warning }}</li>{% endfor %}</ul>
+  <p class="sa-small mb-0">Change the time, or continue if this is intended.</p>
+</div>
+<input type="hidden" name="overlap_ack" value="{{ overlap_token }}">
+{% endif %}

@@ -1,0 +1,57 @@
+{% extends "layouts/app.html" %}
+{% load static %}
+{# Student Meetings: request form, upcoming meetings by day, and past or closed ones (DEC-328). #}
+{% block title %}Meetings · UOL Student Affairs{% endblock %}
+{% block content %}
+<header class="sa-page-head sa-meet-head">
+  <div>
+    <span class="sa-eyebrow">Meetings</span>
+    <h1 class="sa-display">Meet your Batch Advisor.</h1>
+  </div>
+  {% include "meetings/_view_switch.html" with active="list" list_url="student_meetings" month_url="student_meetings_month" %}
+</header>
+
+<div class="sa-voice-layout">
+  <form method="post" class="sa-panel" novalidate data-once-submit aria-labelledby="meeting-form-title">
+    <h2 class="sa-h2" id="meeting-form-title">Request a meeting</h2>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    {% include "includes/form_field.html" with field=form.reason %}
+    <div class="sa-meet-two">
+      {% include "includes/form_field.html" with field=form.date %}
+      {% include "includes/form_field.html" with field=form.time %}
+    </div>
+    <p class="form-text mt-0">Times are in Pakistan time.</p>
+    <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">Send request</button></div>
+  </form>
+
+  <div class="sa-meet-lists">
+    <section aria-labelledby="upcoming-title">
+      <div class="sa-section-head"><h2 class="sa-h2" id="upcoming-title">Upcoming</h2></div>
+      {% for group in groups %}
+        <h3 class="sa-label sa-meet-day">{{ group.label }}</h3>
+        <ul class="sa-voice-list">
+          {% for meeting in group.meetings %}<li>{% include "meetings/_card.html" with detail_url_name="student_meeting_detail" student_actions=True %}</li>{% endfor %}
+        </ul>
+      {% empty %}
+        <div class="sa-empty">
+          <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg>
+          <div><p class="title">No upcoming meetings.</p><p class="sa-muted sa-small">Send a request and your Batch Advisor will confirm a time.</p></div>
+        </div>
+      {% endfor %}
+    </section>
+
+    <section aria-labelledby="closed-title">
+      <div class="sa-section-head"><h2 class="sa-h2" id="closed-title">Past and closed</h2></div>
+      {% if closed %}
+      <ul class="sa-voice-list">
+        {% for meeting in closed %}<li>{% include "meetings/_card.html" with detail_url_name="student_meeting_detail" %}</li>{% endfor %}
+      </ul>
+      {% else %}
+      <p class="sa-small sa-muted mb-0">Finished, declined and cancelled meetings will appear here.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

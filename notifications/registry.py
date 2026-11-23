@@ -3,9 +3,9 @@ Registered notification types (DEC-270). Each type declares the model its source
 and the routes a notification of that type may open. notifications.services.notify refuses
 anything else, and opening re-checks the destination against this list.
 
-The complaint and Student Voice producers are registered. Future DEC-270 producers (meeting
-confirmation, rescheduling and cancellation; new CR/GR issues) add an entry here and a producer
-in their own module; their recipients are decided with them.
+The complaint, Student Voice and meeting producers are registered. Future DEC-270 producers (new
+CR/GR issues) add an entry here and a producer in their own module; their recipients are decided
+with them.
 """
 
 from dataclasses import dataclass
@@ -29,6 +29,18 @@ REGISTRY = {
     ),
     "voice.replied": NotificationType(
         source_model="voice.submission", destinations=frozenset({"student_voice_detail"})
+    ),
+    "meeting.confirmed": NotificationType(
+        source_model="meetings.meetingevent", destinations=frozenset({"student_meeting_detail"})
+    ),
+    "meeting.time_suggested": NotificationType(
+        source_model="meetings.meetingevent", destinations=frozenset({"student_meeting_detail"})
+    ),
+    "meeting.declined": NotificationType(
+        source_model="meetings.meetingevent", destinations=frozenset({"student_meeting_detail"})
+    ),
+    "meeting.cancelled": NotificationType(
+        source_model="meetings.meetingevent", destinations=frozenset({"student_meeting_detail"})
     ),
 }
 
