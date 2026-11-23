@@ -23,6 +23,7 @@ from django.utils import timezone
 
 from academics import services as academic_services
 from academics.models import AcademicTerm, Batch, Section, Semester
+from accounts import identity
 from accounts import services as account_services
 from accounts.models import AdvisorAssignment, StudentProfile, User
 from complaints import services
@@ -150,6 +151,7 @@ class Command(BaseCommand):
         with transaction.atomic():
             structure = self._structure()
             people = self._people(structure)
+            self._demo_staff(structure, people)
             created_demo_complaints = self._complaints(structure, people)
             self._voice(people)
             if created_demo_complaints:
@@ -222,6 +224,27 @@ class Command(BaseCommand):
                     self.created.append(f"registration {email} in {section_name}")
                 students[email] = user
         return {"admin": admin, "advisors": advisors, "students": students}
+
+    def _demo_staff(self, structure, people):
+        """DEMO_STAFF_EMAILS (DEC-327): the first is a Super Admin, the second a Batch Advisor of
+        both demo cohorts. Created or updated; running again changes nothing."""
+        listed = list(dict.fromkeys(identity.normalize_email(email) for email in settings.DEMO_STAFF_EMAILS))
+        emails = identity.demo_staff_emails()
+        if listed != emails:  # a skipped entry would silently shift who gets which role
+            raise CommandError("DEMO_STAFF_EMAILS must contain valid, non-student email addresses.")
+        roles = [(User.Role.SUPER_ADMIN, "Demo Staff Admin"), (User.Role.BATCH_ADVISOR, "Demo Staff Advisor")]
+        for email, (role, name) in zip(emails, roles):
+            user = self._user(email, name, role)
+            if user.role != role:
+                user.role = role
+                user.save(update_fields=["role", "is_staff", "is_superuser"])
+                self.created.append(f"role of {email} set to {user.get_role_display()}")
+            if role == User.Role.BATCH_ADVISOR:
+                for section_name, section in structure["sections"].items():
+                    self._get_or_create(
+                        AdvisorAssignment, f"assignment {email} to {section_name}",
+                        defaults={"assigned_by": people["admin"]}, advisor=user, batch=structure["batch"],
+                        semester=structure["semester"], section=section)
 
     # --- complaints --------------------------------------------------------------------------
 
