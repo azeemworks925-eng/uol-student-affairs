@@ -107,3 +107,15 @@ No attachments, social feeds, email notifications, extra analytics, unapproved d
 | O32 | Resolved: DEC-314 and DEC-316 (current academic term only) |
 | O33 | Resolved: DEC-312 (no response-required classification or queue) |
 | O34 | Theme switch: Light and Dark only, or also System |
+
+## 12. Shell, components and motion (DEC-329)
+
+This section takes precedence over the earlier layout notes where they differ. Palette, type roles and every privacy rule are unchanged.
+
+- **Shell:** a 56px top bar (menu, wordmark, breadcrumb, quick search, + New, bell, avatar) and a 240px sidebar for every role, collapsing to a 64px rail. Phones use a drawer; students keep the bottom navigation.
+- **Layout:** canvas `#F5F7F5`, white cards with a 16px radius and hairline border, content up to 1440px, one page scrollbar.
+- **Components:** one each in `static/css/app.css` and `templates/includes/ui/`: greeting, stat tile, card header, filter chip, cohort chip, avatar, list/cards toggle, status journey, activity, pagination, dialog header, and line, bars, stacked bar and shaded grid charts.
+- **Lists:** one markup shown as rows or item cards. Rows are one line from 1200px and two compact lines below it.
+- **Detail:** main column plus a sticky panel. On phones: title, original, panel, history, with actions in a bottom bar.
+- **Charts:** inline SVG, Forest and status colours, a written takeaway, and no scale derived from a hidden value. The stacked bar keeps a light segment between the two dark ones, because the status colours are too close for colour-blind readers when they touch.
+- **Motion:** only `--dur-fast` (120ms), `--dur-base` (200ms), `--dur-slow` (320ms) and `--ease-out`. Opacity and transform where possible. Off under `prefers-reduced-motion`.
