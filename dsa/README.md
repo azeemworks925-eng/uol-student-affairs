@@ -26,9 +26,13 @@ separate demo.
 | Trie (prefix tree) | `trie.py` | The staff workspace search: student names, each word of a name, and SAP IDs, by prefix | `insert`: O(L·s); `starts_with`: O(L·s + m); space O(total characters) |
 | Binary min-heap | `heap.py` | "Next complaint" (Batch Advisor): the oldest complaint still Received or Under Review | `push`/`pop`: O(log n); `peek`/`len`: O(1); space O(n) |
 | Interval overlap sweep | `intervals.py` | Meetings: warns a Batch Advisor before they confirm or schedule a time that overlaps another of their Confirmed meetings that day | `find_overlaps`: O(n log n) time, O(n) space; `overlaps_with`: O((c + 1) · n log n) time, O(n) space |
+| General tree with DFS | `tree.py` | Academic Structure: the Department → Batch → Semester → Section outline, with each node's subtree totals (students, active students, open complaints) | `add_child`: O(1); `find_child`: O(b); `build_department_tree`: O(r·d·b + n log n); `dfs_totals`/`preorder`: O(n) time and space; `dfs_paths`: O(n·d) |
 
 The variables in the table are:
 - *n*: the number of items;
+- *r*: the flat cohort rows;
+- *b*: the children of one tree node;
+- *d*: the tree depth (4 levels);
 - *c*: the meetings that overlap the chosen time;
 - *k*: the key length;
 - *L*: the length of the word or prefix;
@@ -60,3 +64,5 @@ The first four are wired through `complaints/ordering.py`. The interval sweep is
   - `overlaps_with` repeats that sweep without the meetings already found, so the warning names
     every clash, even one hidden behind a longer meeting.
   - It is a warning, not a block: the advisor can continue with the same time.
+- **Tree and DFS:** `academics/structure.py` reads one row per existing cohort, builds the tree and
+  runs `dfs_totals` once. The Academic Structure page renders the result as an expandable outline.
