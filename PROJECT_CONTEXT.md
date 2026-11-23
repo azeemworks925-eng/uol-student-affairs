@@ -29,7 +29,7 @@ This is an independently developed academic project with the ambition of becomin
 | Area | Status |
 |---|---|
 | Django foundation | Created and tested locally (details below). |
-| Product features | Authentication, the application shell, complaints, in-app notifications and Student Voice are built. Collective issues (beyond CR/GR representation) and meetings are not implemented. |
+| Product features | Authentication, the application shell, complaints, in-app notifications, Student Voice and meetings are built. Collective issues (beyond CR/GR representation) are not implemented. |
 | Authoritative status | The dated "Status at a glance" table in `DEVELOPMENT_LOG.md`. |
 
 Foundation work performed locally:
@@ -116,6 +116,7 @@ IDs refer to `DECISIONS.md`, which has the full wording.
 - The BA calendar has month, week and day views. It is internal to the portal, with no Google Calendar integration. (DEC-061)
 - Students see only their own meetings: date, time, location, status. (DEC-261)
 - The Super Admin has department-wide meeting oversight. No chat. (DEC-262, DEC-263)
+- Every BA of the exact cohort can act. Statuses: Requested, Time suggested, Confirmed, Declined, Cancelled. Either side can cancel a Confirmed meeting; rescheduling is a cancellation plus a new request. A month view with a day list and a prefilled Google Calendar link. (DEC-328, amending DEC-061 and DEC-308)
 
 ### Notifications
 
@@ -162,8 +163,7 @@ Product workflows are settled. Do not assume answers to the following; full word
 
 **Workflow details needing a short answer from the owner**
 
-- O27: Which BA is relevant for meeting requests (resolved for complaints by DEC-310, collective issues by DEC-324 and Student Voice by DEC-326).
-- O29: Meeting status names, and whether a student can cancel or ask to reschedule a confirmed meeting.
+- None at present. O27 and O29 are resolved by DEC-310, DEC-324, DEC-326 and DEC-328.
 
 ## 6. Technology stack
 
