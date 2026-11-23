@@ -231,10 +231,15 @@ class NotifyValidationTests(FoundationTestCase):
         self.assertEqual(Notification.objects.count(), 0)
 
     def test_registry_declares_source_model_and_destinations(self):
+        expected = {
+            "complaint": ("complaints.complaintevent", {"student_complaint_detail"}),
+            "voice": ("voice.submission", {"student_voice_detail"}),
+        }
         for key, notification_type in registry.REGISTRY.items():
             with self.subTest(type=key):
-                self.assertEqual(notification_type.source_model, "complaints.complaintevent")
-                self.assertEqual(notification_type.destinations, {"student_complaint_detail"})
+                source_model, destinations = expected[key.split(".")[0]]
+                self.assertEqual(notification_type.source_model, source_model)
+                self.assertEqual(notification_type.destinations, destinations)
 
     def test_inactive_recipients_still_receive_and_keep_notifications(self):
         self.student.is_active = False
