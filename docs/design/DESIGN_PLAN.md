@@ -44,6 +44,8 @@ Dark values, as given in the Frontend Design Research Report (kept outside the r
 
 The full application shell (drawer behaviour, notification list, account menu contents) is refined as modules are built.
 
+Section Issues (DEC-331): the current CR and GR also get a "Section issues" sidebar and drawer item and a "Raise a section issue" entry in + New. The four phone tabs do not change. Batch Advisors and the Super Admin reach the work through "Collective Issues"; the Super Admin's page is read-only.
+
 ## 4. Student Dashboard — Approved (DEC-302, DEC-303)
 
 - Welcome: date, exact cohort chip (e.g. "Fall 2024 · Semester 4 · Section A"), display greeting with the student's first name.
@@ -99,7 +101,7 @@ No attachments, social feeds, email notifications, extra analytics, unapproved d
 | ID | Question |
 |---|---|
 | O25 | Resolved: DEC-315, with DEC-317 to DEC-320 (Stage 4b details in COMPLAINTS_PART4_SPEC.md section 6) |
-| O27 | Resolved for complaints by DEC-310; still open for collective issues, Student Voice and meetings |
+| O27 | Resolved: complaints by DEC-310, collective issues by DEC-324, Student Voice by DEC-326, meetings by DEC-328 |
 | O28 | How cancellation requests appear and are recorded |
 | O29 | Meeting status names and student actions on suggested times |
 | O30 | Final production typography (Newsreader + Inter preferred) |

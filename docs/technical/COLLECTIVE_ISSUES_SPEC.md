@@ -1,6 +1,6 @@
 # Collective Issues V1 — specification (CR/GR)
 
-**Status:** Product decisions approved on 2026-11-18 (DEC-323 to DEC-325). **Stage CI-1 (cohort representation, section 16) is implemented on branch `feat/collective-issues-ci-1-representation`, awaiting review; CI-2 to CI-4 are not implemented.** The technical design remains a specification for implementation and review. Product requirements are authoritative as recorded in `DECISIONS.md`.
+**Status:** Product decisions approved on 2026-11-18 (DEC-323 to DEC-325). **CI-1 (cohort representation), CI-2 (raising, noticeboard, support), CI-3 (Batch Advisor workspace, Super Admin oversight) and CI-4 (acceptance) are implemented (DEC-331).** The code is in the Django app `issues` rather than the `collective_issues` name proposed below; advisor and Super Admin pages are at `/advisor/collective-issues/` and `/super-admin/collective-issues/`, and student pages at `/student/section-issues/`. Only the current CR and GR have a section issues list; other students use the Home noticeboard and the issue page (DEC-324). Product requirements are authoritative as recorded in `DECISIONS.md`.
 **Builds on:** `main` at `0df6dd4` (Complaints Parts 1–4, notifications, academic terms and Super Admin analytics merged).
 **Governing decisions (already CONFIRMED):** DEC-016, DEC-040, DEC-205, DEC-210, DEC-212, DEC-240 to DEC-247, DEC-270, DEC-282, DEC-300 to DEC-304, DEC-307, **DEC-323** (CR/GR representation lifecycle), **DEC-324** (Collective Issues V1 product rules) and **DEC-325** (representative response notifications) in `docs/decisions/DECISIONS.md`.
 **Decision traceability:** section 12 records the remaining O27 scope and the resolution of O35, O36–O55. The collective-issue portion of O27 is resolved by DEC-324; O27 remains open for Student Voice and meeting requests. Section 13 records brief differences already settled by confirmed decisions.
@@ -708,16 +708,16 @@ These differences between the original brief and confirmed decisions are settled
      - the BA "Representatives" and Super Admin "CR/GR Management" pages.
    - **Needs:** DEC-323 and DEC-324; representation lifecycle and inactive-cohort rules are settled.
    - **Independently useful:** representatives are recorded before issues exist.
-2. **Stage CI-2: raising, the noticeboard and support.**
+2. **Stage CI-2: raising, the noticeboard and support (implemented, DEC-331).**
    - **Contents:** the `collective_issues` app with models, the migration, `visible_issues`, the raise flow with review step, the Home noticeboard, the section issues list and issue pages, support, and the DEC-270 notification.
    - **Needs:** CI-1; raising, noticeboard and support rules are settled by DEC-324.
-3. **Stage CI-3: Batch Advisor workspace and Super Admin oversight.**
+3. **Stage CI-3: Batch Advisor workspace and Super Admin oversight (implemented, DEC-331).**
    - **Contents:** respond, status with resolution note, the representatives' private views, Super Admin read-only oversight, and the approved representative response notifications (DEC-325).
    - **Needs:** CI-2; routing, staff permissions, moderation scope and response notifications are settled by DEC-324 and DEC-325.
-4. **Stage CI-4: acceptance and documentation.** Full regression on both databases, browser acceptance and technical notes.
+4. **Stage CI-4: acceptance and documentation (implemented, DEC-331).** Full regression on MySQL, browser acceptance and technical notes.
 
 Each stage adds only additive migrations and changes no existing data. Complaint behaviour is untouched throughout.
 
-## 17. Decision record (approved; implementation pending)
+## 17. Decision record (approved and implemented, DEC-331)
 
-All product decisions formerly listed as open in this specification are recorded in `DECISIONS.md`: DEC-323 (representation lifecycle; O35 and O55), DEC-324 (collective-issue routing and product rules; O27 for collective issues and O36–O50, O52–O54), and DEC-325 (representative response notifications; O51). O27 remains open only for BA routing in Student Voice and meeting requests. The technical design remains subject to implementation review; product approval does not mean the feature has been implemented.
+All product decisions formerly listed as open in this specification are recorded in `DECISIONS.md`: DEC-323 (representation lifecycle; O35 and O55), DEC-324 (collective-issue routing and product rules; O27 for collective issues and O36–O50, O52–O54), and DEC-325 (representative response notifications; O51). O27 remains open only for BA routing in Student Voice and meeting requests. DEC-331 records the implementation.
