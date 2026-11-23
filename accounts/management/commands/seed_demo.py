@@ -7,7 +7,8 @@
 - Keeps the existing demo accounts (demo.admin@uol.edu.pk, demo.advisor@uol.edu.pk,
   12345678@student.uol.edu.pk) and the "DEMO — Fall 2026" batch.
 - Complaints, status changes, responses, owner changes and student actions go only through
-  complaints.services, so their history and notifications are the real ones. Only the clock
+  complaints.services, and Student Voice only through voice.services, so their history and
+  notifications are the real ones. Only the clock
   is simulated: each step runs with django.utils.timezone.now set to a moment in the past few
   weeks, so lists, "Oldest first", "Next complaint" and the Overview counts look realistic.
 """
@@ -28,6 +29,8 @@ from complaints import services
 from complaints.models import Complaint, ComplaintCategory
 from notifications import services as notification_services
 from notifications.models import Notification
+from voice import services as voice_services
+from voice.models import Submission
 
 BATCH_NAME = "DEMO — Fall 2026"
 OLD_BATCH_NAMES = ("DEMO ? Fall 2026",)  # the same batch, saved earlier without its em dash
@@ -114,6 +117,27 @@ COMPLAINTS = [
      [(6, "reject", "Cafeteria pricing is handled by the vendor contract, not by Student Affairs.")]),
 ]
 
+# Student Voice: (student email, type, text, days ago, action, days ago of the action, reply).
+# Actions: answer (Question or reply), review (mark reviewed), None (still waiting).
+VOICE_SUBMISSIONS = [
+    (DEMO_STUDENT, "question", "When will the final exam date sheet for Semester 4 be published?",
+     6, "answer", 1, "The date sheet will be published on the department notice board by the end of this week."),
+    (DEMO_STUDENT, "idea", "Could we have a short peer tutoring hour for Data Structures before each quiz?",
+     5, "answer", 3, "A good idea. I will discuss a trial with the course instructor."),
+    (DEMO_STUDENT, "feedback", "The new lab assistant explains the linked list tasks very clearly.",
+     2, None, None, ""),
+    ("70126001@student.uol.edu.pk", "idea", "A shared calendar of assignment deadlines would help us plan our weeks.",
+     7, "review", 5, ""),
+    ("70126003@student.uol.edu.pk", "question", "Can a student take a course from a higher semester to reduce load later?",
+     1, None, None, ""),
+    ("70126006@student.uol.edu.pk", "feedback", "The extra revision class before the mid-terms was really useful.",
+     9, "answer", 8, "Thank you. I have passed this on to the instructor."),
+    ("70126008@student.uol.edu.pk", "question", "Is attendance counted during the week of the department sports gala?",
+     4, "answer", 2, "Yes, regular classes continue and attendance is counted as usual."),
+    ("70126010@student.uol.edu.pk", "idea", "Please add more charging points in the second floor study area.",
+     3, "review", 2, ""),
+]
+
 
 class Command(BaseCommand):
     help = "Create demo data for local development (DEBUG only). Safe to run again."
@@ -126,7 +150,10 @@ class Command(BaseCommand):
         with transaction.atomic():
             structure = self._structure()
             people = self._people(structure)
-            self._complaints(structure, people)
+            created_demo_complaints = self._complaints(structure, people)
+            self._voice(people)
+            if created_demo_complaints:
+                self._mark_older_updates_read(people["students"][DEMO_STUDENT])
         if self.created:
             for line in self.created:
                 self.stdout.write(f"  created {line}")
@@ -221,8 +248,27 @@ class Command(BaseCommand):
                     self._step(complaint, action, text, student=student, advisor=advisor, admin=admin)
             self.created.append(f"complaint {complaint.reference} ({title})")
             demo_student_complaints += email == DEMO_STUDENT
-        if demo_student_complaints:
-            self._mark_older_updates_read(people["students"][DEMO_STUDENT])
+        return demo_student_complaints
+
+    # --- Student Voice -----------------------------------------------------------------------
+
+    def _voice(self, people):
+        """Real submissions through voice.services. An existing one (same student and text) is left alone."""
+        for index, (email, kind, text, days_ago, action, action_days_ago, reply) in enumerate(VOICE_SUBMISSIONS):
+            student = people["students"][email]
+            if Submission.objects.filter(student=student, text=text).exists():
+                continue
+            section = StudentProfile.objects.get(user=student).section.name
+            advisor = people["advisors"][SECTION_ADVISOR[section]]
+            with mock.patch("django.utils.timezone.now", return_value=self._at(days_ago, index)):
+                submission = voice_services.submit(student, type=kind, text=text)
+            if action:
+                with mock.patch("django.utils.timezone.now", return_value=self._at(action_days_ago, index)):
+                    if action == "answer":
+                        voice_services.answer(advisor, submission, reply)
+                    else:
+                        voice_services.mark_reviewed(advisor, submission)
+            self.created.append(f"Student Voice {kind} from {email}")
 
     def _step(self, complaint, action, text, *, student, advisor, admin):
         complaint = Complaint.objects.get(pk=complaint.pk)
