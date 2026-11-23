@@ -1,4 +1,4 @@
 {# The status journey: one line when it fits, wrapping between steps when it does not. #}
-<ol class="sa-journey" aria-label="{{ journey_label|default:'Where this complaint stands' }}">
+<ol class="sa-journey{% if journey_class %} {{ journey_class }}{% endif %}" aria-label="{{ journey_label|default:'Where this complaint stands' }}">
   {% for step in journey %}<li class="is-{{ step.state }}"{% if step.state == "current" %} aria-current="step"{% endif %}><span class="dot" aria-hidden="true"></span>{{ step.label }}</li>{% endfor %}
 </ol>
