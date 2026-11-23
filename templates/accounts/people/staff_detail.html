@@ -75,7 +75,7 @@
           <div><dt>Email</dt><dd>{{ person.email }}</dd></div>
           <div><dt>Status</dt><dd>{% if person.is_active %}Active{% else %}Inactive{% endif %}</dd></div>
           <div><dt>Last sign-in</dt><dd>{% if person.last_login %}{{ person.last_login|date:"j M Y, H:i" }}{% else %}Never{% endif %}</dd></div>
-          <div><dt>Google</dt><dd>{% if google_linked %}Linked{% else %}Not signed in yet{% endif %}</dd></div>
+          <div><dt>Google</dt><dd>{% if google_linked %}Linked{% else %}Not linked yet{% endif %}</dd></div>
         </dl>
       </section>
 

@@ -926,7 +926,7 @@ a.sa-bar-row:hover .sa-bar-label { text-decoration: underline; text-underline-of
 .sa-change-meta { font-size: 14px; color: var(--sa-muted); }
 
 /* Academic Structure: entry cards and the department outline. */
-.sa-structure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: var(--sa-gap); align-items: start; }
+.sa-structure-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: var(--sa-gap); align-items: start; }
 .sa-cat-row.is-inactive { background: var(--sa-canvas); }
 .sa-cat-row.is-inactive .sa-cat-name { color: var(--sa-muted); }
 .sa-tree, .sa-tree-children { list-style: none; margin: 0; padding: 0; }

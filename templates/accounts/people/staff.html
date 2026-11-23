@@ -51,7 +51,7 @@
         <span class="sa-item-ref">{{ row.email }}</span>
         <span class="sa-item-cohort">{% if tab == "advisors" %}<span class="sa-small">{{ row.cohorts }} cohort{{ row.cohorts|pluralize }}</span>{% else %}<span class="sa-small">Super Admin</span>{% endif %}</span>
         <span class="sa-item-state">{% if row.is_active %}<span class="sa-flag">Active</span>{% else %}<span class="sa-flag sa-flag--muted">Inactive</span>{% endif %}</span>
-        <span class="sa-item-when">{% if row.linked %}Signed in{% else %}Not signed in{% endif %}</span>
+        <span class="sa-item-when">{% if row.linked %}Google linked{% else %}Not linked yet{% endif %}</span>
       </a>
     </li>
     {% endfor %}
