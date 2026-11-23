@@ -212,7 +212,8 @@ class SuperAdminHomeTests(TestCase):
         self.assertIn(reverse("admin:app_list", kwargs={"app_label": "academics"}), self.html)
         self.assertIn("?role__exact=batch_advisor", self.html)
         # Each linked admin page actually opens for the Super Admin.
-        for url in re.findall(r'class="btn btn-sa-secondary btn-sm" href="([^"]+)"', self.html):
+        sidebar = self.html[self.html.index('<aside class="sa-sidebar"'):self.html.index("</aside>")]
+        for url in re.findall(r'class="sa-nav-link" href="([^"]+)"', sidebar):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url.replace("&amp;", "&")).status_code, 200)
 

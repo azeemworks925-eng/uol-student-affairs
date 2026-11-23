@@ -1,0 +1,6 @@
+{# Greeting block on every home: date, greeting (Newsreader), one summary line. #}
+<header class="sa-greeting">
+  <p class="sa-greeting-date">{{ today|date:"l, j F" }}</p>
+  <h1 class="sa-greeting-title">{{ greeting }}{% if first_name %}, {{ first_name }}{% endif %}.</h1>
+  <p class="sa-greeting-summary"{% if testid %} data-testid="{{ testid }}"{% endif %}>{{ lead }}{% if soft %} <span class="soft">{{ soft }}</span>{% endif %}</p>
+</header>

@@ -206,10 +206,6 @@ class HeaderTests(ViewTestCase):
         bottom = html[html.index('<nav class="sa-bottomnav"'):]
         bottom = bottom[:bottom.index("</nav>")]
         self.assertNotIn("/notifications/", bottom)  # still exactly the four DEC-304 destinations
-        self.client.force_login(self.admin)
-        overview = self.client.get(reverse("super_admin_home")).content.decode()
-        manage = overview[overview.index('<nav class="sa-goto"'):]
-        self.assertNotIn("/notifications/", manage[:manage.index("</nav>")])
 
     def test_context_processor_is_lazy_and_only_for_active_signed_in_users(self):
         from django.contrib.auth.models import AnonymousUser

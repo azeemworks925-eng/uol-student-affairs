@@ -571,7 +571,7 @@ class PageBehaviourTests(PagesTestCase):
                 self.assertRegex(self.client.get(url).content.decode(),
                                  r'<a class="sa-nav-link" href="{}"[^>]*aria-current="page">'.format(re.escape(INDEX)))
         overview = self.client.get(reverse("super_admin_home")).content.decode()
-        self.assertIn(f'href="{INDEX}">Complaint Categories</a>', overview)
+        self.assertRegex(overview, r'href="{}"[^>]*>.*Complaint Categories</span></a>'.format(re.escape(INDEX)))
         self.assertEqual(self.client.get(INDEX).status_code, 200)
 
 

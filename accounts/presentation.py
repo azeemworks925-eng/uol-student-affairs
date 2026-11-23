@@ -28,8 +28,10 @@ def greeting(now=None):
 
 
 def first_name(user):
-    name = (user.full_name or "").strip()
-    return name.split()[0] if name else ""
+    """The first name, skipping a title such as "Dr."."""
+    words = (user.full_name or "").split()
+    names = [word for word in words if not word.endswith(".")]
+    return (names or words or [""])[0]
 
 
 def personal_summary(update_descriptions):

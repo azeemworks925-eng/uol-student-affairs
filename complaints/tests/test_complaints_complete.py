@@ -323,7 +323,7 @@ class AdvisorOverviewTests(CompleteTestCase):
         [card] = response.context["assignments"]
         # z1 was resolved on T0 + 4 days (long ago), a2 two days ago; a1 is still open.
         self.assertEqual(card.counts, {"open": 1, "resolved_recently": 1, "total": 4})
-        self.assertContains(response, "Resolved, last 7 days")
+        self.assertContains(response, "Resolved 7d")
 
     def test_cohort_without_complaints_and_other_cohorts(self):
         empty = cohort(self.academics, section="other_section")

@@ -4,7 +4,7 @@
   <li>
     {% include "includes/ui/avatar.html" with name=item.who size="sm" %}
     <span class="sa-activity-text">{% if item.url %}<a href="{{ item.url }}"><b>{{ item.who }}</b> {{ item.what }}</a>{% else %}<b>{{ item.who }}</b> {{ item.what }}{% endif %}</span>
-    <time class="sa-activity-time" datetime="{{ item.when|date:'c' }}" title="{{ item.when|date:'j M Y, H:i' }}">{{ item.when|ago }}</time>
+    <time class="sa-activity-time" datetime="{{ item.when|date:'c' }}">{{ item.when|ago }}</time>
   </li>
   {% endfor %}
 </ul>

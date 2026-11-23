@@ -1,55 +1,81 @@
 {% extends "layouts/app.html" %}
-{# Student Dashboard, Design D (DEC-282, DEC-302, DEC-303). #}
+{% load ui %}
+{# Student Home: the student's own numbers, updates, meetings and complaints. No charts. #}
 {% block title %}Home · UOL Student Affairs{% endblock %}
 {% block content %}
-<div class="sa-welcome-wrap">
-  <section class="sa-welcome" aria-labelledby="welcome-title">
-    <div>
-      <div class="meta">
-        <span class="sa-eyebrow">{{ today|date:"l, j F" }}</span>
-        <span class="sa-cohort" title="Batch · Semester · Section">{{ cohort_label }}</span>
-      </div>
-      <h1 class="sa-display" id="welcome-title">{{ greeting }}{% if first_name %}, {{ first_name }}{% endif %}.</h1>
-      <p class="sa-lede" data-testid="personal-summary">{{ summary.lead }}{% if summary.rest %} <span class="soft">{{ summary.rest }}</span>{% endif %}</p>
+{% with d=dashboard %}
+<div class="sa-flow">
+  <div class="sa-home-head">
+    {% include "includes/ui/greeting.html" with lead=summary.lead soft=summary.rest testid="personal-summary" %}
+    {% include "includes/ui/cohort.html" with record=profile %}
+  </div>
+
+  <div class="sa-stats">
+    {% for stat in d.stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone url=stat.url %}{% endfor %}
+  </div>
+
+  <div class="sa-grid-2">
+    <section class="sa-card" aria-labelledby="updates-title">
+      {% url 'student_complaints' as complaints_url %}
+      {% if updates %}{% include "includes/ui/card_head.html" with title="Your latest updates" id="updates-title" action_url=complaints_url action_label="All complaints" %}{% else %}{% include "includes/ui/card_head.html" with title="Your latest updates" id="updates-title" %}{% endif %}
+      {% if updates %}
+      <ul class="sa-update-list">
+        {% for update in updates %}
+        <li>
+          <a class="sa-update" href="{{ update.url }}">
+            <span class="sa-update-main">
+              <span class="sa-update-top"><span class="sa-ref">{{ update.reference }}</span>{% if update.is_new %}<span class="sa-flag sa-flag--new">New</span>{% endif %}</span>
+              <span class="sa-update-label">{{ update.label }}</span>
+              <span class="sa-small sa-muted">{{ update.complaint_title }} · <time class="sa-nowrap" datetime="{{ update.when|date:'c' }}">{{ update.when|ago }}</time></span>
+            </span>
+            {% include "complaints/student/_status.html" with tone=update.tone label=update.status_label %}
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        {% include "includes/ui/empty.html" with title="No updates yet." text="Replies and status changes will appear here." %}
+      {% endif %}
+    </section>
+
+    <div class="sa-flow">
+      <section class="sa-card" aria-labelledby="quick-title">
+        {% include "includes/ui/card_head.html" with title="Quick actions" id="quick-title" %}
+        <nav class="sa-quick" aria-label="Quick access">
+          {% for item in quick_access %}
+            <a class="sa-quick-item{% if item.primary %} sa-quick-item--primary{% endif %}" href="{{ item.url }}"><span class="ic"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></span><span><b>{{ item.label }}</b><span class="d">{{ item.description }}</span></span><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>
+          {% endfor %}
+        </nav>
+      </section>
+
+      <section class="sa-card" aria-labelledby="home-meetings">
+        {% url 'student_meetings' as meetings_url %}
+        {% include "includes/ui/card_head.html" with title="Upcoming meetings" id="home-meetings" action_url=meetings_url action_label="All meetings" %}
+        {% if d.meetings %}
+        <ul class="sa-meeting-list">{% for meeting in d.meetings %}{% include "includes/ui/meeting_row.html" with url_name="student_meeting_detail" show_calendar=True %}{% endfor %}</ul>
+        {% else %}{% include "includes/ui/empty.html" with title="No meetings coming up." icon="calendar" %}{% endif %}
+      </section>
     </div>
-    <nav class="sa-quick" aria-label="Quick access">
-      {% for item in quick_access %}
-        <a class="sa-quick-item{% if item.primary %} sa-quick-item--primary{% endif %}" href="{{ item.url }}"><span class="ic"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></span><span><b>{{ item.label }}</b><span class="d">{{ item.description }}</span></span><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>
-      {% endfor %}
-    </nav>
-  </section>
+
+    <section class="sa-card" aria-labelledby="progress-title">
+      {% include "includes/ui/card_head.html" with title="Your complaints" id="progress-title" %}
+      {% if d.open_complaints %}
+      <ul class="sa-progress-list">
+        {% for complaint in d.open_complaints %}
+        <li>
+          <a class="sa-progress-title" href="{% url 'student_complaint_detail' complaint.reference %}"><span class="sa-ref">{{ complaint.reference }}</span> {{ complaint.title }}</a>
+          {% include "includes/ui/journey.html" with journey=complaint.journey %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}{% include "includes/ui/empty.html" with title="No open complaints." icon="check" %}{% endif %}
+    </section>
+
+    <section class="sa-card" aria-labelledby="board-title">
+      {% include "includes/ui/card_head.html" with title="Your section" id="board-title" %}
+      {% include "includes/ui/empty.html" with title="No open issues in your section." text="Issues raised by your CR or GR appear here." icon="hand" %}
+    </section>
+  </div>
 </div>
-
-<section class="sa-section" aria-labelledby="updates-title">
-  <div class="sa-section-head"><h2 class="sa-h2" id="updates-title">Your latest updates</h2>{% if updates %}<a class="sa-small" href="{% url 'student_complaints' %}">All your complaints</a>{% endif %}</div>
-  {% if updates %}
-  <ul class="sa-case-list sa-updates">
-    {% for update in updates %}
-    <li>
-      <a class="sa-case-row" href="{{ update.url }}">
-        <span class="sa-case-main">
-          <span class="sa-update-top"><span class="sa-ref">{{ update.reference }}</span>{% if update.is_new %}<span class="sa-flag sa-flag--new">New</span>{% endif %}</span>
-          <span class="sa-case-title">{{ update.label }}</span>
-          <span class="sa-case-meta">{{ update.complaint_title }} · <time class="sa-nowrap" datetime="{{ update.when|date:'c' }}">{{ update.when|date:"j M Y, g:i a" }}</time></span>
-        </span>
-        {% include "complaints/student/_status.html" with tone=update.tone label=update.status_label %}
-      </a>
-    </li>
-    {% endfor %}
-  </ul>
-  {% else %}
-  <div class="sa-empty">
-    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
-    <div><p class="title">No updates yet.</p><p class="sa-muted sa-small">Replies and status changes on your complaints, and answers in Student Voice, will appear here.</p></div>
-  </div>
-  {% endif %}
-</section>
-
-<section class="sa-board" aria-labelledby="board-title">
-  <div class="intro"><span class="sa-eyebrow">Your section</span><h2 class="sa-display" id="board-title">What your section is raising</h2></div>
-  <div class="sa-empty">
-    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-hand"/></svg>
-    <div><p class="title">No open issues in your section.</p><p class="sa-muted sa-small">When your CR or GR raises an issue for {{ cohort_label }}, you can support it here.</p></div>
-  </div>
-</section>
+{% endwith %}
 {% endblock %}

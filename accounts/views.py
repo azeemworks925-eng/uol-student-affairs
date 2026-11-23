@@ -14,6 +14,7 @@ from complaints.analytics import build_overview
 from complaints.workspace import advisor_cohort_counts, cohort_value
 from meetings.presentation import student_home_updates
 
+from .dashboards import advisor_dashboard, student_dashboard, super_admin_dashboard
 from .forms import StudentRegistrationForm
 from .identity import extract_sap_id
 from .models import StudentProfile, User
@@ -96,6 +97,7 @@ def student_home(request):
         "summary": personal_summary([update.headline for update in updates]),
         "updates": updates,
         "quick_access": quick_access(),
+        "dashboard": student_dashboard(request.user),
     })
 
 
@@ -109,15 +111,26 @@ def advisor_home(request):
         # P3-8: each card opens the complaints workspace filtered to this exact cohort.
         a.complaints_url = f"{workspace}?{urlencode({'cohort': value})}"
         a.counts = counts.get(value, {"open": 0, "resolved_recently": 0, "total": 0})
-    return render(request, "accounts/advisor_home.html", {"assignments": assignments})
+    return render(request, "accounts/advisor_home.html", {
+        "assignments": assignments,
+        "today": timezone.localdate(),
+        "greeting": greeting(),
+        "first_name": first_name(request.user),
+        "dashboard": advisor_dashboard(request.user, assignments),
+    })
 
 
 @super_admin_required
 def super_admin_home(request):
     # The three DEC-281 analytics (Complaints Part 4 Stage 4b). Suppression is decided in
     # complaints.analytics; the template receives displayable values only (DEC-318).
+    analytics = build_overview(request.user)
     return render(request, "accounts/super_admin_home.html", {
-        "analytics": build_overview(request.user),
+        "analytics": analytics,
+        "dashboard": super_admin_dashboard(request.user, analytics),
+        "today": timezone.localdate(),
+        "greeting": greeting(),
+        "first_name": first_name(request.user),
         "term_admin_url": reverse("admin:academics_academicterm_changelist"),
     })
 
