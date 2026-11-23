@@ -1,15 +1,16 @@
 {% extends "layouts/app.html" %}
 {# The signed-in user's notifications (Part 4 Stage 3). Viewing does not mark anything read; opening one does. #}
 {% block title %}Notifications · UOL Student Affairs{% endblock %}
+{% block crumb_root %}<li>Notifications</li>{% endblock %}
 {% block content %}
-<div class="sa-narrow">
-  <header class="sa-page-head sa-page-head--split">
+<div class="sa-flow">
+  <header class="sa-page-header">
     <div>
-      <span class="sa-eyebrow">Notifications</span>
-      <h1 class="sa-display">{% if unread %}You have {{ unread }} unread notification{{ unread|pluralize }}.{% else %}No unread notifications.{% endif %}</h1>
+      <h1 class="sa-page-title">Notifications</h1>
+      <p class="sa-page-subtitle">{% if unread %}You have {{ unread }} unread notification{{ unread|pluralize }}.{% else %}No unread notifications.{% endif %}</p>
     </div>
     {% if unread %}
-    <form method="post" action="{% url 'notifications_mark_all_read' %}">
+    <form method="post" action="{% url 'notifications_mark_all_read' %}" class="sa-page-actions">
       {% csrf_token %}
       <button type="submit" class="btn btn-sa-secondary">Mark all as read</button>
     </form>
@@ -17,7 +18,7 @@
   </header>
 
   {% if page.object_list %}
-  <ol class="sa-notify-list">
+  <ol class="sa-notify-list sa-card">
     {% for notification in page %}
     <li>
       <form method="post" action="{% url 'notification_open' notification.pk %}">
@@ -34,13 +35,7 @@
     </li>
     {% endfor %}
   </ol>
-  {% if page.has_other_pages %}
-  <nav class="sa-pagination" aria-label="Notification pages">
-    {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="?page={{ page.previous_page_number }}">Newer</a>{% endif %}
-    <span class="sa-small sa-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
-    {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="?page={{ page.next_page_number }}">Older</a>{% endif %}
-  </nav>
-  {% endif %}
+  {% include "includes/ui/pagination.html" with label="Notification pages" previous="Newer" next="Older" %}
   {% else %}
   <div class="sa-empty">
     <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg>

@@ -3,16 +3,16 @@
 {# Complaint category management (Complaints Part 4 Stage 2). No delete control by design. #}
 {% block title %}Complaint categories · UOL Student Affairs{% endblock %}
 {% block content %}
-<header class="sa-page-head sa-page-head--split">
+<div class="sa-flow">
+<header class="sa-page-header">
   <div>
-    <span class="sa-eyebrow">Configuration</span>
-    <h1 class="sa-display">Complaint categories</h1>
-    <p class="sa-lede">{{ total }} categor{{ total|pluralize:"y,ies" }}, {{ active_total }} active. <span class="soft">Students choose from active categories when they submit a complaint, in this order.</span></p>
+    <h1 class="sa-page-title">Complaint categories</h1>
+    <p class="sa-page-subtitle">{{ total }} categor{{ total|pluralize:"y,ies" }}, {{ active_total }} active. Students see active categories in this order.</p>
   </div>
 </header>
 
-<section class="sa-panel sa-cat-add" aria-labelledby="add-category-title" data-focus-invalid>
-  <h2 class="sa-h2" id="add-category-title">Add a category</h2>
+<section class="sa-card" aria-labelledby="add-category-title" data-focus-invalid>
+  <h2 class="sa-card-title mb-2" id="add-category-title">Add a category</h2>
   <form method="post" action="{% url 'super_admin_category_create' %}" class="sa-inline-form" novalidate data-once-submit>
     {% csrf_token %}
     {% include "includes/form_field.html" with field=create_form.name wrapper_class="sa-inline-field" %}
@@ -20,8 +20,8 @@
   </form>
 </section>
 
-<section class="sa-section" aria-labelledby="categories-title">
-  <div class="sa-section-head"><h2 class="sa-h2" id="categories-title">Categories</h2><span class="sa-small sa-muted">In the order students see them</span></div>
+<section class="sa-card" aria-labelledby="categories-title">
+  <div class="sa-section-head"><h2 class="sa-card-title" id="categories-title">Categories</h2><span class="sa-small sa-muted">In the order students see them</span></div>
   {% if categories %}
   <ol class="sa-cat-list">
     {% for category in categories %}
@@ -46,5 +46,6 @@
   </div>
   {% endif %}
 </section>
+</div>
 {% endblock %}
 {% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

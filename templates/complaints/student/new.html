@@ -2,16 +2,18 @@
 {% load static %}
 {# Submit a complaint (DEC-030, DEC-220, DEC-225). The cohort comes from the student's registration, never from this form. #}
 {% block title %}Submit a complaint · UOL Student Affairs{% endblock %}
+{% block crumb %}<li>New complaint</li>{% endblock %}
 {% block content %}
-<div class="sa-narrow">
-  <a class="sa-back" href="{% url 'student_complaints' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>My Submissions</a>
-  <header class="sa-page-head">
-    <span class="sa-eyebrow">Complaints</span>
-    <h1 class="sa-display">Submit a complaint</h1>
-    <p class="sa-lede">It goes to the Batch Advisors of your section{% if user.student_profile %}, <span class="sa-cohort">{{ user.student_profile.batch }} · {{ user.student_profile.semester }} · {{ user.student_profile.section }}</span>{% endif %}. Only you and the staff who handle it can see it.</p>
+<div class="sa-narrow sa-flow">
+  <a class="sa-back" href="{% url 'student_complaints' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Back to complaints</a>
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Submit a complaint</h1>
+      <p class="sa-page-subtitle">Goes to your section's Batch Advisors{% if user.student_profile %} {% include "includes/ui/cohort.html" with record=user.student_profile %}{% endif %}</p>
+    </div>
   </header>
 
-  <form method="post" class="sa-panel" novalidate data-once-submit>
+  <form method="post" class="sa-card" novalidate data-once-submit>
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
     {% include "includes/form_field.html" with field=form.category %}

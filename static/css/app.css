@@ -992,6 +992,26 @@ a.sa-bar-row:hover .sa-bar-label { text-decoration: underline; text-underline-of
   .sa-item-actions .btn, .sa-item-actions .sa-card-action { min-height: 44px; }
 }
 
+/* ---------- Remaining pages ---------- */
+.sa-narrow { width: 100%; max-width: 760px; margin-inline: auto; }
+.sa-panel { border-radius: var(--sa-radius-card); }
+.sa-section-head { margin-bottom: 10px; }
+.sa-notify-list.sa-card { padding: 6px; }
+.sa-notify-list li:last-child { border-bottom: 0; }
+.sa-notify-item { transition: background-color var(--dur-fast) var(--ease-out); }
+.sa-notify-item:hover { background: var(--sa-subtle); }
+.sa-notify-item.is-unread .sa-notify-dot { background: var(--sa-accent); }
+.sa-rep-list { margin-top: 0; }
+.sa-rep-filters { margin-top: 0; border-radius: var(--sa-radius-card); }
+.sa-rep-breach { margin-top: 0; }
+.sa-cat-subadd { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--sa-border); }
+.sa-cat-list { border-top: 0; }
+.sa-cat-row:last-child { border-bottom: 0; }
+.sa-landing, .sa-auth { animation: sa-page-in var(--dur-slow) var(--ease-out) backwards; }
+.sa-landing { max-width: var(--sa-page-max); }
+.sa-public-head, .sa-public-foot { max-width: var(--sa-page-max); }
+.sa-hero-action, .sa-auth .panel, .sa-feature { border-radius: var(--sa-radius-card); }
+
 /* ---------- Motion ---------- */
 .btn { transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
 .btn:active { transform: scale(.98); }

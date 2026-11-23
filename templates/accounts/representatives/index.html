@@ -6,18 +6,23 @@
   There is no remove control: a post changes only by replacement or swap.
 {% endcomment %}
 {% block title %}{% if scope.name == "admin" %}CR/GR Management{% else %}Representatives{% endif %} · UOL Student Affairs{% endblock %}
-{% block page_class %} sa-page--wide{% endblock %}
 {% block content %}
-<header class="sa-page-head sa-page-head--split">
+<div class="sa-flow">
+<header class="sa-page-header">
   <div>
-    <span class="sa-eyebrow">{% if scope.name == "admin" %}People{% else %}Your cohorts{% endif %}</span>
-    <h1 class="sa-display">{% if scope.name == "admin" %}CR/GR Management{% else %}Representatives{% endif %}</h1>
-    <p class="sa-lede">
-      {% if total %}{{ total }} cohort{{ total|pluralize }}: {{ represented }} represented, {{ awaiting }} awaiting representatives{% if inactive %}, {{ inactive }} inactive{% endif %}.{% else %}No cohorts yet.{% endif %}
-      <span class="soft">Each cohort has one CR (Class Representative) and one GR (Girls Representative). Once appointed, a post is never left empty: it can only be replaced or swapped.</span>
-    </p>
+    <h1 class="sa-page-title">{% if scope.name == "admin" %}CR/GR Management{% else %}Representatives{% endif %}</h1>
+    <p class="sa-page-subtitle">{% if total %}{{ total }} cohort{{ total|pluralize }}: {{ represented }} represented, {{ awaiting }} awaiting representatives{% if inactive %}, {{ inactive }} inactive{% endif %}.{% else %}No cohorts yet.{% endif %} One CR and one GR per cohort.</p>
   </div>
 </header>
+
+{% if total %}
+<div class="sa-stats">
+  {% include "includes/ui/stat.html" with value=total label="Cohorts" icon="users" %}
+  {% include "includes/ui/stat.html" with value=represented label="Represented" icon="check" tone="resolved" %}
+  {% include "includes/ui/stat.html" with value=awaiting label="Awaiting" icon="clock" tone="review" %}
+  {% include "includes/ui/stat.html" with value=inactive|default:0 label="Inactive" icon="x" tone="rejected" %}
+</div>
+{% endif %}
 
 {% if breaches %}
 <section class="sa-rep-breach" role="alert" aria-labelledby="breach-title">
@@ -64,5 +69,6 @@
   {% endif %}
 </div>
 {% endif %}
+</div>
 {% endblock %}
 {% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}
