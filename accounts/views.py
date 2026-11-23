@@ -31,6 +31,8 @@ def home(request):
     """Signed-out visitors see the landing page; everyone else goes to their role's area.
     There is no role selector (DEC-200)."""
     if not request.user.is_authenticated:
+        if request.session_timed_out:  # the sign-in page explains what happened
+            return redirect("account_login")
         return render(request, "accounts/landing.html")
     return redirect(ROLE_HOME_URL_NAMES[request.user.role])
 

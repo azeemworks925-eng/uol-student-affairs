@@ -2,6 +2,7 @@
 {# The single shared sign-in page for every role (DEC-010, DEC-200). #}
 {% block title %}Sign in · UOL Student Affairs{% endblock %}
 {% block content %}
+  {% if request.session_timed_out %}<ul class="sa-messages" role="status"><li class="sa-message">Your session timed out. Please sign in again.</li></ul>{% endif %}
   <span class="sa-eyebrow">Sign in</span>
   <h1 class="sa-display">Sign in with your UOL Google account.</h1>
   <p class="sa-lede">One sign-in for everyone. <span class="soft">Students, Batch Advisors and the Super Admin are each taken straight to their own home.</span></p>
