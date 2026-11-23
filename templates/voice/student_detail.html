@@ -1,0 +1,13 @@
+{% extends "layouts/app.html" %}
+{# One submission: where a notification or a Student Home update leads. #}
+{% block title %}{{ submission.get_type_display }} · Student Voice · UOL Student Affairs{% endblock %}
+{% block content %}
+<div class="sa-narrow">
+  <a class="sa-back" href="{% url 'student_voice' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Student Voice</a>
+  <header class="sa-page-head">
+    <span class="sa-eyebrow">Student Voice</span>
+    <h1 class="sa-display">Your {{ submission.get_type_display|lower }}</h1>
+  </header>
+  {% include "voice/_submission.html" %}
+</div>
+{% endblock %}

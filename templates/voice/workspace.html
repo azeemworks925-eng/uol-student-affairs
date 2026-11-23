@@ -1,0 +1,138 @@
+{% extends "layouts/app.html" %}
+{% load static %}
+{# Staff workspace: Batch Advisor (acts) and Super Admin (read-only). The URL selects a submission; CSS decides the layout. #}
+{% block title %}{% if submission %}{{ submission.get_type_display }} · {% endif %}Student Voice · UOL Student Affairs{% endblock %}
+{% block page_class %} sa-page--workspace{% endblock %}
+{% block messages %}{% endblock %}
+{% block content %}
+<div class="sa-workspace{% if submission %} sa-workspace--has-case{% endif %}">
+  <section class="sa-ws-list" aria-labelledby="ws-list-title">
+    {% if not submission %}{% include "includes/messages.html" %}{% endif %}
+    <header class="sa-ws-list-head">
+      <span class="sa-eyebrow">Student Voice</span>
+      {% if submission %}<h2 class="sa-ws-title" id="ws-list-title">{% else %}<h1 class="sa-ws-title" id="ws-list-title">{% endif %}{% if read_only %}Department{% else %}Your cohorts{% endif %}{% if submission %}</h2>{% else %}</h1>{% endif %}
+      {% if has_cohorts %}<p class="sa-ws-headline">{{ headline }}</p>{% endif %}
+    </header>
+
+    {% if not has_cohorts %}
+      <div class="sa-empty">
+        <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
+        <div><p class="title">No cohorts are assigned to you yet.</p><p class="sa-muted sa-small">The Super Admin assigns cohorts. Their submissions will appear here.</p></div>
+      </div>
+    {% else %}
+      <form method="get" action="{% url urls.list %}" class="sa-ws-search">
+        <details class="sa-ws-filters"{% if has_filters %} open{% endif %}>
+          <summary>Filters and sort</summary>
+          <div class="sa-ws-filter-grid">
+            <div><label class="form-label" for="{{ filters.type.id_for_label }}">Type</label>{{ filters.type }}</div>
+            <div><label class="form-label" for="{{ filters.cohort.id_for_label }}">Cohort</label>{{ filters.cohort }}</div>
+            <div><label class="form-label" for="{{ filters.status.id_for_label }}">Status</label>{{ filters.status }}</div>
+            <div><label class="form-label" for="{{ filters.sort.id_for_label }}">Sort by</label>{{ filters.sort }}</div>
+          </div>
+          <div class="sa-ws-filter-actions">
+            <button type="submit" class="btn btn-sa-primary btn-sm">Apply</button>
+            {% if has_filters %}<a class="btn btn-sa-secondary btn-sm" href="{% url urls.list %}">Clear filters</a>{% endif %}
+          </div>
+        </details>
+      </form>
+
+      {% if page.object_list %}
+      <ul class="sa-ws-rows">
+        {% for item in page %}
+        <li>
+          <a class="sa-ws-row" href="{% url urls.detail item.pk %}{% if list_state %}?{{ list_state }}{% endif %}"{% if item.pk == submission.pk %} aria-current="true"{% endif %}>
+            <span class="sa-ws-row-top"><span class="sa-flag">{{ item.get_type_display }}</span>{% include "complaints/student/_status.html" with tone=item.tone label=item.get_status_display %}</span>
+            <span class="sa-ws-row-title">{{ item.text|truncatechars:80 }}</span>
+            <span class="sa-ws-row-student">{{ item.student.get_full_name }}</span>
+            <span class="sa-ws-row-meta"><span class="sa-cohort">{{ item.batch }} · {{ item.semester }} · {{ item.section }}</span> <span class="sa-nowrap">{{ item.created_at|date:"j M Y" }}</span></span>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if page.has_other_pages %}
+      <nav class="sa-pagination" aria-label="Submission pages">
+        {% if page.has_previous %}<a class="btn btn-sa-secondary btn-sm" href="?{% if page_state %}{{ page_state }}&amp;{% endif %}page={{ page.previous_page_number }}">Previous</a>{% endif %}
+        <span class="sa-small sa-muted">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a class="btn btn-sa-secondary btn-sm" href="?{% if page_state %}{{ page_state }}&amp;{% endif %}page={{ page.next_page_number }}">Next</a>{% endif %}
+      </nav>
+      {% endif %}
+      {% elif has_filters %}
+      <div class="sa-empty">
+        <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
+        <div><p class="title">No submissions match these filters.</p><p class="sa-small mb-0"><a href="{% url urls.list %}">Clear filters</a></p></div>
+      </div>
+      {% else %}
+      <div class="sa-empty">
+        <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-voice"/></svg>
+        <div><p class="title">No submissions yet.</p><p class="sa-muted sa-small">Ideas, questions and feedback from students appear here.</p></div>
+      </div>
+      {% endif %}
+    {% endif %}
+  </section>
+
+  <section class="sa-ws-case" aria-labelledby="{% if submission %}case-title{% else %}ws-empty-title{% endif %}">
+    {% if submission %}
+    <div class="sa-ws-case-inner">
+      <a class="sa-back sa-ws-back" href="{% url urls.list %}{% if list_state %}?{{ list_state }}{% endif %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Student Voice</a>
+      {% include "includes/messages.html" %}
+      <header class="sa-case-head sa-ws-case-head">
+        <div class="sa-case-ids">
+          <span class="sa-flag">{{ submission.get_type_display }}</span>
+          {% include "complaints/student/_status.html" with tone=submission.tone label=submission.get_status_display %}
+        </div>
+        <h1 class="sa-display" id="case-title">{{ submission.get_type_display }} from {{ submission.student.get_full_name }}</h1>
+        <dl class="sa-facts mb-0">
+          <div><dt>SAP ID</dt><dd>{{ sap_id }}</dd></div>
+          <div><dt>Cohort at submission</dt><dd>{{ cohort_label }}</dd></div>
+          <div><dt>Submitted</dt><dd>{{ submission.created_at|date:"j F Y, H:i" }}</dd></div>
+        </dl>
+      </header>
+      <div class="sa-ws-case-body">
+        <section class="sa-original" aria-labelledby="original-title">
+          <h2 class="sa-label" id="original-title">Student's message</h2>
+          <div class="sa-prose mb-0">{{ submission.text|linebreaksbr }}</div>
+        </section>
+
+        {% if submission.answer %}
+        <section class="sa-ws-panel" aria-labelledby="answer-title">
+          <h2 class="sa-h2" id="answer-title">{% if submission.is_question %}Official answer{% else %}Reply{% endif %}</h2>
+          <div class="sa-prose">{{ submission.answer|linebreaksbr }}</div>
+          <p class="sa-small sa-muted mb-0 mt-2">{{ submission.answered_by.get_full_name }} · {{ submission.answered_at|date:"j M Y, H:i" }}. It cannot be changed.</p>
+        </section>
+        {% elif submission.reviewed_by %}
+        <p class="sa-small sa-muted mt-3 mb-0">Reviewed by {{ submission.reviewed_by.get_full_name }} on {{ submission.reviewed_at|date:"j M Y, H:i" }}.</p>
+        {% endif %}
+
+        {% if can_review %}
+        <form method="post" action="{% url urls.review submission.pk %}{% if list_state %}?{{ list_state }}{% endif %}" class="sa-ws-panel" data-once-submit>
+          {% csrf_token %}
+          <h2 class="sa-h2">Review</h2>
+          <p class="sa-small sa-muted">A written reply is optional.</p>
+          <button type="submit" class="btn btn-sa-secondary" data-submit-label="Saving…">Mark reviewed</button>
+        </form>
+        {% endif %}
+
+        {% if can_answer %}
+        <form method="post" action="{% url urls.answer submission.pk %}{% if list_state %}?{{ list_state }}{% endif %}" class="sa-ws-panel" novalidate data-once-submit>
+          {% csrf_token %}
+          <h2 class="sa-h2">{% if submission.is_question %}Answer this question{% else %}Write a reply{% endif %}</h2>
+          {% include "includes/form_field.html" with field=answer_form.answer hide_optional=True %}
+          <button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">{% if submission.is_question %}Send answer{% else %}Send reply{% endif %}</button>
+        </form>
+        {% endif %}
+
+        {% if read_only %}
+        <p class="sa-notice sa-small mt-3 mb-0">Read-only oversight. The Batch Advisors of this cohort answer and review.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="sa-ws-empty">
+      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-voice"/></svg>
+      <h2 class="sa-h2" id="ws-empty-title">Choose a submission from the list.</h2>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}
