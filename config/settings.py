@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "complaints",
     "notifications",
     "voice",
+    "meetings",
 ]
 
 MIDDLEWARE = [
