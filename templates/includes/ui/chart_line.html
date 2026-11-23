@@ -8,7 +8,7 @@
       <line class="sa-line-grid" x1="0" y1="0" x2="100" y2="0"/><line class="sa-line-grid" x1="0" y1="50" x2="100" y2="50"/>
       <path class="sa-line-path sa-line-draw" d="{{ chart.path }}"/>
     </svg>
-    {% for point in chart.points %}<span class="sa-line-dot" style="left: {{ point.x }}%; top: {{ point.y }}%" tabindex="0"><span class="sa-tip">{{ point.label }}: {{ point.value }}</span></span>{% endfor %}
+    {% for point in chart.points %}<span class="sa-line-dot {{ point.edge }}" style="left: {{ point.x }}%; top: {{ point.y }}%" tabindex="0"><span class="sa-tip">{{ point.label }}: {{ point.value }}</span></span>{% endfor %}
   </div>
   <div class="sa-line-x" aria-hidden="true">{% for text in chart.x_labels %}<span>{{ text }}</span>{% endfor %}</div>
 </figure>

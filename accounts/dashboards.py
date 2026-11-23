@@ -60,7 +60,8 @@ def line_chart(labels, values):
     for index, (label, value) in enumerate(zip(labels, values)):
         x = 50.0 if count == 1 else index * 100 / (count - 1)
         y = 100 - value * 100 / top
-        points.append({"x": _number(x), "y": _number(y), "label": label, "value": value})
+        points.append({"x": _number(x), "y": _number(y), "label": label, "value": value,
+                       "edge": "is-flip" if x > 66 else ("is-start" if x < 34 else "")})
     middle = labels[count // 2]
     return {
         "path": "M" + " L".join(f"{p['x']} {p['y']}" for p in points),
