@@ -1,0 +1,113 @@
+{% extends "layouts/app.html" %}
+{% load ui %}
+{% block title %}{{ person.get_full_name }} · Students · UOL Student Affairs{% endblock %}
+{% block crumb_root %}<li><a href="{% url 'super_admin_students' %}">Students</a></li>{% endblock %}
+{% block crumb %}<li class="mono">{{ sap_id|default:person.get_full_name }}</li>{% endblock %}
+{% block content %}
+<div class="sa-flow">
+  <a class="sa-back" href="{% url 'super_admin_students' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Back to students</a>
+
+  <div class="sa-detail">
+    <div class="sa-detail-main">
+      <header class="sa-card sa-detail-head">
+        <div>
+          <div class="sa-detail-ids">{% if sap_id %}<span class="sa-ref">{{ sap_id }}</span>{% endif %}{% if person.is_active %}<span class="sa-flag">Active</span>{% else %}<span class="sa-flag sa-flag--muted">Inactive</span>{% endif %}{% if not profile %}<span class="sa-flag sa-flag--muted">Not registered</span>{% endif %}</div>
+          <h1 class="sa-detail-title">{{ person.get_full_name }}</h1>
+          <p class="sa-page-subtitle sa-prose">{{ person.email }}</p>
+        </div>
+      </header>
+
+      <section aria-labelledby="activity-title" class="sa-flow">
+        <h2 class="sa-card-title" id="activity-title">Activity</h2>
+        <div class="sa-stats sa-stats--3">
+          {% for item in activity %}{% include "includes/ui/stat.html" with value=item.value label=item.tile_label icon=item.icon url=item.url %}{% endfor %}
+        </div>
+      </section>
+
+      <section class="sa-card" aria-labelledby="history-title">
+        {% include "includes/ui/card_head.html" with title="Profile history" id="history-title" takeaway="Every change to this student's details, newest first." %}
+        {% if history %}
+        <ul class="sa-change-list">
+          {% for change in history %}
+          <li>
+            <span class="sa-change-field">{{ change.field_label }}</span>
+            <span class="sa-change-values"><span class="sa-muted">{{ change.old_value|default:"(empty)" }}</span> <span aria-hidden="true">→</span><span class="visually-hidden">changed to</span> {{ change.new_value|default:"(empty)" }}</span>
+            <span class="sa-change-meta">{{ change.changed_by.get_full_name|default:"System" }} · <time datetime="{{ change.changed_at|date:'c' }}">{{ change.changed_at|date:"j M Y, H:i" }}</time></span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+          {% include "includes/ui/empty.html" with title="No changes recorded." text="Edits to this student's details will appear here." icon="clock" %}
+        {% endif %}
+      </section>
+    </div>
+
+    <aside class="sa-detail-side" data-sticky-panel aria-label="Student details">
+      <section class="sa-card" aria-label="Student">
+        <div class="sa-person">
+          {% include "includes/ui/avatar.html" with name=person.get_full_name size="lg" %}
+          <div>
+            <div class="sa-person-name">{{ person.get_full_name }}{% if post %}<span class="sa-post-badge">{{ post }}</span>{% endif %}</div>
+            {% if sap_id %}<span class="sa-small sa-muted">SAP ID <span class="sa-ref">{{ sap_id }}</span></span>{% endif %}
+          </div>
+        </div>
+        <dl class="sa-facts-list">
+          <div><dt>Email</dt><dd>{{ person.email }}</dd></div>
+          <div><dt>Cohort</dt><dd>{% if profile %}{% include "includes/ui/cohort.html" with record=profile %}<span class="d-block sa-small sa-muted">{{ profile|cohort_full }}</span>{% else %}Not registered yet{% endif %}</dd></div>
+        </dl>
+      </section>
+
+      <section class="sa-card" aria-labelledby="account-title">
+        <h2 class="sa-card-title mb-2" id="account-title">Account</h2>
+        <dl class="sa-facts-list">
+          <div><dt>Status</dt><dd>{% if person.is_active %}Active{% else %}Inactive{% endif %}</dd></div>
+          <div><dt>Registered</dt><dd>{% if profile %}{{ profile.created_at|date:"j M Y" }}{% else %}Not yet{% endif %}</dd></div>
+          <div><dt>Last sign-in</dt><dd>{% if person.last_login %}{{ person.last_login|date:"j M Y, H:i" }}{% else %}Never{% endif %}</dd></div>
+          <div><dt>Google</dt><dd>{% if google_linked %}Linked{% else %}Not signed in yet{% endif %}</dd></div>
+        </dl>
+      </section>
+
+      <section class="sa-card sa-side-actions-card" aria-labelledby="actions-title">
+        <h2 class="sa-card-title mb-2" id="actions-title">Actions</h2>
+        <div class="sa-side-actions">
+          <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-edit">Edit details</button>
+          <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-active">{% if person.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <nav class="sa-actionbar" aria-label="Student actions">
+    <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-edit">Edit details</button>
+    <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-active">{% if person.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
+  </nav>
+</div>
+
+<dialog class="sa-dialog" id="dialog-edit" aria-labelledby="edit-title"{% if open_dialog == "edit" %} data-open-on-load{% endif %}>
+  <div class="sa-dialog-body">
+    {% include "includes/ui/dialog_head.html" with title="Edit details" id="edit-title" %}
+    <form method="post" action="{% url 'super_admin_student_edit' person.pk %}" novalidate>
+      {% csrf_token %}
+      {% if edit_form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ edit_form.non_field_errors|join:" " }}</div>{% endif %}
+      {% include "includes/form_field.html" with field=edit_form.full_name %}
+      {% if profile %}
+      <div class="sa-field-row">
+        {% include "includes/form_field.html" with field=edit_form.batch %}
+        {% include "includes/form_field.html" with field=edit_form.semester %}
+        {% include "includes/form_field.html" with field=edit_form.section %}
+      </div>
+      {% if edit_form.replacement %}{% include "includes/form_field.html" with field=edit_form.replacement hide_optional=True %}{% endif %}
+      {% endif %}
+      <p class="sa-muted sa-small">SAP ID and email come from the student's Google account and can't be changed. Every change is recorded in Profile history.</p>
+      <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary">Save changes</button><button type="button" class="btn btn-sa-secondary" data-dialog-close>Cancel</button></div>
+    </form>
+  </div>
+</dialog>
+
+{% url 'super_admin_student_active' person.pk as active_url %}
+{% if person.is_active %}
+  {% include "accounts/people/_active_dialog.html" with form=active_form action=active_url is_open=active_open effect="They are signed out on their next request and can't sign in again until reactivated. Their complaints, submissions, meetings and history are kept." %}
+{% else %}
+  {% include "accounts/people/_active_dialog.html" with form=active_form action=active_url is_open=active_open effect="They can sign in again with Google. A CR or GR post they held before is not restored." %}
+{% endif %}
+{% endblock %}

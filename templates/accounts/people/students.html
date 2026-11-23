@@ -1,0 +1,73 @@
+{% extends "layouts/app.html" %}
+{% load ui %}
+{% block title %}Students · UOL Student Affairs{% endblock %}
+{% block content %}
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Students</h1>
+      <p class="sa-page-subtitle">Every student account in the department</p>
+    </div>
+    <div class="sa-page-actions">
+      <a class="btn btn-sa-secondary" href="{% url 'super_admin_student_changes' %}">Profile history</a>
+      <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-add-student"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Add student</button>
+    </div>
+  </header>
+
+  <div class="sa-stats">
+    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
+  </div>
+
+  <div class="sa-controls">
+    <form method="get" action="{% url 'super_admin_students' %}" class="sa-pill-search" role="search">
+      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
+      <label class="visually-hidden" for="student-search">Search students by name or SAP ID</label>
+      <input id="student-search" type="search" name="q" maxlength="60" value="{{ current.q }}" placeholder="Search name or SAP ID">
+      {% for key, value in search_hidden %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    </form>
+    {% include "includes/ui/filter_chip.html" with label="Batch" param="batch" choices=batches current=current.batch %}
+    {% include "includes/ui/filter_chip.html" with label="Semester" param="semester" choices=semesters current=current.semester %}
+    {% include "includes/ui/filter_chip.html" with label="Section" param="section" choices=sections current=current.section %}
+    {% include "includes/ui/filter_chip.html" with label="Status" param="status" choices=statuses current=current.status %}
+    {% include "includes/ui/filter_chip.html" with label="Sort" param="sort" choices=sorts current=current.sort %}
+    {% if has_filters %}<a class="sa-clear" href="{% url 'super_admin_students' %}">Clear filters</a>{% endif %}
+    <div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="people-students" %}</div>
+  </div>
+
+  {% if page.object_list %}
+  <ul class="sa-collection sa-collection--people" data-view="list" data-view-key="people-students">
+    {% for row in page %}
+    <li>
+      <a class="sa-item{% if not row.is_active %} is-inactive{% endif %}" href="{% url 'super_admin_student_detail' row.user.pk %}">
+        {% include "includes/ui/avatar.html" with name=row.name size="sm" %}
+        <span class="sa-item-who">{{ row.name }}{% if row.post %} <span class="sa-post-badge">{{ row.post }}</span>{% endif %}</span>
+        <span class="sa-item-ref">{{ row.sap_id|default:"No SAP ID" }}</span>
+        <span class="sa-item-cohort">{% if row.profile %}{% include "includes/ui/cohort.html" with record=row.profile %}{% else %}<span class="sa-flag sa-flag--muted">Not registered</span>{% endif %}</span>
+        <span class="sa-item-state">{% if row.is_active %}<span class="sa-flag">Active</span>{% else %}<span class="sa-flag sa-flag--muted">Inactive</span>{% endif %}</span>
+        <span class="sa-item-when">{% if row.registered %}<span class="visually-hidden">Registered </span>{{ row.registered|date:"j M Y" }}{% else %}—{% endif %}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% include "includes/ui/pagination.html" with label="Student list pages" %}
+  {% elif has_filters %}
+    {% url 'super_admin_students' as clear_url %}{% include "includes/ui/empty.html" with title="No students match these filters." link_url=clear_url link_label="Clear filters" icon="users" %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="No students yet." text="Students appear here after their first Google sign-in." icon="users" %}
+  {% endif %}
+</div>
+
+<dialog class="sa-dialog" id="dialog-add-student" aria-labelledby="add-student-title"{% if open_add %} data-open-on-load{% endif %}>
+  <div class="sa-dialog-body">
+    {% include "includes/ui/dialog_head.html" with title="Add student account" id="add-student-title" %}
+    <form method="post" action="{% url 'super_admin_students' %}" novalidate>
+      {% csrf_token %}
+      {% if add_form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ add_form.non_field_errors|join:" " }}</div>{% endif %}
+      <p class="sa-muted sa-small">Students normally create their own account at first sign-in. Either way, they choose their cohort when they complete registration.</p>
+      {% include "includes/form_field.html" with field=add_form.full_name %}
+      {% include "includes/form_field.html" with field=add_form.email %}
+      <div class="sa-form-actions"><button type="submit" class="btn btn-sa-primary">Add student</button><button type="button" class="btn btn-sa-secondary" data-dialog-close>Cancel</button></div>
+    </form>
+  </div>
+</dialog>
+{% endblock %}

@@ -97,7 +97,9 @@ NAVIGATION = {
                     also_current=("super_admin_meetings_month", "super_admin_meetings_week", "super_admin_meeting_detail")),
         ]),
         ("People", [
-            NavItem("Students", "user", "admin:accounts_studentprofile_changelist"),
+            NavItem("Students", "user", "super_admin_students",
+                    also_current=("super_admin_student_detail", "super_admin_student_changes", "super_admin_student_edit",
+                                  "super_admin_student_active")),
             NavItem("Batch Advisors", "users", "admin:accounts_user_changelist", {"role__exact": User.Role.BATCH_ADVISOR}),
             NavItem("CR/GR Management", "badge", "super_admin_representatives",
                     also_current=("super_admin_representatives_appoint", "super_admin_representatives_replace")),

@@ -7,7 +7,7 @@ change. Every caller (the admin now, portal pages later) must use them.
 """
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from .models import CohortRepresentation, StudentProfile, StudentProfileChange, User
 from .representation import (  # noqa: F401  (the representation operations are part of this API)
@@ -206,3 +206,69 @@ def update_student_profile(profile, changes, *, actor, replacement=None):
     fresh.save()
     record_profile_changes(fresh, {field: (previous[field], value) for field, value in changes.items()}, actor)
     return fresh
+
+
+# ---------------------------------------------------------------------------------------------
+# Portal people management (DEC-330). Same lock order as above: Section rows, current periods,
+# then User and StudentProfile rows.
+# ---------------------------------------------------------------------------------------------
+
+NAME_REQUIRED = "Enter a full name."
+NAME_TOO_LONG = "A full name can be at most 150 characters."
+ACCOUNT_EXISTS = "An account with this email already exists."
+
+
+def clean_full_name(full_name):
+    name = " ".join((full_name or "").split())
+    if not name:
+        raise ValidationError({"full_name": NAME_REQUIRED})
+    if len(name) > 150:
+        raise ValidationError({"full_name": NAME_TOO_LONG})
+    return name
+
+
+def _create_account(email, full_name, role):
+    """A Google-only account: no usable password. Validates the role's email rule."""
+    try:
+        with transaction.atomic():
+            return User.objects.create_user(email=email, full_name=full_name, role=role)
+    except IntegrityError as error:  # the same email saved at the same moment
+        raise ValidationError({"email": ACCOUNT_EXISTS}) from error
+
+
+@transaction.atomic
+def set_account_name(user, full_name, *, actor):
+    """Change an account's display name. A registered student's change is audited (DEC-211)."""
+    name = clean_full_name(full_name)
+    fresh = lock_users([user.pk])[user.pk]
+    previous = fresh.full_name
+    if previous != name:
+        fresh.full_name = name
+        fresh.save(update_fields=["full_name"])
+        profile = StudentProfile.objects.filter(user_id=fresh.pk).first()
+        if profile is not None:
+            record_profile_changes(profile, {"full_name": (previous, name)}, actor)
+    user.full_name = name
+    return fresh
+
+
+@transaction.atomic
+def update_student_details(profile, *, full_name, batch, semester, section, actor, replacement=None):
+    """Change a student's name and cohort together: both commit or neither does. The cohort part
+    goes through update_student_profile, so its locks, audit and DEC-323 rules apply."""
+    name = clean_full_name(full_name)
+    wanted = {"batch": batch, "semester": semester, "section": section}
+    changes = {field: value for field, value in wanted.items() if getattr(profile, f"{field}_id") != value.pk}
+    if changes:
+        profile = update_student_profile(profile, changes, actor=actor, replacement=replacement)
+    elif replacement is not None:
+        raise ValidationError({"replacement": "A replacement is only needed when a CR or GR moves out of their cohort."})
+    set_account_name(profile.user, name, actor=actor)
+    return profile
+
+
+@transaction.atomic
+def create_student_account(*, email, full_name):
+    """A student account made ahead of the student's first Google sign-in. The student still
+    completes the one-time registration (DEC-201), which sets their cohort."""
+    return _create_account(email, clean_full_name(full_name), User.Role.STUDENT)
