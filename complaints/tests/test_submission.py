@@ -141,11 +141,12 @@ class SubmissionTests(TestCase):
         first = submit(self.student, category)
         second = submit(self.student, category, title=first.title, description=first.description)
         self.assertNotEqual(first.pk, second.pk)  # DEC-225: never blocked
-        self.assertEqual(list(services.possible_duplicates(self.student, category)), [second, first])
+        self.assertEqual(services.possible_duplicates(self.student, first.title), [second, first])
         services.change_status(make_super_admin(), first, Complaint.Status.REJECTED, "Duplicate of a newer complaint.")
-        self.assertEqual(list(services.possible_duplicates(self.student, category)), [second])
+        self.assertEqual(services.possible_duplicates(self.student, first.title), [second])
+        self.assertEqual(services.possible_duplicates(self.student, "Something entirely unrelated 123"), [])
         other = make_student(OTHER_STUDENT_EMAIL, academics=self.academics)
-        self.assertFalse(services.possible_duplicates(other, category).exists())
+        self.assertEqual(services.possible_duplicates(other, first.title), [])
 
 
 @skipUnlessDBFeature("has_select_for_update")

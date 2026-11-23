@@ -1,0 +1,32 @@
+{# Student Home "Your section": issues open for support, newest first. Never the status detail or advisor responses (DEC-243, DEC-324). #}
+<section class="sa-card" aria-labelledby="board-title">
+  {% if board.is_rep %}{% url 'student_section_issues' as issues_url %}{% include "includes/ui/card_head.html" with title="Your section" id="board-title" action_url=issues_url action_label="Section issues" %}{% else %}{% include "includes/ui/card_head.html" with title="Your section" id="board-title" %}{% endif %}
+  {% if board.can_raise %}<a class="btn btn-sa-secondary btn-sm mb-3" href="{% url 'student_issue_new' %}">Raise an issue</a>{% endif %}
+  {% if board.issues %}
+  <ul class="sa-board">
+    {% for issue in board.issues %}
+    <li class="sa-board-item">
+      <div class="sa-board-top"><span class="sa-ref">{{ issue.reference }}</span><span class="sa-flag">{{ issue.support_label }}</span></div>
+      <a class="sa-board-title" href="{% url 'student_issue_detail' issue.reference %}">{{ issue.title }}</a>
+      <p class="sa-small sa-muted sa-prose mb-0">{{ issue.description|truncatechars:140 }}</p>
+      <div class="sa-board-foot">
+        <span class="sa-small"><b>{{ issue.support_total }}</b> support{{ issue.support_total|pluralize }}</span>
+        {% if issue.has_supported %}
+        <span class="sa-small"><b>You supported this</b></span>
+        {% else %}
+        <form method="post" action="{% url 'student_issue_support' issue.reference %}" data-once-submit>
+          {% csrf_token %}<input type="hidden" name="from" value="home">
+          <button type="submit" class="btn btn-sa-primary btn-sm" data-submit-label="Saving…" title="Support can't be withdrawn.">Support</button>
+        </form>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="sa-small sa-muted mb-0 mt-2">Support can't be withdrawn.</p>
+  {% elif board.awaiting %}
+    {% include "includes/ui/empty.html" with title="No open issues in your section." text="Your section's CR and GR haven't been appointed yet. Collective issues start once they are." icon="hand" %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="No open issues in your section." text="Issues raised by your CR or GR appear here." icon="hand" %}
+  {% endif %}
+</section>

@@ -77,9 +77,9 @@ class ShellTests(RedesignTestCase):
     def test_sidebar_items_per_role(self):
         expected = {
             self.student: ["Home", "Complaints", "Student Voice", "Meetings"],
-            self.advisor: ["Overview", "Complaints", "Student Voice", "Meetings", "Representatives"],
-            self.admin: ["Overview", "Complaints", "Student Voice", "Meetings", "Students", "Staff", "CR/GR Management",
-                         "Academic Structure", "Academic Terms", "Complaint Categories"],
+            self.advisor: ["Overview", "Complaints", "Collective Issues", "Student Voice", "Meetings", "Representatives"],
+            self.admin: ["Overview", "Complaints", "Collective Issues", "Student Voice", "Meetings", "Students", "Staff",
+                         "CR/GR Management", "Academic Structure", "Academic Terms", "Complaint Categories"],
         }
         for user, home in self.users():
             with self.subTest(role=user.role):
@@ -289,6 +289,7 @@ class OverviewSuppressionTests(TestCase):
         response, region = self.overview()
         without_links = re.sub(r'href="[^"]*"', "", region)
         without_links = re.sub(r"CMP-\d{4}-\d+", "", without_links)
+        without_links = re.sub(r'datetime="[^"]*"', "", without_links)  # a clock time can contain 37 or 41
         for number in (37, 41):
             self.assertIsNone(re.search(rf"(?<![\d.]){number}(?![\d.])", without_links), number)
         data = response.context["dashboard"]

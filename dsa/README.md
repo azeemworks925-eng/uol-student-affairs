@@ -27,8 +27,11 @@ separate demo.
 | Binary min-heap | `heap.py` | "Next complaint" (Batch Advisor): the oldest complaint still Received or Under Review | `push`/`pop`: O(log n); `peek`/`len`: O(1); space O(n) |
 | Interval overlap sweep | `intervals.py` | Meetings: warns a Batch Advisor before they confirm or schedule a time that overlaps another of their Confirmed meetings that day | `find_overlaps`: O(n log n) time, O(n) space; `overlaps_with`: O((c + 1) · n log n) time, O(n) space |
 | General tree with DFS | `tree.py` | Academic Structure: the Department → Batch → Semester → Section outline, with each node's subtree totals (students, active students, open complaints) | `add_child`: O(1); `find_child`: O(b); `build_department_tree`: O(r·d·b + n log n); `dfs_totals`/`preorder`: O(n) time and space; `dfs_paths`: O(n·d) |
+| Edit distance (dynamic programming) | `edit_distance.py` | Non-blocking "possibly a duplicate" warnings: open section issues in the same cohort, and the student's own open complaints on the New complaint form | `levenshtein`: O(x·y) time, O(min(x, y)) space; `find_similar`: O(c·x·y + c log c) time |
 
 The variables in the table are:
+- *x*, *y*: the lengths of the two texts compared;
+- *c*: the candidate titles;
 - *n*: the number of items;
 - *r*: the flat cohort rows;
 - *b*: the children of one tree node;
@@ -66,3 +69,10 @@ The first four are wired through `complaints/ordering.py`. The interval sweep is
   - It is a warning, not a block: the advisor can continue with the same time.
 - **Tree and DFS:** `academics/structure.py` reads one row per existing cohort, builds the tree and
   runs `dfs_totals` once. The Academic Structure page renders the result as an expandable outline.
+- **Edit distance:** `issues.services.similar_open_issues` and
+  `complaints.services.possible_duplicates` pass the typed title and the allowed candidates to
+  `find_similar`.
+  - It scores each candidate with `similarity` (1 − distance / longer length), keeps those at 0.6
+    or above, and merge-sorts them, highest first.
+  - Candidates are only the cohort's open issues, or the student's own open complaints.
+  - It is a warning, not a block: the person can still publish or submit.

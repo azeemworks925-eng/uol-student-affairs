@@ -2,8 +2,8 @@
   Student complaint pages: progressive enhancement only. Every rule is enforced on the
   server; without JavaScript the pages work with plain forms.
   - Subcategories: show only those of the chosen category (hide the field if it has none).
-  - Duplicate notice (DEC-225): if the student already has open complaints in the chosen
-    category, say so. It never blocks submission.
+  - Duplicate notice (DEC-225): while the title is typed, ask the server for the student's own
+    open complaints with a similar title (edit distance). It never blocks submission.
   - Forms marked data-once-submit disable their button after the first submit.
 */
 (function () {
@@ -39,12 +39,12 @@
   }
 
   var notice = document.querySelector("[data-duplicate-notice]");
-  var data = document.getElementById("open-complaints");
-  if (category && notice && data) {
-    var openByCategory = JSON.parse(data.textContent);
+  var titleInput = document.querySelector("input[name='title']");
+  if (titleInput && notice && notice.dataset.similarUrl) {
     var list = notice.querySelector("[data-duplicate-list]");
-    var showNotice = function () {
-      var items = openByCategory[category.value] || [];
+    var timer = null;
+    var latest = 0;
+    var showNotice = function (items) {
       list.innerHTML = "";
       items.forEach(function (item) {
         var li = document.createElement("li");
@@ -60,8 +60,20 @@
       });
       notice.hidden = items.length === 0;
     };
-    category.addEventListener("change", showNotice);
-    showNotice();
+    var check = function () {
+      var title = titleInput.value.trim();
+      var request = ++latest; // only the newest answer may update the notice
+      if (title.length < 5) { showNotice([]); return; }
+      fetch(notice.dataset.similarUrl + "?title=" + encodeURIComponent(title), { credentials: "same-origin" })
+        .then(function (response) { return response.ok ? response.json() : { matches: [] }; })
+        .then(function (data) { if (request === latest) showNotice(data.matches); })
+        .catch(function () { /* the warning is optional: submitting still works */ });
+    };
+    titleInput.addEventListener("input", function () {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(check, 300);
+    });
+    if (titleInput.value) check();
   }
 
   Array.prototype.forEach.call(document.querySelectorAll("form[data-once-submit]"), function (form) {

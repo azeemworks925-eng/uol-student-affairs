@@ -235,6 +235,7 @@ class NotifyValidationTests(FoundationTestCase):
             "complaint": ("complaints.complaintevent", {"student_complaint_detail"}),
             "voice": ("voice.submission", {"student_voice_detail"}),
             "meeting": ("meetings.meetingevent", {"student_meeting_detail"}),
+            "issue": ("issues.issueevent", {"student_issue_detail"}),
         }
         for key, notification_type in registry.REGISTRY.items():
             with self.subTest(type=key):

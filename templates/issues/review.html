@@ -1,0 +1,64 @@
+{% extends "layouts/app.html" %}
+{% load static ui %}
+{# Step 2 of 2: review, a non-blocking duplicate warning, then an explicit confirmation (DEC-324). #}
+{% block title %}Review your issue · UOL Student Affairs{% endblock %}
+{% block crumb %}<li>Review</li>{% endblock %}
+{% block content %}
+<div class="sa-narrow sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Review your issue</h1>
+      <p class="sa-page-subtitle">Not published yet {% include "includes/ui/cohort.html" with record=period %}</p>
+    </div>
+  </header>
+
+  {% if confirm_error %}<div class="sa-message sa-message--error" role="alert">{{ confirm_error }}</div>{% endif %}
+
+  {% if similar %}
+  <div class="sa-notice" role="status" data-testid="duplicate-warning">
+    <p class="mb-1"><b>Your section may already have this issue.</b></p>
+    <p class="sa-small sa-muted mb-2">These open issues have a similar title. Supporting one may be better, but you can still publish.</p>
+    <ul class="sa-notice-list">
+      {% for item in similar %}<li><a href="{% url 'student_issue_detail' item.reference %}"><span class="sa-ref">{{ item.reference }}</span> {{ item.title }}</a></li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <section class="sa-card" aria-labelledby="review-title">
+    <p class="sa-small sa-muted mb-1">Title</p>
+    <h2 class="sa-detail-title" id="review-title">{{ title_text }}</h2>
+    <p class="sa-small sa-muted mb-1 mt-3">Description</p>
+    <div class="sa-prose">{{ description_text|linebreaksbr }}</div>
+  </section>
+
+  <div class="sa-form-actions">
+    <button type="button" class="btn btn-sa-primary btn-lg" data-dialog-open="dialog-publish">Publish issue</button>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="step" value="edit">
+      <input type="hidden" name="title" value="{{ title_text }}">
+      <input type="hidden" name="description" value="{{ description_text }}">
+      <button type="submit" class="btn btn-sa-secondary btn-lg w-100">Back to editing</button>
+    </form>
+  </div>
+</div>
+
+<dialog class="sa-dialog" id="dialog-publish" aria-labelledby="publish-title"{% if confirm_error %} data-open-on-load{% endif %}>
+  <div class="sa-dialog-body">
+    {% include "includes/ui/dialog_head.html" with title="Publish this issue?" id="publish-title" %}
+    <p>Once published, this issue can't be edited or removed. Every student in {{ period|cohort_full }} will see it and can support it.</p>
+    <form method="post" data-once-submit>
+      {% csrf_token %}
+      <input type="hidden" name="step" value="publish">
+      <input type="hidden" name="title" value="{{ title_text }}">
+      <input type="hidden" name="description" value="{{ description_text }}">
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="confirm" id="publish-confirm" required>
+        <label class="form-check-label" for="publish-confirm">I understand this can't be edited or removed.</label>
+      </div>
+      <button type="submit" class="btn btn-sa-primary" data-submit-label="Publishing…">Publish issue</button>
+    </form>
+  </div>
+</dialog>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

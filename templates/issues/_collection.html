@@ -1,0 +1,16 @@
+{# Issue rows or cards. page, detail_url_name, key (view toggle), list_state (optional). Counts only: never who supported. #}
+<ul class="sa-collection" data-view="list" data-view-key="{{ key }}">
+  {% for item in page %}
+  <li>
+    <a class="sa-item sa-item--{{ item.tone }}" href="{% url detail_url_name item.reference %}{% if list_state %}?{{ list_state }}{% endif %}">
+      <span class="sa-item-ref">{{ item.reference }}</span>
+      <span class="sa-item-who">{{ item.raised_by.get_full_name }} · {{ item.get_raised_as_display }}</span>
+      <span class="sa-item-title">{{ item.title }}<span class="sa-item-flags"><span class="sa-flag">{{ item.support_total }} support{{ item.support_total|pluralize }}</span> <span class="sa-flag{% if not item.support_is_open %} sa-flag--muted{% endif %}">{{ item.support_label }}</span></span></span>
+      {% include "includes/ui/cohort.html" with record=item %}
+      {% include "complaints/student/_status.html" with tone=item.tone label=item.get_status_display %}
+      <span class="sa-item-when">{{ item.created_at|date:"j M Y" }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% include "includes/ui/pagination.html" with label="Issue pages" %}

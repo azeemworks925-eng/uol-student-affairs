@@ -1,0 +1,43 @@
+{% extends "layouts/app.html" %}
+{# Collective Issues list: Batch Advisor (their exact cohorts) and Super Admin (department, read-only). #}
+{% block title %}Collective Issues · UOL Student Affairs{% endblock %}
+{% block content %}
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Collective Issues</h1>
+      <p class="sa-page-subtitle">{% if read_only %}Department · read-only oversight{% else %}Section issues from your cohorts{% endif %}</p>
+    </div>
+  </header>
+
+  {% if not has_cohorts %}
+    {% include "includes/ui/empty.html" with title="No cohorts are assigned to you yet." text="The Super Admin assigns cohorts. Their section issues will appear here." icon="hand" %}
+  {% else %}
+  <div class="sa-controls">
+    <form method="get" action="{% url urls.list %}" class="sa-pill-search" role="search">
+      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
+      <label class="visually-hidden" for="issue-search">Search by reference or title</label>
+      <input id="issue-search" type="search" name="q" maxlength="100" value="{{ query }}" placeholder="Search issues">
+      {% for key, value in search_hidden %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    </form>
+    {% include "includes/ui/filter_chip.html" with label="Cohort" param="cohort" choices=cohort_choices current=current.cohort %}
+    {% include "includes/ui/filter_chip.html" with label="Status" param="status" choices=status_choices current=current.status %}
+    {% include "includes/ui/filter_chip.html" with label="Support" param="support" choices=support_choices current=current.support %}
+    {% if has_filters %}<a class="sa-clear" href="{% url urls.list %}">Clear filters</a>{% endif %}
+    <div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="staff-issues" %}</div>
+  </div>
+
+  <div class="sa-stats">
+    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
+  </div>
+
+  {% if page.object_list %}
+    {% include "issues/_collection.html" with detail_url_name=urls.detail key="staff-issues" %}
+  {% elif has_filters %}
+    {% url urls.list as clear_url %}{% include "includes/ui/empty.html" with title="No issues match these filters." link_url=clear_url link_label="Clear filters" %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="No section issues yet." text="Issues raised by a CR or GR appear here." icon="hand" %}
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

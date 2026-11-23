@@ -1,0 +1,83 @@
+{% extends "layouts/app.html" %}
+{% load static ui %}
+{# One section issue. Non-representative students never receive the status or the private responses (DEC-243, DEC-324). #}
+{% block title %}{{ issue.reference }} · Section issues · UOL Student Affairs{% endblock %}
+{% block crumb %}<li>{{ issue.reference }}</li>{% endblock %}
+{% block content %}
+<div class="sa-flow">
+  <a class="sa-back" href="{{ back_url }}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>{{ back_label }}</a>
+  <div class="sa-detail">
+    <div class="sa-detail-main">
+      <header class="sa-card sa-detail-head">
+        <div>
+          <div class="sa-detail-ids">
+            <span class="sa-ref">{{ issue.reference }}</span>
+            {% if show_private %}{% include "complaints/student/_status.html" with tone=issue.tone label=issue.get_status_display %}{% else %}<span class="sa-flag">{{ issue.support_label }}</span>{% endif %}
+          </div>
+          <h1 class="sa-detail-title">{{ issue.title }}</h1>
+        </div>
+        <div class="sa-prose">{{ issue.description|linebreaksbr }}</div>
+        <p class="sa-small sa-muted mb-0">Published issues are locked: they can't be edited or removed.</p>
+      </header>
+
+      {% if show_private %}
+      <section class="sa-card" aria-labelledby="journey-title">
+        <h2 class="sa-card-title mb-2" id="journey-title">Status</h2>
+        {% include "includes/ui/journey.html" with journey=journey journey_label="Where this issue stands" journey_class="sa-journey--line" %}
+      </section>
+
+      <section class="sa-card" aria-labelledby="responses-title">
+        <h2 class="sa-card-title mb-1" id="responses-title">Advisor responses</h2>
+        <p class="sa-small sa-muted">{% if is_rep %}Visible to your section's CR and GR only.{% else %}Private to the section's CR and GR.{% endif %}</p>
+        {% if responses %}
+        <ol class="sa-timeline">
+          {% for event in responses %}
+          <li class="sa-timeline-item">
+            <div class="sa-timeline-head"><span class="sa-timeline-title">{% if event.is_resolution %}Resolution note{% else %}Official response{% endif %}</span></div>
+            <p class="sa-timeline-meta">{% if is_rep %}{{ event.actor.get_role_display }}{% else %}{{ event.actor.get_full_name }}{% endif %} · {{ event.created_at|date:"j M Y, H:i" }}</p>
+            <div class="sa-timeline-message sa-prose">{{ event.message|linebreaksbr }}</div>
+          </li>
+          {% endfor %}
+        </ol>
+        {% else %}{% include "includes/ui/empty.html" with title="No response yet." icon="clock" %}{% endif %}
+      </section>
+      {% endif %}
+    </div>
+
+    <aside class="sa-detail-side" data-sticky-panel aria-label="Issue and support">
+      <section class="sa-card" aria-labelledby="issue-card-title">
+        <h2 class="sa-card-title mb-2" id="issue-card-title">Issue</h2>
+        <dl class="sa-facts-list">
+          <div><dt>Reference</dt><dd><span class="sa-ref">{{ issue.reference }}</span></dd></div>
+          <div><dt>Cohort</dt><dd>{% include "includes/ui/cohort.html" with record=issue %}</dd></div>
+          <div><dt>Raised by</dt><dd>{{ issue.raised_by.get_full_name }} <span class="sa-post-badge">{{ issue.get_raised_as_display }}</span></dd></div>
+          <div><dt>Published</dt><dd>{{ issue.created_at|date:"j M Y, H:i" }}</dd></div>
+        </dl>
+      </section>
+      <section class="sa-card" aria-labelledby="support-card-title">
+        <h2 class="sa-card-title mb-2" id="support-card-title">Support</h2>
+        <dl class="sa-facts-list">
+          <div><dt>Supporters</dt><dd data-testid="support-count">{{ issue.support_total }}</dd></div>
+          <div><dt>Support</dt><dd>{{ issue.support_label }}</dd></div>
+          {% if show_closed_at and issue.first_response_at %}<div><dt>Closed</dt><dd>{{ issue.first_response_at|date:"j M Y, H:i" }}</dd></div>{% endif %}
+        </dl>
+        {% if can_support %}
+          {% if has_supported %}
+          <p class="sa-small mb-0 mt-2"><b>You supported this.</b></p>
+          {% else %}
+          <form method="post" action="{% url 'student_issue_support' issue.reference %}" class="mt-3" data-once-submit>{% csrf_token %}
+            <p class="sa-small sa-muted mb-2">Support can't be withdrawn.</p>
+            <button type="submit" class="btn btn-sa-primary w-100" data-submit-label="Saving…">Support this issue</button>
+          </form>
+          {% endif %}
+        {% elif has_supported %}
+          <p class="sa-small mb-0 mt-2"><b>You supported this.</b></p>
+        {% endif %}
+      </section>
+      {% block side_actions %}{% endblock %}
+    </aside>
+  </div>
+  {% block after_detail %}{% endblock %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

@@ -1,5 +1,5 @@
 {% extends "layouts/app.html" %}
-{% load ui %}
+{% load static ui %}
 {# Student Home: the student's own numbers, updates, meetings and complaints. No charts. #}
 {% block title %}Home · UOL Student Affairs{% endblock %}
 {% block content %}
@@ -71,11 +71,9 @@
       {% else %}{% include "includes/ui/empty.html" with title="No open complaints." icon="check" %}{% endif %}
     </section>
 
-    <section class="sa-card" aria-labelledby="board-title">
-      {% include "includes/ui/card_head.html" with title="Your section" id="board-title" %}
-      {% include "includes/ui/empty.html" with title="No open issues in your section." text="Issues raised by your CR or GR appear here." icon="hand" %}
-    </section>
+    {% include "issues/_board.html" %}
   </div>
 </div>
 {% endwith %}
 {% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

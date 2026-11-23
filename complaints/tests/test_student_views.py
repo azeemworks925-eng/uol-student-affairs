@@ -1,6 +1,5 @@
 """Student complaint pages (Complaints Part 2): access, submission, details and actions."""
 
-import json
 import re
 
 from django.test import TestCase
@@ -204,13 +203,17 @@ class SubmissionPageTests(StudentPagesTestCase):
 
     def test_duplicate_warning_data_is_own_open_complaints_and_never_blocks(self):
         mine = submit(self.student, self.categories["academic"], title="Earlier clash")
-        theirs = submit(self.classmate, self.categories["academic"], title="Classmate private complaint")
-        response = self.client.get(reverse("student_complaint_new"))
-        data = json.loads(re.search(r'<script id="open-complaints" type="application/json">(.*?)</script>', response.content.decode(), re.S).group(1))
-        self.assertEqual([c["reference"] for c in data[str(self.categories["academic"].pk)]], [mine.reference])
-        self.assertEqual(data[str(self.categories["other"].pk)], [])
+        theirs = submit(self.classmate, self.categories["academic"], title="Earlier clash")
+        response = self.client.get(reverse("student_complaint_similar"), {"title": "earlier  clashes"})
+        self.assertEqual([c["reference"] for c in response.json()["matches"]], [mine.reference])
         self.assertNotContains(response, theirs.reference)
-        self.assertNotContains(response, "Classmate private complaint")
+        unrelated = self.client.get(reverse("student_complaint_similar"), {"title": "Water cooler empty"})
+        self.assertEqual(unrelated.json()["matches"], [])
+        # A failed submit renders the warning in the page itself, without JavaScript.
+        failed = self.client.post(reverse("student_complaint_new"), self.submission(title="Earlier clash", description=""))
+        self.assertContains(failed, "You may have already raised this.")
+        self.assertContains(failed, mine.reference)
+        self.assertNotContains(failed, theirs.reference)
         # Submitting the same thing again still succeeds (DEC-225).
         self.client.post(reverse("student_complaint_new"), self.submission(title="Earlier clash"))
         self.assertEqual(Complaint.objects.filter(student=self.student).count(), 2)

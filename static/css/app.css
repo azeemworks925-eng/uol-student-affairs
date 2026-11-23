@@ -798,6 +798,22 @@ a.sa-bar-row:hover .sa-bar-label { text-decoration: underline; text-underline-of
   .sa-controls-end { margin-left: 0; }
 }
 
+/* ---------- Section issues: the Student Home noticeboard ---------- */
+.sa-board { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.sa-board-item { display: grid; gap: 6px; min-width: 0; padding: 12px 14px; border: 1px solid var(--sa-border); border-radius: 10px; background: var(--sa-surface); }
+.sa-board-top, .sa-board-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; }
+.sa-board-title { font-weight: 600; overflow-wrap: anywhere; }
+.sa-item-title .sa-item-flags { display: flex; flex-wrap: wrap; gap: 4px 6px; }
+@media (max-width: 767.98px) { .sa-board-foot .btn { min-height: 44px; min-width: 96px; } }
+/* The issue journey stays on one line, even on a 360px phone. */
+@media (max-width: 575.98px) {
+  .sa-journey.sa-journey--line { flex-wrap: nowrap; gap: 0 10px; font-size: 13px; }
+  .sa-journey.sa-journey--line li { margin-right: 0; gap: 5px; white-space: nowrap; }
+  .sa-journey.sa-journey--line li + li::before { display: none; }
+}
+/* Short laptop screens: the longest sidebar (Super Admin) still fits without its own scrollbar. */
+@media (max-height: 640px) { .sa-sidebar .sa-nav-link { min-height: 34px; } }
+
 /* ---------- Meetings: row actions and the week view ---------- */
 .sa-item-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 0 16px 10px; }
 .sa-collection[data-view="cards"] > li { align-content: start; gap: 6px; }

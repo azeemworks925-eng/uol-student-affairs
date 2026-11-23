@@ -1,0 +1,27 @@
+{% extends "layouts/app.html" %}
+{% load static %}
+{# Step 1 of 2: write the issue. Nothing is stored until it is published from the review screen (DEC-324). #}
+{% block title %}Raise a section issue · UOL Student Affairs{% endblock %}
+{% block crumb %}<li>Raise an issue</li>{% endblock %}
+{% block content %}
+<div class="sa-narrow sa-flow">
+  <a class="sa-back" href="{% url 'student_section_issues' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Back to Section issues</a>
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Raise a section issue</h1>
+      <p class="sa-page-subtitle">For your whole section {% include "includes/ui/cohort.html" with record=period %}</p>
+    </div>
+  </header>
+  <form method="post" class="sa-card" novalidate data-once-submit>
+    {% csrf_token %}
+    <input type="hidden" name="step" value="review">
+    {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+    {% include "includes/form_field.html" with field=form.title %}
+    {% include "includes/form_field.html" with field=form.description %}
+    <div class="sa-form-actions">
+      <button type="submit" class="btn btn-sa-primary btn-lg" data-submit-label="Opening…">Review issue</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}
