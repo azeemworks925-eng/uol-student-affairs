@@ -55,7 +55,7 @@
 
     {% if role == "student" %}
     <nav class="sa-bottomnav" aria-label="Main navigation">
-      {% for item in sa_nav_items %}
+      {% for item in sa_nav_bottom %}
         <a href="{{ item.url }}"{% if item.current %} aria-current="page"{% endif %}><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg>{% if item.label == "Student Voice" %}Voice{% else %}{{ item.label }}{% endif %}</a>
       {% endfor %}
     </nav>

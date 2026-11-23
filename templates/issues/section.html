@@ -1,0 +1,28 @@
+{% extends "layouts/app.html" %}
+{# The current CR's and GR's complete history of their cohort's issues, including their predecessors' (DEC-324). #}
+{% block title %}Section issues · UOL Student Affairs{% endblock %}
+{% block content %}
+<div class="sa-flow">
+  <header class="sa-page-header">
+    <div>
+      <h1 class="sa-page-title">Section issues</h1>
+      <p class="sa-page-subtitle">Your section's complete history, visible to its current CR and GR</p>
+    </div>
+    {% if can_raise %}<a class="btn btn-sa-primary" href="{% url 'student_issue_new' %}">Raise an issue</a>{% endif %}
+  </header>
+  {% if not can_raise %}<p class="sa-notice sa-small mb-0">Your batch, semester or section is inactive, so new issues can't be raised. The history stays here.</p>{% endif %}
+
+  <div class="sa-stats">
+    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
+  </div>
+
+  {% if page.object_list %}
+  <div class="sa-controls"><div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="section-issues" %}</div></div>
+  {% include "issues/_collection.html" with detail_url_name="student_issue_detail" key="section-issues" %}
+  {% elif can_raise %}
+    {% url 'student_issue_new' as new_url %}{% include "includes/ui/empty.html" with title="No issues yet." text="Raise an issue on behalf of your section." icon="hand" link_url=new_url link_label="Raise an issue" %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="No issues yet." icon="hand" %}
+  {% endif %}
+</div>
+{% endblock %}

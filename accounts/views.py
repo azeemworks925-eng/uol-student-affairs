@@ -12,6 +12,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 
 from complaints.analytics import build_overview
 from complaints.workspace import advisor_cohort_counts, cohort_value
+from issues.presentation import section_board
 from meetings.presentation import student_home_updates
 
 from .dashboards import advisor_dashboard, student_dashboard, super_admin_dashboard
@@ -98,6 +99,7 @@ def student_home(request):
         "updates": updates,
         "quick_access": quick_access(),
         "dashboard": student_dashboard(request.user),
+        "board": section_board(request.user),
     })
 
 

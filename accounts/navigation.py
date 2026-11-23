@@ -12,6 +12,7 @@ from urllib.parse import urlencode
 from django.urls import reverse
 
 from .models import User
+from .representation import Cohort, cohort_is_active, current_representative
 
 
 @dataclass(frozen=True)
@@ -23,6 +24,10 @@ class NavItem:
     kwargs: dict | None = None
     # Other views that belong to this destination, so it stays marked as current there.
     also_current: tuple = ()
+    # Shown only to the current CR or GR of a cohort.
+    representative_only: bool = False
+    # Whether it is one of the student's phone bottom tabs (DEC-304, DEC-324).
+    bottom_tab: bool = True
 
     def url(self):
         if not self.url_name:
@@ -68,13 +73,15 @@ NAVIGATION = {
             NavItem("Student Voice", "voice", "student_voice", also_current=("student_voice_detail",)),
             NavItem("Meetings", "calendar", "student_meetings",
                     also_current=("student_meetings_month", "student_meetings_week", "student_meeting_detail")),
+            NavItem("Section issues", "hand", "student_section_issues", representative_only=True, bottom_tab=False,
+                    also_current=("student_issue_new", "student_issue_detail")),
         ]),
     ],
     User.Role.BATCH_ADVISOR: [
         (None, [
             NavItem("Overview", "grid", "advisor_home"),
             NavItem("Complaints", "file", "advisor_complaints", also_current=ADVISOR_COMPLAINT_VIEWS),
-            NavItem("Collective Issues", "hand"),
+            NavItem("Collective Issues", "hand", "advisor_issues", also_current=("advisor_issue_detail",)),
             NavItem("Student Voice", "voice", "advisor_voice",
                     also_current=("advisor_voice_detail", "advisor_voice_answer", "advisor_voice_review")),
             NavItem("Meetings", "calendar", "advisor_meetings",
@@ -91,7 +98,7 @@ NAVIGATION = {
         ("Oversight", [
             NavItem("Overview", "grid", "super_admin_home"),
             NavItem("Complaints", "file", "super_admin_complaints", also_current=SUPER_ADMIN_COMPLAINT_VIEWS),
-            NavItem("Collective Issues", "hand"),
+            NavItem("Collective Issues", "hand", "super_admin_issues", also_current=("super_admin_issue_detail",)),
             NavItem("Student Voice", "voice", "super_admin_voice", also_current=("super_admin_voice_detail",)),
             NavItem("Meetings", "calendar", "super_admin_meetings",
                     also_current=("super_admin_meetings_month", "super_admin_meetings_week", "super_admin_meeting_detail")),
@@ -128,6 +135,7 @@ NEW_MENU = {
     User.Role.BATCH_ADVISOR: [("Schedule meeting", "calendar", "advisor_meeting_schedule")],
     User.Role.SUPER_ADMIN: [("Add Batch Advisor", "user", "super_admin_staff", "?new=1")],
 }
+RAISE_ISSUE = ("Raise a section issue", "hand", "student_issue_new")  # the current CR or GR only
 
 
 def _resolve(item, current_url_name):
@@ -136,6 +144,7 @@ def _resolve(item, current_url_name):
         "icon": item.icon,
         "url": item.url(),
         "current": bool(item.url_name) and current_url_name in (item.url_name, *item.also_current),
+        "bottom_tab": item.bottom_tab,
     }
 
 
@@ -146,16 +155,23 @@ def navigation(request):
         return {}
     match = getattr(request, "resolver_match", None)
     current = match.view_name if match else None
+    # Read from the database on every request, so a former CR or GR loses the links at once.
+    period = current_representative(user) if user.is_student else None
     groups = []
     for heading, items in NAVIGATION[user.role]:
-        built = [_resolve(item, current) for item in items if item.url_name]
+        built = [_resolve(item, current) for item in items
+                 if item.url_name and (period is not None or not item.representative_only)]
         if built:  # a group with nothing built yet is left out, heading included
             groups.append({"heading": heading, "items": built})
     items = [i for g in groups for i in g["items"]]
+    new_menu = list(NEW_MENU[user.role])
+    if period is not None and cohort_is_active(Cohort.of(period)):
+        new_menu.append(RAISE_ISSUE)
     return {
         "sa_nav": groups,
         "sa_nav_items": items,
+        "sa_nav_bottom": [i for i in items if i["bottom_tab"]],
         "sa_nav_current": next((i for i in items if i["current"]), None),
         "sa_new_menu": [{"label": entry[0], "icon": entry[1], "url": reverse(entry[2]) + (entry[3] if len(entry) > 3 else "")}
-                        for entry in NEW_MENU[user.role]],
+                        for entry in new_menu],
     }

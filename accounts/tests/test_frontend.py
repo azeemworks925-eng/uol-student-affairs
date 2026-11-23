@@ -172,8 +172,8 @@ class AdvisorHomeTests(TestCase):
         self.client.force_login(self.advisor)
         html = self.client.get(reverse("advisor_home")).content.decode()
         sidebar = html[html.index('<aside class="sa-sidebar"'):html.index("</aside>")]
-        self.assertEqual(re.findall(r'class="sa-nav-link" href="[^"]+" data-tip="([^"]+)"', sidebar), ["Overview", "Complaints", "Student Voice", "Meetings", "Representatives"])
-        for text in ("Collective Issues", "Statistics", *UNBUILT_WORDING):
+        self.assertEqual(re.findall(r'class="sa-nav-link" href="[^"]+" data-tip="([^"]+)"', sidebar), ["Overview", "Complaints", "Collective Issues", "Student Voice", "Meetings", "Representatives"])
+        for text in ("Statistics", *UNBUILT_WORDING):
             self.assertNotIn(text, html)
 
     def test_no_assignments(self):
@@ -201,9 +201,9 @@ class SuperAdminHomeTests(TestCase):
     def test_sidebar_hides_unbuilt_destinations(self):
         sidebar = self.html[self.html.index('<aside class="sa-sidebar"'):self.html.index("</aside>")]
         labels = re.findall(r'<a class="sa-nav-link" href="[^"]+"[^>]*>.*?</svg><span class="sa-nav-text">([^<]+)</span></a>', sidebar)
-        self.assertEqual(labels, ["Overview", "Complaints", "Student Voice", "Meetings", "Students", "Staff", "CR/GR Management",
-                                  "Academic Structure", "Academic Terms", "Complaint Categories"])
-        for text in ("Collective Issues", "Calendar", *UNBUILT_WORDING):
+        self.assertEqual(labels, ["Overview", "Complaints", "Collective Issues", "Student Voice", "Meetings", "Students", "Staff",
+                                  "CR/GR Management", "Academic Structure", "Academic Terms", "Complaint Categories"])
+        for text in ("Calendar", *UNBUILT_WORDING):
             self.assertNotIn(text, self.html)
 
     def test_manage_links_reach_portal_pages(self):
@@ -425,8 +425,8 @@ class NavigationDataTests(TestCase):
         unbuilt = {role: [item.label for _, items in groups for item in items if not item.url_name]
                    for role, groups in navigation.NAVIGATION.items()}
         self.assertEqual(unbuilt[User.Role.STUDENT], [])
-        self.assertEqual(unbuilt[User.Role.BATCH_ADVISOR], ["Collective Issues", "Statistics"])
-        self.assertEqual(unbuilt[User.Role.SUPER_ADMIN], ["Collective Issues"])
+        self.assertEqual(unbuilt[User.Role.BATCH_ADVISOR], ["Statistics"])
+        self.assertEqual(unbuilt[User.Role.SUPER_ADMIN], [])
 
     def test_an_item_reappears_when_its_url_name_is_set(self):
         heading, items = navigation.NAVIGATION[User.Role.STUDENT][0]

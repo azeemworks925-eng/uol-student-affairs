@@ -43,7 +43,8 @@ def _locked(issue):
 
 
 def _text(value):
-    return (value or "").strip()
+    """Trimmed, with browser line endings (CRLF) stored as one character."""
+    return (value or "").replace("\r\n", "\n").strip()
 
 
 def validate_content(title, description):

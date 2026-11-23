@@ -1,8 +1,8 @@
 """
 Quick search in the top bar. It adds no permission path: every result comes from
-visible_complaints / visible_submissions for the signed-in user.
+visible_complaints / visible_submissions / visible_issues for the signed-in user.
 
-- A complaint reference jumps straight to the complaint (hash table, ordering.find_visible).
+- A complaint or section issue reference jumps straight to it (hash table, ordering.find_visible).
 - Staff: names and SAP IDs match students behind their visible records (trie).
 - Students: only their own complaints and Student Voice submissions, never other people.
 """
@@ -15,6 +15,7 @@ from django.urls import reverse
 from complaints import ordering
 from complaints.permissions import visible_complaints
 from complaints.presentation import status_tone
+from issues.permissions import visible_issues
 from voice.permissions import visible_submissions
 from voice.presentation import add_tones
 
@@ -26,6 +27,11 @@ COMPLAINT_DETAIL = {
     User.Role.STUDENT: "student_complaint_detail",
     User.Role.BATCH_ADVISOR: "advisor_complaint_detail",
     User.Role.SUPER_ADMIN: "super_admin_complaint_detail",
+}
+ISSUE_DETAIL = {
+    User.Role.STUDENT: "student_issue_detail",
+    User.Role.BATCH_ADVISOR: "advisor_issue_detail",
+    User.Role.SUPER_ADMIN: "super_admin_issue_detail",
 }
 COMPLAINT_LIST = {User.Role.BATCH_ADVISOR: "advisor_complaints", User.Role.SUPER_ADMIN: "super_admin_complaints"}
 VOICE_DETAIL = {
@@ -64,6 +70,12 @@ def quick_search(user, text):
         found = ordering.find_visible(complaints, query)
         if found is not None:
             results.jump_url = reverse(COMPLAINT_DETAIL[user.role], args=[found.reference])
+            return results
+    if ordering.normalise_reference(query).startswith("CI-"):
+        # The same hash-table lookup, built only from the issues this user can already see.
+        found = ordering.find_visible(visible_issues(user), query)
+        if found is not None:
+            results.jump_url = reverse(ISSUE_DETAIL[user.role], args=[found.reference])
             return results
 
     if user.is_student:

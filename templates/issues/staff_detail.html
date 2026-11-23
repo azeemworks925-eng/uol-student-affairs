@@ -1,0 +1,65 @@
+{% extends "issues/detail.html" %}
+{# Staff view of one issue. Three separate advisor actions (DEC-324); the Super Admin has none. #}
+{% block side_actions %}
+{% if read_only %}
+<p class="sa-notice sa-small mb-0">Read-only oversight. The Batch Advisors of this cohort act on this issue.</p>
+{% elif can_respond %}
+<section class="sa-card sa-side-actions-card" aria-labelledby="actions-title">
+  <h2 class="sa-card-title mb-2" id="actions-title">Actions</h2>
+  <div class="sa-side-actions">
+    {% if can_review %}<button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-review">Mark Under Review</button>{% endif %}
+    <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-respond">Send Official Response</button>
+    <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-resolve">Resolve</button>
+  </div>
+</section>
+{% else %}
+<p class="sa-notice sa-small mb-0">Resolved is final. This issue can't be changed or reopened.</p>
+{% endif %}
+{% endblock %}
+
+{% block after_detail %}
+{% if can_respond %}
+<nav class="sa-actionbar" aria-label="Actions">
+  {% if can_review %}<button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-review">Review</button>{% endif %}
+  <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-respond">Respond</button>
+  <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-resolve">Resolve</button>
+</nav>
+
+{% if can_review %}
+<dialog class="sa-dialog" id="dialog-review" aria-labelledby="review-dialog-title">
+  <div class="sa-dialog-body">
+    {% include "includes/ui/dialog_head.html" with title="Mark as Under Review?" id="review-dialog-title" %}
+    <p>The CR and GR will see the new status. Support stays open until the first official response.</p>
+    <form method="post" action="{% url 'advisor_issue_review' issue.reference %}{% if list_state %}?{{ list_state }}{% endif %}" data-once-submit>
+      {% csrf_token %}<input type="hidden" name="expected_status" value="{{ issue.status }}">
+      <button type="submit" class="btn btn-sa-primary" data-submit-label="Saving…">Mark Under Review</button>
+    </form>
+  </div>
+</dialog>
+{% endif %}
+
+<dialog class="sa-dialog" id="dialog-respond" aria-labelledby="respond-dialog-title"{% if response_form.errors %} data-open-on-load{% endif %}>
+  <div class="sa-dialog-body">
+    {% include "includes/ui/dialog_head.html" with title="Send an official response" id="respond-dialog-title" %}
+    {% if not issue.first_response_at %}<p class="sa-small"><b>This is the first response, so it closes support.</b> The count freezes and the issue leaves the students' Home.</p>{% endif %}
+    <form method="post" action="{% url 'advisor_issue_respond' issue.reference %}{% if list_state %}?{{ list_state }}{% endif %}" novalidate data-once-submit>
+      {% csrf_token %}
+      {% include "includes/form_field.html" with field=response_form.response hide_optional=True %}
+      <button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">Send response</button>
+    </form>
+  </div>
+</dialog>
+
+<dialog class="sa-dialog" id="dialog-resolve" aria-labelledby="resolve-dialog-title"{% if resolve_form.errors %} data-open-on-load{% endif %}>
+  <div class="sa-dialog-body">
+    {% include "includes/ui/dialog_head.html" with title="Resolve this issue?" id="resolve-dialog-title" %}
+    <p class="sa-small"><b>This is final.</b> A resolved issue can't be reopened or changed{% if not issue.first_response_at %}, and resolving closes support{% endif %}.</p>
+    <form method="post" action="{% url 'advisor_issue_resolve' issue.reference %}{% if list_state %}?{{ list_state }}{% endif %}" novalidate data-once-submit>
+      {% csrf_token %}<input type="hidden" name="expected_status" value="{{ issue.status }}">
+      {% include "includes/form_field.html" with field=resolve_form.note hide_optional=True %}
+      <button type="submit" class="btn btn-sa-primary" data-submit-label="Resolving…">Resolve issue</button>
+    </form>
+  </div>
+</dialog>
+{% endif %}
+{% endblock %}
