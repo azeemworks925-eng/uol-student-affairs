@@ -1,0 +1,84 @@
+{% extends "layouts/app.html" %}
+{% load static %}
+{# One meeting, for its student or an advisor of its cohort. Actions depend on status (DEC-328). #}
+{% block title %}Meeting · UOL Student Affairs{% endblock %}
+{% block content %}
+<a class="sa-back" href="{% url list_url_name %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Meetings</a>
+<header class="sa-page-head">
+  <div class="sa-case-ids">{% include "complaints/student/_status.html" with tone=meeting.tone label=meeting.get_status_display %}</div>
+  <h1 class="sa-display">{% if viewer_is_advisor %}Meeting with {{ meeting.student.get_full_name }}{% elif meeting.advisor %}Meeting with {{ meeting.advisor.get_full_name }}{% else %}Meeting with your Batch Advisor{% endif %}</h1>
+</header>
+
+<div class="sa-meet-detail">
+  <div class="sa-panel">
+    <dl class="sa-facts">
+      <div><dt>{% if meeting.starts_at %}{% if meeting.is_time_suggested %}Suggested time{% else %}Date and time{% endif %}{% else %}Preferred time{% endif %}</dt><dd>{{ meeting.when|date:"D j M Y, H:i" }}{% if meeting.ends_at %} to {{ meeting.ends_at|date:"H:i" }}{% endif %}</dd></div>
+      {% if meeting.duration_minutes %}<div><dt>Duration</dt><dd>{{ meeting.duration_minutes }} minutes</dd></div>{% endif %}
+      {% if meeting.location %}<div><dt>Location</dt><dd>{{ meeting.location }}</dd></div>{% endif %}
+      {% if viewer_is_advisor %}
+      <div><dt>SAP ID</dt><dd>{{ meeting.student.student_profile.sap_id }}</dd></div>
+      <div><dt>Cohort</dt><dd>{{ meeting.batch }} · {{ meeting.semester }} · {{ meeting.section }}</dd></div>
+      {% if meeting.advisor %}<div><dt>Advisor</dt><dd>{{ meeting.advisor.get_full_name }}</dd></div>{% endif %}
+      {% endif %}
+    </dl>
+    <p class="sa-label">Reason</p>
+    <div class="sa-prose">{{ meeting.reason|linebreaksbr }}</div>
+    {% if meeting.suggestion_note %}<div class="sa-voice-answer mt-3"><p class="sa-label">Note from your Batch Advisor</p><div class="sa-prose">{{ meeting.suggestion_note|linebreaksbr }}</div></div>{% endif %}
+    {% if meeting.closed_reason %}<div class="sa-voice-answer mt-3"><p class="sa-label">{{ meeting.get_status_display }}: reason</p><div class="sa-prose">{{ meeting.closed_reason|linebreaksbr }}</div></div>{% endif %}
+    {% if meeting.calendar_url %}<a class="btn btn-sa-secondary mt-3" href="{{ meeting.calendar_url }}" target="_blank" rel="noopener noreferrer"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg> Add to Google Calendar</a>{% endif %}
+    {% if viewer_is_student %}<div class="mt-3">{% include "meetings/_student_actions.html" %}</div>{% endif %}
+  </div>
+
+  <div class="sa-meet-side">
+    {% if viewer_is_advisor and meeting.is_requested %}
+    <details class="sa-meet-panel sa-panel"{% if open_confirm %} open{% endif %}>
+      <summary>Confirm</summary>
+      <form method="post" action="{% url 'advisor_meeting_confirm' meeting.pk %}" novalidate data-once-submit>
+        {% csrf_token %}
+        {% include "meetings/_overlap.html" %}
+        {% include "meetings/_slot_fields.html" with form=confirm_form %}
+        <button type="submit" class="btn btn-sa-primary" data-submit-label="Saving…">{% if overlap_warnings %}Confirm anyway{% else %}Confirm meeting{% endif %}</button>
+      </form>
+    </details>
+    <details class="sa-meet-panel sa-panel"{% if open_suggest %} open{% endif %}>
+      <summary>Suggest another time</summary>
+      <form method="post" action="{% url 'advisor_meeting_suggest' meeting.pk %}" novalidate data-once-submit>
+        {% csrf_token %}
+        {% include "meetings/_slot_fields.html" with form=suggest_form %}
+        {% include "includes/form_field.html" with field=suggest_form.note %}
+        <button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">Send suggestion</button>
+      </form>
+    </details>
+    <details class="sa-meet-panel sa-panel"{% if open_decline %} open{% endif %}>
+      <summary>Decline</summary>
+      <form method="post" action="{% url 'advisor_meeting_decline' meeting.pk %}" novalidate data-once-submit>
+        {% csrf_token %}
+        {% include "includes/form_field.html" with field=decline_form.reason %}
+        <button type="submit" class="btn btn-sa-secondary" data-submit-label="Saving…">Decline request</button>
+      </form>
+    </details>
+    {% elif viewer_is_advisor and meeting.is_confirmed and not meeting.has_started %}
+    <details class="sa-meet-panel sa-panel"{% if cancel_form.errors %} open{% endif %}>
+      <summary>Cancel this meeting</summary>
+      <form method="post" action="{% url 'advisor_meeting_cancel' meeting.pk %}" novalidate data-once-submit>
+        {% csrf_token %}
+        {% include "includes/form_field.html" with field=cancel_form.reason %}
+        <button type="submit" class="btn btn-sa-secondary" data-submit-label="Cancelling…">Cancel meeting</button>
+      </form>
+    </details>
+    {% elif viewer_is_advisor and meeting.is_time_suggested %}
+    <p class="sa-notice sa-small mb-0">Waiting for the student to accept or decline this time.</p>
+    {% endif %}
+
+    <section class="sa-panel" aria-labelledby="history-title">
+      <h2 class="sa-h2" id="history-title">History</h2>
+      <ol class="sa-meet-history">
+        {% for event in events %}
+        <li><b>{{ event.get_kind_display }}</b><span class="sa-small sa-muted">{{ event.created_at|date:"j M Y, H:i" }} · {{ event.actor.get_role_display }}</span></li>
+        {% endfor %}
+      </ol>
+    </section>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/complaints.js' %}" defer></script>{% endblock %}

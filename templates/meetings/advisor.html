@@ -1,0 +1,63 @@
+{% extends "layouts/app.html" %}
+{# Batch Advisor Meetings workspace: requests to decide, then upcoming confirmed meetings (DEC-328). #}
+{% block title %}Meetings · UOL Student Affairs{% endblock %}
+{% block content %}
+<header class="sa-page-head sa-meet-head">
+  <div>
+    <span class="sa-eyebrow">Meetings</span>
+    <h1 class="sa-display">Your cohorts' meetings.</h1>
+  </div>
+  <div class="sa-meet-head-actions">
+    {% include "meetings/_view_switch.html" with active="list" list_url="advisor_meetings" month_url="advisor_meetings_month" %}
+    {% if has_cohorts %}<a class="btn btn-sa-primary" href="{% url 'advisor_meeting_schedule' %}">Schedule a meeting</a>{% endif %}
+  </div>
+</header>
+
+{% if not has_cohorts %}
+<div class="sa-empty">
+  <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
+  <div><p class="title">No cohorts are assigned to you yet.</p><p class="sa-muted sa-small">The Super Admin assigns cohorts. Their meetings will appear here.</p></div>
+</div>
+{% else %}
+<div class="sa-meet-columns">
+  <section aria-labelledby="decision-title">
+    <div class="sa-section-head"><h2 class="sa-h2" id="decision-title">Needs a decision</h2>{% if needs_decision %}<span class="sa-small sa-muted">{{ needs_decision|length }} waiting</span>{% endif %}</div>
+    {% if needs_decision %}
+    <ul class="sa-voice-list">
+      {% for meeting in needs_decision %}<li>{% include "meetings/_card.html" with detail_url_name="advisor_meeting_detail" show_student=True %}</li>{% endfor %}
+    </ul>
+    {% else %}
+    <div class="sa-empty"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg><div><p class="title">Nothing needs a decision.</p></div></div>
+    {% endif %}
+
+    {% if waiting_for_student %}
+    <h2 class="sa-h2 sa-meet-subhead">Waiting for the student</h2>
+    <ul class="sa-voice-list">
+      {% for meeting in waiting_for_student %}<li>{% include "meetings/_card.html" with detail_url_name="advisor_meeting_detail" show_student=True %}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </section>
+
+  <section aria-labelledby="confirmed-title">
+    <div class="sa-section-head"><h2 class="sa-h2" id="confirmed-title">Upcoming confirmed</h2></div>
+    {% for group in groups %}
+      <h3 class="sa-label sa-meet-day">{{ group.label }}</h3>
+      <ul class="sa-voice-list">
+        {% for meeting in group.meetings %}<li>{% include "meetings/_card.html" with detail_url_name="advisor_meeting_detail" show_student=True %}</li>{% endfor %}
+      </ul>
+    {% empty %}
+      <div class="sa-empty"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg><div><p class="title">No confirmed meetings coming up.</p></div></div>
+    {% endfor %}
+
+    {% if closed %}
+    <details class="sa-meet-panel sa-meet-closed">
+      <summary>Past and closed ({{ closed|length }})</summary>
+      <ul class="sa-voice-list">
+        {% for meeting in closed %}<li>{% include "meetings/_card.html" with detail_url_name="advisor_meeting_detail" show_student=True %}</li>{% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+  </section>
+</div>
+{% endif %}
+{% endblock %}
