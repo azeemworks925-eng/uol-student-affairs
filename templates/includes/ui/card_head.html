@@ -1,0 +1,8 @@
+{# Card header. title, id (for aria-labelledby), optional takeaway, optional action_url + action_label. #}
+<header class="sa-card-head">
+  <div class="sa-card-titles">
+    <h2 class="sa-card-title"{% if id %} id="{{ id }}"{% endif %}>{{ title }}</h2>
+    {% if takeaway %}<p class="sa-card-takeaway">{{ takeaway }}</p>{% endif %}
+  </div>
+  {% if action_url %}<a class="sa-card-action" href="{{ action_url }}">{{ action_label }}</a>{% endif %}
+</header>
