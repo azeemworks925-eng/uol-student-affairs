@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from accounts.views import admin_login_redirect
+from issues.urls import student_patterns as issues_student
 from meetings.urls import advisor_patterns as meetings_advisor, student_patterns as meetings_student, super_admin_patterns as meetings_super_admin
 from voice.urls import advisor_patterns as voice_advisor, student_patterns as voice_student, super_admin_patterns as voice_super_admin
 
@@ -22,6 +23,7 @@ urlpatterns = [
     path("student/meetings/", include(meetings_student)),
     path("advisor/meetings/", include(meetings_advisor)),
     path("super-admin/meetings/", include(meetings_super_admin)),
+    path("student/section-issues/", include(issues_student)),
     path("notifications/", include("notifications.urls")),
     path("", include("accounts.urls")),
 ]
