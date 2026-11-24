@@ -135,7 +135,7 @@ class TreeTests(StructureBase):
         make_student("10000002@student.uol.edu.pk", academics=self.a)
         inactive = make_student("10000003@student.uol.edu.pk", academics=self.a)
         type(inactive).objects.filter(pk=inactive.pk).update(is_active=False)
-        category = ComplaintCategory.objects.create(name="Academic")
+        category, _ = ComplaintCategory.objects.get_or_create(name="Academic")
         for status in (ComplaintStatus.RECEIVED, ComplaintStatus.RESOLVED):
             Complaint.objects.bulk_create([Complaint(
                 reference=f"CMP-2026-{status[:3]}", student=one, batch=self.a["batch"], semester=self.a["semester"],
