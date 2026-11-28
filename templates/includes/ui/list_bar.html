@@ -1,0 +1,16 @@
+{% comment %}
+  The page's one view-control row: status segmented tabs on the left; "3 | 4 per row" and the
+  List / Cards toggle on the right (both remembered per page by static/js/app.js).
+  status_choices + status_current + status_param (default "status"); key (the collection's
+  data-view-key); default_view: list | cards; extra_template (optional: another control on the right).
+{% endcomment %}
+<div class="sa-listbar">
+  {% if status_choices %}{% include "includes/ui/segmented.html" with links=True param=status_param|default:"status" choices=status_choices current=status_current label="Status" %}{% endif %}
+  <div class="sa-listbar-end">
+    <div class="sa-seg sa-seg--sm" role="group" aria-label="Cards per row" data-per-row-toggle="{{ key }}" data-seg{% if default_view != "cards" %} hidden{% endif %}>
+      <button type="button" data-per-row-choice="3" aria-pressed="true">3</button><button type="button" data-per-row-choice="4" aria-pressed="false">4</button>
+    </div>
+    {% include "includes/ui/view_toggle.html" with key=key default=default_view %}
+    {% if extra_template %}{% include extra_template %}{% endif %}
+  </div>
+</div>

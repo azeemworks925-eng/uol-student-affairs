@@ -1,0 +1,9 @@
+{% load ui %}{% comment %}
+  Stat cards as filter tabs (Polish v2 "Filters & reset"): each card counts within the page's other
+  filters and sets its own filter when clicked; the selected card clears it again.
+  stats: [{value, label, icon, tone, param, filter}] (param/filter optional: a card without them is
+  not a link); current: {param: value} of the page's filters.
+{% endcomment %}
+<div class="sa-stat-row" style="--n: {{ stats|length }}">
+  {% for s in stats %}{% if s.param %}{% stat_tab_url s.param s.filter current as tab %}{% include "includes/ui/stat.html" with value=s.value label=s.label icon=s.icon tone=s.tone url=tab.url selected=tab.selected %}{% else %}{% include "includes/ui/stat.html" with value=s.value label=s.label icon=s.icon tone=s.tone %}{% endif %}{% endfor %}
+</div>

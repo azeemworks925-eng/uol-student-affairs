@@ -1,0 +1,18 @@
+{% load ui %}{% comment %}
+  Tier 3 detail hero (model: section issue detail): status-tinted, with the reference, status pill
+  and lock pills, the title, the text and the stepper merged in, and a status-aware corner doodle
+  slot (empty until Prompt 3; hidden below 480px).
+  tone; reference (optional); status_label; title; text (optional); journey (optional) +
+  journey_label; pills_template (optional: lock pills and chips after the status); title_id (optional).
+{% endcomment %}
+<header class="sa-dhero sa-tone--{{ tone }}">
+  <div class="sa-dhero-ids">
+    {% if reference %}<span class="sa-ref">{{ reference }}</span>{% if copy %}<button type="button" class="sa-copy" data-copy="{{ reference }}" data-tip="Copy" aria-label="Copy {{ reference }}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg></button>{% endif %}{% endif %}
+    {% if status_label %}<span class="sa-status sa-tone--{{ tone }}">{{ status_label }}</span>{% endif %}
+    {% if pills_template %}{% include pills_template %}{% endif %}
+  </div>
+  <h1 class="sa-dhero-title"{% if title_id %} id="{{ title_id }}"{% endif %}>{{ title }}</h1>
+  {% if text %}<p class="sa-dhero-text sa-prose">{{ text|linebreaksbr }}</p>{% endif %}
+  {% if journey %}{% include "includes/ui/journey.html" with journey=journey journey_label=journey_label size="lg" %}{% endif %}
+  <span class="sa-dhero-art sa-doodle sa-doodle--s" aria-hidden="true" data-doodle-slot="detail-{{ tone|detail_doodle }}"></span>
+</header>

@@ -1,0 +1,1 @@
+{# Pastel date block: weekday, day and month, tinted by its tone. when (a datetime); tone (optional, default the meeting tone). #}<time class="sa-dateblock sa-tone--{{ tone|default:'received' }}" datetime="{{ when|date:'c' }}" title="{{ when|date:'D j M Y, H:i' }}"><small>{{ when|date:"D" }}</small><b>{{ when|date:"j" }}</b><small>{{ when|date:"M" }}</small></time>

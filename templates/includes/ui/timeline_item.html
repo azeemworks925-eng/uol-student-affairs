@@ -4,20 +4,25 @@
   kind: status (default) | response | resolution;
   title; when (datetime); tone (the dot colour, from the status map);
   status_label (optional: a status pill on a status change);
-  by + by_role (response: the speech bubble's name and role pill, for example "Batch Advisor");
-  message (response text, or the resolution note: a pastel quote with ✓).
+  by + by_role (response: the speech bubble's name and role pill, for example "Batch Advisor";
+    status and resolution: who did it);
+  message (response text, the resolution note as a pastel quote with ✓, or a status change's note);
+  message_label (optional: the note's label on a status change, for example "Reason for rejection").
+  A response keeps its title for screen readers.
 {% endcomment %}
 <li class="sa-timeline-item sa-tl--{{ kind|default:'status' }} sa-tone--{{ tone|default:'neutral' }}">
   {% if kind == "response" %}
   <div class="sa-bubble">
-    <div class="sa-bubble-head">{% include "includes/ui/avatar.html" with name=by size="sm" %}<b>{{ by }}</b>{% if by_role %}<span class="sa-role">{{ by_role }}</span>{% endif %}<time datetime="{{ when|date:'c' }}" title="{{ when|date:'j M Y, H:i' }}">{{ when|ago }}</time></div>
+    <div class="sa-bubble-head">{% include "includes/ui/avatar.html" with name=by size="sm" %}<b>{{ by }}</b>{% if by_role %}<span class="sa-role">{{ by_role }}</span>{% endif %}<span class="visually-hidden">{{ title }}</span><time datetime="{{ when|date:'c' }}" title="{{ when|date:'j M Y, H:i' }}">{{ when|ago }}</time></div>
     <p class="sa-prose">{{ message|linebreaksbr }}</p>
   </div>
   {% elif kind == "resolution" %}
-  <div class="sa-timeline-head"><span class="sa-timeline-title">{{ title|default:"Resolution note" }}</span><time class="sa-timeline-meta" datetime="{{ when|date:'c' }}">{{ when|ago }}</time></div>
+  <div class="sa-timeline-head"><span class="sa-timeline-title">{{ title|default:"Resolution note" }}</span>{% if status_label %}<span class="sa-status sa-tone--{{ tone }}">{{ status_label }}</span>{% endif %}</div>
+  <p class="sa-timeline-meta"><time datetime="{{ when|date:'c' }}" title="{{ when|date:'j M Y, H:i' }}">{{ when|ago }}</time>{% if by %} · {{ by }}{% endif %}</p>
   <blockquote class="sa-quote"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-check"/></svg><p class="sa-prose">{{ message|linebreaksbr }}</p></blockquote>
   {% else %}
   <div class="sa-timeline-head"><span class="sa-timeline-title">{{ title }}</span>{% if status_label %}<span class="sa-status sa-tone--{{ tone }}">{{ status_label }}</span>{% endif %}</div>
   <p class="sa-timeline-meta"><time datetime="{{ when|date:'c' }}" title="{{ when|date:'j M Y, H:i' }}">{{ when|ago }}</time>{% if by %} · {{ by }}{% endif %}</p>
+  {% if message %}<div class="sa-timeline-message">{% if message_label %}<span class="sa-label">{{ message_label }}</span>{% endif %}<p class="sa-prose">{{ message|linebreaksbr }}</p></div>{% endif %}
   {% endif %}
 </li>

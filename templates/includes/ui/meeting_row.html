@@ -1,6 +1,6 @@
-{# One upcoming meeting on a home card. url_name opens it; show_student for staff. #}
+{# One meeting on a home card: a pastel date block, who, time and place. url_name opens it; show_student for staff; show_calendar adds "Add to Google Calendar". #}
 <li class="sa-meeting-row">
-  <time class="sa-meet-time" datetime="{{ meeting.when|date:'c' }}"><b>{{ meeting.when|date:"H:i" }}</b><span>{{ meeting.when|date:"j M" }}</span></time>
-  <a class="sa-meeting-main" href="{% url url_name meeting.pk %}">{% if show_student %}{{ meeting.student.get_full_name }}{% elif meeting.advisor %}{{ meeting.advisor.get_full_name }}{% else %}Your Batch Advisor{% endif %}<span class="sa-small sa-muted">{{ meeting.location }}</span></a>
-  {% if show_calendar and meeting.calendar_url %}<a class="sa-card-action" href="{{ meeting.calendar_url }}" target="_blank" rel="noopener noreferrer">Add to Google Calendar</a>{% endif %}
+  {% include "includes/ui/date_block.html" with when=meeting.when tone=meeting.tone %}
+  <span class="sa-meeting-main"><a class="sa-stretch" href="{% url url_name meeting.pk %}">{% if show_student %}{{ meeting.student.get_full_name }}{% elif meeting.advisor %}{{ meeting.advisor.get_full_name }}{% else %}Your Batch Advisor{% endif %}</a><small>{{ meeting.when|date:"H:i" }}{% if meeting.location %} · {{ meeting.location }}{% endif %}</small></span>
+  {% if show_calendar and meeting.calendar_url %}<a class="sa-pill sa-tone--accent sa-raise" href="{{ meeting.calendar_url }}" target="_blank" rel="noopener noreferrer"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg>Add to Google Calendar</a>{% endif %}
 </li>

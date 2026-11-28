@@ -4,11 +4,14 @@
   url; primary; secondary (optional second line); person (optional: a name, shown with its avatar);
   person_badge (optional: cr | gr, a role badge after the name);
   status + status_label (+ optional domain) or tone + status_label; when (a datetime); selected (optional).
+  Optional: flags ([{label, tone}] pills under the text); date (a datetime: a pastel date block
+  before the text); when_label (text shown instead of the relative time, for a time in the future).
 {% endcomment %}{% tone_for status domain tone as t %}
 <li class="sa-row{% if selected %} is-selected{% endif %}">
-  <span class="sa-row-main"><a class="sa-stretch" href="{{ url }}">{{ primary }}</a>{% if secondary %}<small>{{ secondary }}</small>{% endif %}</span>
+  {% if date %}<span class="sa-row-main has-date">{% include "includes/ui/date_block.html" with when=date tone=t %}<span class="sa-row-text"><a class="sa-stretch" href="{{ url }}">{{ primary }}</a>{% if secondary %}<small>{{ secondary }}</small>{% endif %}</span></span>
+  {% else %}<span class="sa-row-main"><a class="sa-stretch" href="{{ url }}">{{ primary }}</a>{% if secondary %}<small>{{ secondary }}</small>{% endif %}{% if flags %}<span class="sa-row-flags">{% for f in flags %}<span class="sa-pill sa-tone--{{ f.tone }}">{% if f.icon %}<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ f.icon }}"/></svg>{% endif %}{{ f.label }}</span>{% endfor %}</span>{% endif %}</span>{% endif %}
   <span class="sa-row-person">{% if person %}{% include "includes/ui/avatar.html" with name=person size="sm" %}<span>{{ person }}</span>{% if person_badge %}{% include "includes/ui/role_badge.html" with role=person_badge %}{% endif %}{% endif %}</span>
   <span class="sa-row-status">{% if status_label %}<span class="sa-status sa-tone--{{ t }}">{{ status_label }}</span>{% endif %}</span>
-  <time class="sa-row-when" datetime="{{ when|date:'c' }}" title="{{ when|date:'j M Y, H:i' }}">{{ when|ago }}</time>
+  <time class="sa-row-when" datetime="{{ when|date:'c' }}" title="{{ when|date:'j M Y, H:i' }}">{% if when_label %}{{ when_label }}{% else %}{{ when|ago }}{% endif %}</time>
   <span class="sa-open" aria-hidden="true"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-open"/></svg></span>
 </li>

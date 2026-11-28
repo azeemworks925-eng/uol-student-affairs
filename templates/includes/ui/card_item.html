@@ -4,19 +4,21 @@
   title (clamped to two lines); sub (optional sub line);
   status + status_label (+ optional domain), or tone + status_label: the status pill;
   progress (optional, 0..1): an animated progress bar;
+  chips (optional: [{label, tone}] pills under the sub line, for example flags or a type);
   f1_label / f1_value, f2_label / f2_value (optional): up to two labelled footer fields.
 {% endcomment %}{% tone_for status domain tone as t %}
-<article class="sa-citem">
+<li class="sa-citem">
   <header class="sa-citem-head">
     <span class="sa-icon-chip sa-tone--{{ pastel|default:t }}" aria-hidden="true"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ icon|default:'file' }}"/></svg></span>
     <h3 class="sa-citem-title"><a href="{{ url }}" class="sa-stretch">{{ title }}</a></h3>
     {% if status_label %}<span class="sa-status sa-tone--{{ t }}">{{ status_label }}</span>{% endif %}
   </header>
   {% if sub %}<p class="sa-citem-sub">{{ sub }}</p>{% endif %}
+  {% if chips %}<div class="sa-citem-chips">{% for c in chips %}<span class="sa-pill sa-tone--{{ c.tone }}">{% if c.icon %}<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ c.icon }}"/></svg>{% endif %}{{ c.label }}</span>{% endfor %}</div>{% endif %}
   {% if progress is not None and progress != "" %}<span class="sa-progress sa-tone--{{ t }}" role="presentation"><i data-fill="{{ progress }}" style="--fill: {{ progress }}"></i></span>{% endif %}
   <footer class="sa-citem-foot">
     {% if f1_label %}<div class="sa-citem-field"><span>{{ f1_label }}</span><b>{{ f1_value }}</b></div>{% endif %}
     {% if f2_label %}<div class="sa-citem-field"><span>{{ f2_label }}</span><b>{{ f2_value }}</b></div>{% endif %}
     <span class="sa-open" aria-hidden="true"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-open"/></svg></span>
   </footer>
-</article>
+</li>

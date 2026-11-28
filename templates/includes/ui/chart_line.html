@@ -1,12 +1,14 @@
-{# Line chart. chart: accounts.dashboards.line_chart; label: what it plots. #}
+{# Smooth area chart. chart: accounts.dashboards.line_chart; label: what it plots; uid: unique id. #}
 <figure class="sa-chart sa-line">
   <div class="sa-line-y" aria-hidden="true">{% for tick in chart.y_ticks %}<span>{{ tick }}</span>{% endfor %}</div>
   <div class="sa-line-plot">
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-labelledby="{{ uid }}-t {{ uid }}-d">
       <title id="{{ uid }}-t">{{ label }}</title>
       <desc id="{{ uid }}-d">{{ chart.desc }}</desc>
+      <defs><linearGradient id="{{ uid }}-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="sa-area-stop-top"/><stop offset="1" class="sa-area-stop-end"/></linearGradient></defs>
       <line class="sa-line-grid" x1="0" y1="0" x2="100" y2="0"/><line class="sa-line-grid" x1="0" y1="50" x2="100" y2="50"/>
-      <path class="sa-line-path sa-line-draw" d="{{ chart.path }}"/>
+      <path class="sa-line-area" d="{{ chart.area }}" fill="url(#{{ uid }}-fill)"/>
+      <path class="sa-line-path sa-line-draw" d="{{ chart.smooth }}" pathLength="100"/>
     </svg>
     {% for point in chart.points %}<span class="sa-line-dot {{ point.edge }}" style="left: {{ point.x }}%; top: {{ point.y }}%" tabindex="0"><span class="sa-tip">{{ point.label }}: {{ point.value }}</span></span>{% endfor %}
   </div>

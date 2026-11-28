@@ -1,0 +1,18 @@
+{% comment %}
+  Donut: arcs from accounts.dashboards.donut (key, label, value, length, gap, offset, url), a centre
+  figure and a legend of links. centre (the big number), centre_label; label + uid for the SVG.
+{% endcomment %}
+<div class="sa-donut-wrap">
+  <figure class="sa-donut sa-chart">
+    <svg viewBox="0 0 42 42" role="img" aria-labelledby="{{ uid }}-t {{ uid }}-d">
+      <title id="{{ uid }}-t">{{ label }}</title>
+      <desc id="{{ uid }}-d">{% for s in segments %}{{ s.label }}: {{ s.value }}{% if not forloop.last %}; {% endif %}{% endfor %}</desc>
+      <circle class="sa-donut-track" cx="21" cy="21" r="15.915"/>
+      {% for s in segments %}<circle class="sa-donut-arc sa-seg--{{ s.key }}" cx="21" cy="21" r="15.915" pathLength="100" stroke-dasharray="{{ s.length }} {{ s.gap }}" stroke-dashoffset="{{ s.offset }}" style="--i: {{ forloop.counter0 }}"/>{% endfor %}
+    </svg>
+    <figcaption class="sa-donut-centre"><b>{{ centre }}</b><span>{{ centre_label }}</span></figcaption>
+  </figure>
+  <ul class="sa-legend">
+    {% for s in segments %}<li><i class="sa-seg--{{ s.key }}" aria-hidden="true"></i>{% if s.url %}<a href="{{ s.url }}">{{ s.label }}</a>{% else %}{{ s.label }}{% endif %}<b>{{ s.value }}</b></li>{% endfor %}
+  </ul>
+</div>

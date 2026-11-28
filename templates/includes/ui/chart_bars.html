@@ -1,11 +1,15 @@
-{# Horizontal bars. rows: accounts.dashboards.bar_rows (label, value, width, optional url, note, inactive). #}
+{% comment %}
+  Horizontal rounded bars. rows: accounts.dashboards.bar_rows (label, value, width; optional url,
+  title (the label's tooltip), note (a share, shown in its own column), inactive).
+{% endcomment %}
 <ul class="sa-bars sa-chart">
   {% for row in rows %}
   <li>
-    {% if row.url %}<a class="sa-bar-row" href="{{ row.url }}">{% else %}<div class="sa-bar-row">{% endif %}
+    {% if row.url %}<a class="sa-bar-row" href="{{ row.url }}"{% if row.title %} title="{{ row.title }}"{% endif %}>{% else %}<div class="sa-bar-row"{% if row.title %} title="{{ row.title }}"{% endif %}>{% endif %}
       <span class="sa-bar-label">{{ row.label }}{% if row.inactive %} <span class="sa-muted">(inactive)</span>{% endif %}</span>
-      <span class="sa-bar-value">{{ row.value }}{% if row.note %}<small>{{ row.note }}</small>{% endif %}</span>
-      <svg class="sa-bar-track" viewBox="0 0 100 8" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="sa-bar-bg" width="100" height="8"/>{% if row.value %}<rect class="sa-bar-fill" width="{{ row.width }}" height="8"/>{% endif %}</svg>
+      <span class="sa-bar-track" aria-hidden="true"><i style="--fill: {{ row.width }}%"></i></span>
+      <span class="sa-bar-value">{{ row.value }}</span>
+      {% if row.note %}<span class="sa-bar-note">{{ row.note }}</span>{% endif %}
     {% if row.url %}</a>{% else %}</div>{% endif %}
   </li>
   {% endfor %}

@@ -92,11 +92,11 @@
     {% include "includes/ui/stat.html" with value=3 label="Rejected" icon="x" tone="rejected" %}
   </div>
 
-  <div class="sa-cgrid">
+  <ul class="sa-cgrid">
     {% include "includes/ui/card_item.html" with url="#" icon="file" title="Projector in Lab 3 has not worked for two weeks" sub="CMP-2026-00012 · Labs and equipment" status="under_review" status_label="Under review" progress="0.5" f1_label="Updated" f1_value="2h ago" f2_label="Cohort" f2_value="DEMO-A · S4" %}
     {% include "includes/ui/card_item.html" with url="#" icon="hand" title="Water cooler on the second floor" sub="CI-2026-00003" status="resolved" status_label="Resolved" progress="1" f1_label="Supporters" f1_value="18" %}
     {% include "includes/ui/card_item.html" with url="#" icon="voice" pastel="lavender" title="Could the library stay open later during exams?" status="waiting" status_label="Waiting" progress="0.2" f1_label="Type" f1_value="Idea" %}
-  </div>
+  </ul>
 
   <ul class="sa-rows">
     {% include "includes/ui/list_head.html" %}

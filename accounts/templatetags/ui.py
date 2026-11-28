@@ -79,6 +79,13 @@ def tone(value, domain=None):
 
 
 @register.filter
+def detail_doodle(tone_name):
+    """The detail hero's corner doodle for a tone: "resolved" -> "landed"."""
+    from accounts import tones
+    return tones.detail_doodle(tone_name)
+
+
+@register.filter
 def pastel(tone_name):
     """The pastel family a tone is drawn in: "review" -> "amber"."""
     from accounts import tones
@@ -148,3 +155,35 @@ def tone_for(status=None, domain=None, known=None):
     if known:
         return known
     return tones.tone(status, domain or None)
+
+
+# --- List pages (Polish v2 P2a) ------------------------------------------------------------------
+
+@register.simple_tag(takes_context=True)
+def stat_tab_url(context, param, value, current):
+    """A stat card used as a filter tab: {"url", "selected"}. Clicking the selected card clears it;
+    the page's other filters are kept (filter_url)."""
+    selected = str((current or {}).get(param, "") or "") == str(value)
+    return {"url": filter_url(context, param, "" if selected else value), "selected": selected}
+
+
+@register.simple_tag(takes_context=True)
+def active_filters(context, specs):
+    """The active filters as removable pills: [{"label", "url", "tip"}]. specs: [(param, label, choices)]
+    or (param, label, choices, tips), tips mapping a value to a tooltip (for example a term's dates);
+    choices None means a free-text value (the search). Only a value that is one of the choices shows."""
+    request = context["request"]
+    pills = []
+    for param, label, choices, *rest in specs or ():
+        tips = rest[0] if rest else {}
+        value = request.GET.get(param, "")
+        if not value:
+            continue
+        if choices is None:
+            text = value
+        else:
+            text = dict((str(k), v) for k, v in choices).get(value)
+            if not text or value == "":
+                continue
+        pills.append({"label": f"{label}: {text}", "url": filter_url(context, param, ""), "tip": tips.get(value, "")})
+    return pills

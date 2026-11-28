@@ -377,6 +377,12 @@
         button.setAttribute("aria-pressed", String(button.getAttribute("data-view-choice") === view));
       });
       if (group._seg) group._seg();
+      // "3 | 4 per row" only matters for cards.
+      var perRow = document.querySelector('[data-per-row-toggle="' + key + '"]');
+      if (perRow) {
+        perRow.hidden = view !== "cards";
+        if (perRow._seg) perRow._seg();
+      }
     }
     var saved = read("sa-view-" + key);
     if (saved === "list" || saved === "cards") apply(saved, false);
@@ -386,6 +392,39 @@
       var view = button.getAttribute("data-view-choice");
       write("sa-view-" + key, view);
       apply(view, true);
+    });
+  });
+
+  // --- Cards per row (3 | 4), remembered per page ----------------------------------------------
+  each("[data-per-row-toggle]", function (group) {
+    var key = group.getAttribute("data-per-row-toggle");
+    var collections = document.querySelectorAll('[data-view-key="' + key + '"]');
+    function apply(count) {
+      Array.prototype.forEach.call(collections, function (collection) { collection.setAttribute("data-per-row", count); });
+      Array.prototype.forEach.call(group.querySelectorAll("[data-per-row-choice]"), function (button) {
+        button.setAttribute("aria-pressed", String(button.getAttribute("data-per-row-choice") === count));
+      });
+      if (group._seg) group._seg();
+    }
+    var saved = read("sa-perrow-" + key);
+    if (saved === "3" || saved === "4") apply(saved);
+    group.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-per-row-choice]");
+      if (!button) return;
+      var count = button.getAttribute("data-per-row-choice");
+      write("sa-perrow-" + key, count);
+      apply(count);
+    });
+  });
+
+  // --- Copy a reference ([data-copy]): the button's tooltip says "Copied" for a moment ----------
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-copy]");
+    if (!button || !navigator.clipboard) return;
+    navigator.clipboard.writeText(button.getAttribute("data-copy")).then(function () {
+      var tip = button.getAttribute("data-tip");
+      button.setAttribute("data-tip", "Copied");
+      window.setTimeout(function () { button.setAttribute("data-tip", tip || "Copy"); }, 1600);
     });
   });
 

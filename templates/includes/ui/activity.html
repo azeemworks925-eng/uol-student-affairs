@@ -1,10 +1,14 @@
-{% load ui %}{# Activity list. items: who, what, when, url (optional). #}
+{% load ui %}{% comment %}
+  Activity list. items: who, what, when; url (optional: the whole row is a link);
+  anonymous (optional: an icon avatar instead of initials); tone (optional: a status dot).
+{% endcomment %}
 <ul class="sa-activity">
   {% for item in items %}
-  <li>
-    {% include "includes/ui/avatar.html" with name=item.who size="sm" %}
-    <span class="sa-activity-text">{% if item.url %}<a href="{{ item.url }}"><b>{{ item.who }}</b> {{ item.what }}</a>{% else %}<b>{{ item.who }}</b> {{ item.what }}{% endif %}</span>
-    <time class="sa-activity-time" datetime="{{ item.when|date:'c' }}">{{ item.when|ago }}</time>
+  <li class="sa-activity-row{% if item.url %} is-link{% endif %}">
+    {% if item.anonymous %}<span class="sa-avatar sa-avatar--sm sa-avatar--icon sa-tone--sand" aria-hidden="true"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-user"/></svg></span>{% else %}{% include "includes/ui/avatar.html" with name=item.who size="sm" %}{% endif %}
+    <span class="sa-activity-text">{% if item.url %}<a class="sa-stretch" href="{{ item.url }}"><b>{{ item.who }}</b> {{ item.what }}</a>{% else %}<b>{{ item.who }}</b> {{ item.what }}{% endif %}</span>
+    {% if item.tone %}<span class="sa-dot sa-tone--{{ item.tone }}" aria-hidden="true"></span>{% endif %}
+    <time class="sa-activity-time" datetime="{{ item.when|date:'c' }}" title="{{ item.when|date:'j M Y, H:i' }}">{{ item.when|ago }}</time>
   </li>
   {% endfor %}
 </ul>

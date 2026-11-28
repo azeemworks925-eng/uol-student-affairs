@@ -1,0 +1,1 @@
+{% load ui %}{# Active filters as removable pills, then "↺ Reset · N". filter_specs: the view's [(param, label, choices)]. #}{% active_filters filter_specs as active %}{% for f in active %}{% include "includes/ui/pill.html" with label=f.label remove_url=f.url tip=f.tip %}{% endfor %}{% include "includes/ui/reset_pill.html" %}

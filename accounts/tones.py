@@ -98,6 +98,16 @@ NOTIFICATION_TONES = {
 NOTIFICATION_ICONS = {"complaint": "file", "voice": "voice", "meeting": "calendar", "issue": "hand"}
 
 
+# The detail hero's corner doodle (docs/POLISH_V2.md "Doodle placement map", 4): a paper plane in
+# flight, a magnifying glass, a landed plane with ✓, or a plane resting on an ×-tag. Prompt 3
+# draws them into the slot; until then the slot is empty.
+DETAIL_DOODLES = {RECEIVED: "in-flight", REVIEW: "looking", RESOLVED: "landed", REJECTED: "resting", NEUTRAL: "in-flight"}
+
+
+def detail_doodle(tone_name):
+    return DETAIL_DOODLES.get(tone_name, "in-flight")
+
+
 def tone(value, domain=None):
     """The tone for a status or state. Unknown values are neutral."""
     if value is None:
