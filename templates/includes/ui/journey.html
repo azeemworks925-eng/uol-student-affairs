@@ -1,4 +1,10 @@
-{# The status journey: one line when it fits, wrapping between steps when it does not. #}
-<ol class="sa-journey{% if journey_class %} {{ journey_class }}{% endif %}" aria-label="{{ journey_label|default:'Where this complaint stands' }}">
-  {% for step in journey %}<li class="is-{{ step.state }}"{% if step.state == "current" %} aria-current="step"{% endif %}><span class="dot" aria-hidden="true"></span>{{ step.label }}</li>{% endfor %}
+{% comment %}
+  Stepper: horizontal steps on a line that fills to the current step on load; the current step
+  pulses once; completed steps show ✓. A rejected / declined / cancelled current step turns rose
+  with ✕. journey: [{label, state: done | current | upcoming, tone}] (for example
+  complaints.presentation.status_journey); journey_label (optional); journey_class (optional);
+  size: sm (cards, default) | lg (detail hero).
+{% endcomment %}
+<ol class="sa-journey sa-stepper sa-stepper--{{ size|default:'sm' }}{% if journey_class %} {{ journey_class }}{% endif %}" aria-label="{{ journey_label|default:'Where this complaint stands' }}" style="--steps: {{ journey|length }}">
+  {% for step in journey %}<li class="sa-step is-{{ step.state }}{% if step.state == 'current' and step.tone == 'rejected' %} is-rejected{% endif %}" style="--i: {{ forloop.counter0 }}"{% if step.state == "current" %} aria-current="step"{% endif %}><span class="dot" aria-hidden="true">{% if step.state == "done" %}<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-check"/></svg>{% elif step.state == "current" and step.tone == "rejected" %}<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg>{% elif step.state == "current" and step.tone == "resolved" %}<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-check"/></svg>{% endif %}</span><span class="sa-step-label">{{ step.label }}</span></li>{% endfor %}
 </ol>

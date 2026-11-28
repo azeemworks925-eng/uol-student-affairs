@@ -1,5 +1,21 @@
-{# Empty state. title, optional text, optional link_url + link_label, icon. #}
-<div class="sa-empty">
-  <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ icon|default:'inbox' }}"/></svg>
-  <div><p class="title">{{ title }}</p>{% if text %}<p class="sa-muted sa-small">{{ text }}</p>{% endif %}{% if link_url %}<p class="sa-small mb-0"><a href="{{ link_url }}">{{ link_label }}</a></p>{% endif %}</div>
+{% comment %}
+  Empty state: doodle slot -> headline -> one line -> optional action. Never a dashed box.
+  title; text (optional, one line); link_url + link_label (optional action);
+  variant: nothing-yet (default) | no-results | all-caught-up;
+  reset_url (no-results: the "↺ Reset filters" action; defaults to this page without its query);
+  icon (optional: the neutral placeholder in the doodle slot until Prompt 3's doodles);
+  size: md (default) | sm (inside a popover or a small card).
+{% endcomment %}
+<div class="sa-empty sa-empty--{{ variant|default:'nothing-yet' }}{% if size == 'sm' %} sa-empty--sm{% endif %}">
+  <div class="sa-empty-art sa-tone--{% if variant == 'no-results' %}amber{% elif variant == 'all-caught-up' %}mint{% else %}sky{% endif %}" aria-hidden="true" data-doodle-slot="{{ variant|default:'nothing-yet' }}">
+    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{% if icon %}{{ icon }}{% elif variant == 'no-results' %}search{% elif variant == 'all-caught-up' %}check{% else %}inbox{% endif %}"/></svg>
+    {% if variant == "all-caught-up" %}<span class="sa-sparkle"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-sparkle"/></svg></span>{% endif %}
+  </div>
+  <p class="title">{{ title }}</p>
+  {% if text %}<p class="sa-empty-text">{{ text }}</p>{% endif %}
+  {% if variant == "no-results" %}
+  <a class="btn btn-sa-secondary btn-sm" href="{{ reset_url|default:request.path }}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-reset"/></svg>Reset filters</a>
+  {% elif link_url %}
+  <a class="btn btn-sa-secondary btn-sm" href="{{ link_url }}">{{ link_label }}</a>
+  {% endif %}
 </div>

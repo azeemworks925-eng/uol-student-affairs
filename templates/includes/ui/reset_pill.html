@@ -1,0 +1,5 @@
+{% load ui %}{% comment %}
+  "↺ Reset · N": shown only when any filter, the search or a non-default sort is active; it goes
+  back to the clean URL. Uses the page's `list_keys` / `list_defaults` (active_filter_count).
+  url (optional): the clean URL (defaults to this page without a query).
+{% endcomment %}{% active_filter_count as reset_count %}{% if reset_count %}<a class="sa-pill sa-pill--reset sa-tone--accent" href="{{ url|default:request.path }}" data-reset-pill><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-reset"/></svg>Reset · {{ reset_count }}</a>{% endif %}

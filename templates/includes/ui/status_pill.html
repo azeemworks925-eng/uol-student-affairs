@@ -1,0 +1,6 @@
+{% load ui %}{% comment %}
+  Status pill: a dot and the label, coloured by the status map (accounts.tones) — templates never
+  choose the colour. status: the stored value (for example "under_review"); label: the text;
+  domain (optional): complaint | voice | issue | meeting | account | representation;
+  tone (optional): pass an already known tone instead of a status.
+{% endcomment %}{% tone_for status domain tone as t %}<span class="sa-status sa-tone--{{ t }}">{{ label }}</span>
