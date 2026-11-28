@@ -1,105 +1,66 @@
 {% extends "layouts/app.html" %}
-{% load static %}
+{% load static ui %}
 {# One meeting: for its student, an advisor of its cohort, or the Super Admin (read-only). Actions depend on status (DEC-328). #}
 {% block title %}Meeting · UOL Student Affairs{% endblock %}
 {% block crumb %}<li>Meeting</li>{% endblock %}
 {% block content %}
-<div class="sa-flow">
-  <div class="sa-detail">
-    <div class="sa-detail-main">
-      <header class="sa-card sa-detail-head">
-        <div>
-          <div class="sa-detail-ids">{% include "complaints/student/_status.html" with tone=meeting.tone label=meeting.get_status_display %}</div>
-          <h1 class="sa-detail-title">{% if viewer_is_advisor or viewer_is_admin %}Meeting with {{ meeting.student.get_full_name }}{% elif meeting.advisor %}Meeting with {{ meeting.advisor.get_full_name }}{% else %}Meeting with your Batch Advisor{% endif %}</h1>
-        </div>
-      </header>
-      <section class="sa-card" aria-labelledby="reason-title">
-        <h2 class="sa-card-title mb-2" id="reason-title">Reason</h2>
-        <div class="sa-prose">{{ meeting.reason|linebreaksbr }}</div>
-        {% if meeting.suggestion_note %}<div class="sa-voice-answer mt-3"><p class="sa-label">Note from your Batch Advisor</p><div class="sa-prose">{{ meeting.suggestion_note|linebreaksbr }}</div></div>{% endif %}
-        {% if meeting.closed_reason %}<div class="sa-voice-answer mt-3"><p class="sa-label">{{ meeting.get_status_display }}: reason</p><div class="sa-prose">{{ meeting.closed_reason|linebreaksbr }}</div></div>{% endif %}
-      </section>
-      <section class="sa-card" aria-labelledby="history-title">
-        {% include "includes/ui/card_head.html" with title="History" id="history-title" %}
-        <ol class="sa-meet-history">
-          {% for event in events %}
-          <li><b>{{ event.get_kind_display }}</b><span class="sa-small sa-muted">{{ event.created_at|date:"j M Y, H:i" }} · {{ event.actor.get_role_display }}</span></li>
-          {% endfor %}
-        </ol>
-      </section>
-    </div>
+<div class="sa-dpage">
+  {% if viewer_is_advisor or viewer_is_admin %}{% with title="Meeting with "|add:meeting.student.get_full_name %}{% include "includes/ui/detail_hero.html" with tone=meeting.tone status_label=meeting.get_status_display title=title text=meeting.reason journey=journey journey_label="Where this meeting stands" %}{% endwith %}
+  {% elif meeting.advisor %}{% with title="Meeting with "|add:meeting.advisor.get_full_name %}{% include "includes/ui/detail_hero.html" with tone=meeting.tone status_label=meeting.get_status_display title=title text=meeting.reason journey=journey journey_label="Where this meeting stands" %}{% endwith %}
+  {% else %}{% include "includes/ui/detail_hero.html" with tone=meeting.tone status_label=meeting.get_status_display title="Meeting with your Batch Advisor" text=meeting.reason journey=journey journey_label="Where this meeting stands" %}{% endif %}
 
-    <aside class="sa-detail-side" data-sticky-panel aria-label="Details and actions">
-      {% if viewer_is_advisor or viewer_is_admin %}
-      <section class="sa-card" aria-label="Student">
-        <div class="sa-person">
-          {% include "includes/ui/avatar.html" with name=meeting.student.get_full_name size="lg" %}
-          <div>
-            <div class="sa-person-name">{{ meeting.student.get_full_name }}{% if student_post %}<span class="sa-post-badge">{{ student_post }}</span>{% endif %}</div>
-            <span class="sa-small sa-muted">SAP ID <span class="sa-ref">{{ meeting.student.student_profile.sap_id }}</span></span>
-          </div>
-        </div>
-        <dl class="sa-facts-list"><div><dt>Cohort</dt><dd>{% include "includes/ui/cohort.html" with record=meeting %}</dd></div></dl>
-      </section>
-      {% endif %}
-
-      <section class="sa-card" aria-labelledby="details-title">
-        <h2 class="sa-card-title mb-2" id="details-title">Details</h2>
-        <dl class="sa-facts-list">
-          <div><dt>{% if meeting.starts_at %}{% if meeting.is_time_suggested %}Suggested{% else %}Date and time{% endif %}{% else %}Preferred{% endif %}</dt><dd>{{ meeting.when|date:"D j M Y, H:i" }}{% if meeting.ends_at %} to {{ meeting.ends_at|date:"H:i" }}{% endif %}</dd></div>
-          {% if meeting.duration_minutes %}<div><dt>Duration</dt><dd>{{ meeting.duration_minutes }} minutes</dd></div>{% endif %}
-          {% if meeting.location %}<div><dt>Location</dt><dd>{{ meeting.location }}</dd></div>{% endif %}
-          {% if viewer_is_advisor or viewer_is_admin %}{% if meeting.advisor %}<div><dt>Advisor</dt><dd>{{ meeting.advisor.get_full_name }}</dd></div>{% endif %}{% endif %}
-        </dl>
-        {% if meeting.calendar_url %}<a class="btn btn-sa-secondary w-100 mt-3" href="{{ meeting.calendar_url }}" target="_blank" rel="noopener noreferrer"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg> Add to Google Calendar</a>{% endif %}
-      </section>
-
-      {% if viewer_is_student %}
-        {% if meeting.is_time_suggested or meeting.is_confirmed and not meeting.has_started %}
-        <section class="sa-card" aria-labelledby="actions-title">
-          <h2 class="sa-card-title mb-2" id="actions-title">Actions</h2>
-          {% include "meetings/_student_actions.html" %}
-        </section>
-        {% endif %}
-      {% elif viewer_is_admin %}
-        <p class="sa-notice sa-small mb-0">Read-only oversight. The Batch Advisors of this cohort act on meetings.</p>
-      {% elif meeting.is_requested %}
-      <section class="sa-card sa-side-actions-card" aria-labelledby="actions-title">
-        <h2 class="sa-card-title mb-2" id="actions-title">Actions</h2>
-        <div class="sa-side-actions">
-          <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-confirm">Confirm</button>
-          <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-suggest">Suggest another time</button>
-          <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-decline">Decline</button>
-        </div>
-      </section>
-      {% elif meeting.is_confirmed and not meeting.has_started %}
-      <section class="sa-card sa-side-actions-card" aria-labelledby="actions-title">
-        <h2 class="sa-card-title mb-2" id="actions-title">Actions</h2>
-        <div class="sa-side-actions"><button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-cancel">Cancel this meeting</button></div>
-      </section>
-      {% elif meeting.is_time_suggested %}
-      <p class="sa-notice sa-small mb-0">Waiting for the student to accept or decline this time.</p>
-      {% endif %}
-    </aside>
+  <div class="sa-dmain">
+    <section class="sa-card" aria-labelledby="history-title">
+      {% include "includes/ui/card_head.html" with title="History" id="history-title" %}
+      <ol class="sa-timeline">
+        {% for e in timeline %}{% include "includes/ui/timeline_item.html" with title=e.title when=e.when tone=e.tone by=e.by message=e.message message_label=e.message_label %}{% endfor %}
+      </ol>
+    </section>
   </div>
 
-  {% if viewer_is_advisor %}
-    {% if meeting.is_requested %}
-    <nav class="sa-actionbar" aria-label="Meeting actions">
-      <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-confirm">Confirm</button>
-      <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-suggest">Suggest</button>
-      <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-decline">Decline</button>
-    </nav>
-    {% elif meeting.is_confirmed and not meeting.has_started %}
-    <nav class="sa-actionbar" aria-label="Meeting actions"><button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-cancel">Cancel this meeting</button></nav>
-    {% endif %}
-  {% endif %}
+  <aside class="sa-dside" aria-label="Actions and details">
+    <div class="sa-dside-inner" data-sticky-panel>
+      <section class="sa-card sa-daction" aria-labelledby="actions-title">
+        <header class="sa-card-head">
+          <div class="sa-card-titles"><h2 class="sa-card-title" id="actions-title">Actions</h2></div>
+          {% if viewer_is_admin %}{% include "includes/ui/lock_pill.html" with kind="view-only" %}{% elif meeting.is_final or meeting.has_started and not meeting.is_time_suggested %}{% include "includes/ui/lock_pill.html" with kind="locked" tip="Nothing left to do" %}{% elif viewer_is_advisor and meeting.is_time_suggested %}{% include "includes/ui/pill.html" with label="Waiting for the student" icon="clock" tone="review" %}{% endif %}
+        </header>
+        {% if viewer_is_student %}{% include "meetings/_student_actions.html" %}
+        {% elif viewer_is_advisor and meeting.is_requested %}
+        <div class="sa-daction-buttons">
+          <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-confirm">Confirm</button>
+          <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-suggest">Suggest another time</button>
+          <button type="button" class="btn btn-sa-ghost" data-dialog-open="dialog-decline">Decline</button>
+        </div>
+        {% elif viewer_is_advisor and meeting.is_confirmed and not meeting.has_started %}
+        <div class="sa-daction-buttons"><button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-cancel">Cancel this meeting</button></div>
+        {% endif %}
+        {% if meeting.calendar_url %}<a class="btn btn-sa-secondary" href="{{ meeting.calendar_url }}" target="_blank" rel="noopener noreferrer"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-calendar"/></svg>Add to Google Calendar</a>{% endif %}
+      </section>
+
+      <section class="sa-card sa-ddetails" aria-labelledby="details-title">
+        {% if viewer_is_advisor or viewer_is_admin %}<h2 class="visually-hidden" id="details-title">Details</h2>
+        <div class="sa-person-row sa-person">
+          {% include "includes/ui/avatar.html" with name=meeting.student.get_full_name size="lg" %}
+          <div><b class="sa-person-name">{{ meeting.student.get_full_name }}{% if student_post %} {% include "includes/ui/role_badge.html" with role=student_post|lower %}{% endif %}</b><small>SAP ID <span class="sa-ref">{{ meeting.student.student_profile.sap_id }}</span></small></div>
+        </div>
+        {% else %}{% include "includes/ui/card_head.html" with title="Details" id="details-title" %}{% endif %}
+        <dl class="sa-facts">
+          <div><dt>{% if meeting.starts_at %}{% if meeting.is_time_suggested %}Suggested{% else %}When{% endif %}{% else %}Preferred{% endif %}</dt><dd><time datetime="{{ meeting.when|date:'c' }}" title="{{ meeting.when|date:'j M Y, H:i' }}">{{ meeting.when|date:"D j M, H:i" }}{% if meeting.ends_at %}–{{ meeting.ends_at|date:"H:i" }}{% endif %}</time></dd></div>
+          {% if meeting.duration_minutes %}<div><dt>Duration</dt><dd>{{ meeting.duration_minutes }} min</dd></div>{% endif %}
+          {% if meeting.location %}<div><dt>Where</dt><dd>{{ meeting.location }}</dd></div>{% endif %}
+          {% if viewer_is_advisor or viewer_is_admin %}{% if meeting.advisor %}<div><dt>Advisor</dt><dd>{{ meeting.advisor.get_full_name }}</dd></div>{% endif %}{% endif %}
+          <div><dt>Cohort</dt><dd>{% include "includes/ui/cohort.html" with record=meeting %}</dd></div>
+        </dl>
+      </section>
+    </div>
+  </aside>
 </div>
 
 {% if viewer_is_advisor and meeting.is_requested %}
 <dialog class="sa-dialog" id="dialog-confirm" aria-labelledby="confirm-title"{% if open_confirm %} data-open-on-load{% endif %}>
   <div class="sa-dialog-body">
-    {% include "includes/ui/dialog_head.html" with title="Confirm" id="confirm-title" %}
+    {% include "includes/ui/dialog_head.html" with title="Confirm" id="confirm-title" icon="check" tone="resolved" %}
     <form method="post" action="{% url 'advisor_meeting_confirm' meeting.pk %}" novalidate data-once-submit>
       {% csrf_token %}
       {% include "meetings/_overlap.html" %}
@@ -110,7 +71,7 @@
 </dialog>
 <dialog class="sa-dialog" id="dialog-suggest" aria-labelledby="suggest-title"{% if open_suggest %} data-open-on-load{% endif %}>
   <div class="sa-dialog-body">
-    {% include "includes/ui/dialog_head.html" with title="Suggest another time" id="suggest-title" %}
+    {% include "includes/ui/dialog_head.html" with title="Suggest another time" id="suggest-title" icon="clock" tone="review" %}
     <form method="post" action="{% url 'advisor_meeting_suggest' meeting.pk %}" novalidate data-once-submit>
       {% csrf_token %}
       {% include "meetings/_slot_fields.html" with form=suggest_form %}
@@ -121,7 +82,7 @@
 </dialog>
 <dialog class="sa-dialog" id="dialog-decline" aria-labelledby="decline-title"{% if open_decline %} data-open-on-load{% endif %}>
   <div class="sa-dialog-body">
-    {% include "includes/ui/dialog_head.html" with title="Decline" id="decline-title" %}
+    {% include "includes/ui/dialog_head.html" with title="Decline" id="decline-title" icon="x" tone="rejected" %}
     <form method="post" action="{% url 'advisor_meeting_decline' meeting.pk %}" novalidate data-once-submit>
       {% csrf_token %}
       {% include "includes/form_field.html" with field=decline_form.reason %}
@@ -132,7 +93,7 @@
 {% elif viewer_is_advisor and meeting.is_confirmed and not meeting.has_started %}
 <dialog class="sa-dialog" id="dialog-cancel" aria-labelledby="cancel-title"{% if cancel_form.errors %} data-open-on-load{% endif %}>
   <div class="sa-dialog-body">
-    {% include "includes/ui/dialog_head.html" with title="Cancel this meeting" id="cancel-title" %}
+    {% include "includes/ui/dialog_head.html" with title="Cancel this meeting" id="cancel-title" icon="x" tone="rejected" %}
     <form method="post" action="{% url 'advisor_meeting_cancel' meeting.pk %}" novalidate data-once-submit>
       {% csrf_token %}
       {% include "includes/form_field.html" with field=cancel_form.reason %}

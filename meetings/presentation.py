@@ -324,15 +324,36 @@ def build_week(visible, week_value, day_value, viewer=None):
     }
 
 
-def meeting_stats(meetings, now=None):
-    """The stat strip of a meetings list, from what this user can see."""
-    upcoming, closed = split_upcoming(list(meetings), now)
+def meeting_stats(meetings):
+    """The stat cards of a meetings list, from what this user can see within the page's other
+    filters. Each is a filter tab that sets the status."""
+    rows = list(meetings)
     return [
-        {"value": sum(1 for m in upcoming if m.is_requested), "label": "Requested", "icon": "inbox", "tone": "received"},
-        {"value": sum(1 for m in upcoming if m.is_time_suggested), "label": "Time suggested", "icon": "clock", "tone": "review"},
-        {"value": sum(1 for m in upcoming if m.is_confirmed), "label": "Upcoming", "icon": "calendar", "tone": "resolved"},
-        {"value": len(closed), "label": "Past or closed", "icon": "check", "tone": "accent"},
+        {"value": sum(1 for m in rows if m.status == status), "label": label, "icon": icon,
+         "tone": STATUS_TONES[status], "param": "status", "filter": status}
+        for status, label, icon in ((Status.REQUESTED, "Requested", "inbox"), (Status.TIME_SUGGESTED, "Time suggested", "clock"),
+                                    (Status.CONFIRMED, "Confirmed", "calendar"))
     ]
+
+
+def list_display(meetings, *, for_student=False, show_cohort=False):
+    """What a meeting row or card shows: who it is with, when (or the preferred time) and where."""
+    for meeting in meetings:
+        when = timezone.localtime(meeting.when)
+        moment = f"{when:%a} {when.day} {when:%b}, {when:%H:%M}"
+        if meeting.starts_at is None:
+            parts = [f"Preferred: {moment}"]
+        else:
+            parts = [moment, f"{meeting.duration_minutes} min", meeting.location]
+        if for_student:
+            meeting.with_name = meeting.advisor.get_full_name() if meeting.advisor else "Your Batch Advisor"
+            parts.insert(0, meeting.with_name)
+        else:
+            meeting.with_name = meeting.student.get_full_name()
+        if show_cohort:
+            parts.append(f"{meeting.section.name} · S{meeting.semester.number}")
+        meeting.secondary = " · ".join(part for part in parts if part)
+    return meetings
 
 
 # --- Student Home ----------------------------------------------------------------------------
@@ -377,3 +398,43 @@ def student_home_updates(student, limit=HOME_UPDATE_LIMIT):
     """Complaint, Student Voice and meeting updates merged, newest first, at most `limit`."""
     combined = [*complaint_and_voice_updates(student, limit), *meeting_updates(student, limit)]
     return merge_sort(combined, key=lambda update: update.when, reverse=True)[:limit]
+
+
+# --- Detail page -------------------------------------------------------------------------------
+
+EVENT_TONES = {
+    Kind.REQUESTED: tones.RECEIVED, Kind.SCHEDULED: tones.RESOLVED, Kind.SUGGESTED: tones.REVIEW,
+    Kind.CONFIRMED: tones.RESOLVED, Kind.ACCEPTED: tones.RESOLVED, Kind.DECLINED: tones.REJECTED,
+    Kind.CANCELLED: tones.REJECTED,
+}
+NOTE_LABELS = {Kind.SUGGESTED: "Note", Kind.DECLINED: "Reason", Kind.CANCELLED: "Reason"}
+
+
+def status_journey(meeting, events):
+    """Requested (or Scheduled) → Time suggested (when one was) → Confirmed, or Declined /
+    Cancelled, marking where the meeting is now."""
+    kinds = {event.kind for event in events}
+    steps = [("Requested" if Kind.REQUESTED in kinds or meeting.preferred_at else "Scheduled", tones.RECEIVED)]
+    if Kind.SUGGESTED in kinds or meeting.is_time_suggested:
+        steps.append(("Time suggested", tones.REVIEW))
+    if meeting.status == Status.DECLINED:
+        steps.append(("Declined", tones.REJECTED))
+    else:
+        if meeting.status != Status.CANCELLED or kinds & {Kind.CONFIRMED, Kind.ACCEPTED, Kind.SCHEDULED}:
+            steps.append(("Confirmed", tones.RESOLVED))
+        if meeting.status == Status.CANCELLED:
+            steps.append(("Cancelled", tones.REJECTED))
+    labels = [label for label, _tone in steps]
+    current = {Status.REQUESTED: 0, Status.TIME_SUGGESTED: labels.index("Time suggested") if "Time suggested" in labels else 0,
+               Status.CONFIRMED: labels.index("Confirmed") if "Confirmed" in labels else 0}.get(meeting.status, len(steps) - 1)
+    return [{"label": label, "tone": tone, "state": "done" if i < current else "current" if i == current else "upcoming"}
+            for i, (label, tone) in enumerate(steps)]
+
+
+def timeline(events, *, staff):
+    """The meeting's history, toned by event. Students see staff by role; staff see names."""
+    return [{
+        "title": event.get_kind_display(), "when": event.created_at, "tone": EVENT_TONES.get(event.kind, tones.NEUTRAL),
+        "by": event.actor.get_full_name() if staff or event.actor.is_student else event.actor.get_role_display(),
+        "message": event.note, "message_label": NOTE_LABELS.get(event.kind, "Note"),
+    } for event in events]

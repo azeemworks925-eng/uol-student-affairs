@@ -1,0 +1,7 @@
+{# Meeting groups (for example Waiting for reply · Upcoming · Past), each a collection. groups: [(title, meetings)]. #}
+{% for title, items in groups %}
+<section class="sa-list-group" aria-label="{{ title }}">
+  <h2 class="sa-list-group-title">{{ title }}</h2>
+  {% include "meetings/_collection.html" with meetings=items label=title %}
+</section>
+{% endfor %}

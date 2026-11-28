@@ -2,33 +2,21 @@
 {# Super Admin oversight: every meeting, read-only (DEC-262, DEC-328). #}
 {% block title %}Meetings · UOL Student Affairs{% endblock %}
 {% block content %}
-<div class="sa-flow">
-  <header class="sa-page-header">
-    <div>
-      <h1 class="sa-page-title">Meetings</h1>
-      <p class="sa-page-subtitle">Department · read-only oversight</p>
-    </div>
-    <div class="sa-page-actions">{% include "meetings/_view_switch.html" with active="list" %}</div>
-  </header>
-
-  <div class="sa-controls">
-    {% include "includes/ui/filter_chip.html" with label="Status" param="status" choices=filters.fields.status.choices current=current.status %}
+<div class="sa-page-flow">
+  {% include "includes/ui/banner.html" with title="Meetings" icon="calendar" pastel="mint" action_template="issues/_view_only.html" %}
+  {% include "includes/ui/stat_tabs.html" %}
+  <div class="sa-filterbar">
     {% include "includes/ui/filter_chip.html" with label="Cohort" param="cohort" choices=filters.fields.cohort.choices current=current.cohort %}
-    {% if has_filters %}<a class="sa-clear" href="{% url 'super_admin_meetings' %}">Clear filters</a>{% endif %}
-    <div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="admin-meetings" %}</div>
+    {% include "includes/ui/active_filters.html" %}
   </div>
-
-  <div class="sa-stats">
-    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
-  </div>
-
+  {% include "includes/ui/list_bar.html" with status_choices=status_tabs status_current=current.status key="admin-meetings" extra_template="meetings/_views_extra.html" %}
   {% if page.object_list %}
-    {% include "meetings/_collection.html" with meetings=page.object_list key="admin-meetings" detail_url_name="super_admin_meeting_detail" show_student=True %}
+    {% include "meetings/_collection.html" with meetings=page.object_list key="admin-meetings" detail_url_name="super_admin_meeting_detail" show_person=True %}
     {% include "includes/ui/pagination.html" with label="Meeting pages" %}
   {% elif has_filters %}
-    {% include "includes/ui/empty.html" with title="No meetings match these filters." icon="calendar" %}
+    {% include "includes/ui/empty.html" with variant="no-results" title="No results" text="No meetings match these filters." %}
   {% else %}
-    {% include "includes/ui/empty.html" with title="No meetings yet." icon="calendar" %}
+    {% include "includes/ui/empty.html" with title="No meetings yet" icon="calendar" %}
   {% endif %}
 </div>
 {% endblock %}

@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
 from accounts.permissions import batch_advisor_required, student_required, super_admin_required
+from accounts.presentation import cohort_key, varies
 from complaints.presentation import current_post
 from complaints.workspace import advisor_cohorts, cohort_value
 from dsa.sorting import merge_sort
@@ -25,8 +26,8 @@ from . import services
 from .forms import FilterForm, ReasonForm, RequestForm, ScheduleForm, SlotForm, SuggestForm
 from .models import Meeting
 from .permissions import get_visible_meeting, visible_meetings
-from .presentation import (build_month, build_week, decorate, group_by_day, latest_first, meeting_stats, overlap_token,
-                           overlap_warnings, split_upcoming)
+from .presentation import (build_month, build_week, decorate, latest_first, list_display, meeting_stats, overlap_token,
+                           overlap_warnings, split_upcoming, status_journey, timeline)
 
 Status = Meeting.Status
 ADMIN_PAGE_SIZE = 20
@@ -58,6 +59,28 @@ def _run(request, action, success):
         messages.success(request, success)
 
 
+STATUS_TABS = [("", "All"), *Status.choices]
+
+
+def _status(request):
+    """The status tab, only if it is one of the offered statuses (a filter can only narrow)."""
+    value = request.GET.get("status", "")
+    return value if value in Status.values else ""
+
+
+def _list_context(request, status, cohort="", extra_keys=()):
+    keys = ("status", *extra_keys, "page")
+    state = urlencode([(key, request.GET[key]) for key in keys if request.GET.get(key)])
+    return {"status_tabs": STATUS_TABS, "current": {"status": status, "cohort": cohort}, "list_keys": keys,
+            "query_suffix": f"?{state}" if state else "", "has_filters": bool(status or cohort)}
+
+
+def _history(meeting, *, staff):
+    """The detail page's stepper and timeline, from the meeting's recorded events."""
+    events = list(meeting.events.select_related("actor"))
+    return {"events": events, "journey": status_journey(meeting, events), "timeline": timeline(events, staff=staff)}
+
+
 # --- Student ---------------------------------------------------------------------------------
 
 @student_required
@@ -73,14 +96,22 @@ def student_meetings(request):
         else:
             messages.success(request, "Request sent. Your Batch Advisors can now see it.")
             return redirect("student_meetings")
-    own = decorate(list(visible_meetings(request.user).order_by()), request.user)
+    visible = visible_meetings(request.user).select_related("advisor", "semester", "section").order_by()
+    status = _status(request)
+    own = decorate(list(visible.filter(status=status) if status else visible), request.user)
     upcoming, closed = split_upcoming(own)
+    list_display(own, for_student=True)
+    groups = [
+        ("Waiting for reply", [m for m in upcoming if not m.is_confirmed]),
+        ("Upcoming", [m for m in upcoming if m.is_confirmed]),
+        ("Past and closed", closed),
+    ]
     return render(request, "meetings/student.html", {
         "form": form,
-        "groups": group_by_day(upcoming),
-        "upcoming": upcoming,
-        "closed": closed,
-        "stats": meeting_stats(own),
+        "groups": [(title, items) for title, items in groups if items],
+        "total": visible.count(),
+        "stats": meeting_stats(visible),
+        **_list_context(request, status),
         "view_urls": VIEW_URLS["student_meetings"],
         "open_new": form.is_bound or bool(request.GET.get("new")),
     }, status=400 if form.is_bound else 200)
@@ -93,7 +124,7 @@ def _student_detail(request, meeting, cancel_form=None, status=200):
         "viewer_is_student": True,
         "list_url_name": "student_meetings",
         "cancel_form": cancel_form or ReasonForm(prefix="cancel"),
-        "events": meeting.events.select_related("actor"),
+        **_history(meeting, staff=False),
     }, status=status)
 
 
@@ -189,7 +220,7 @@ def _advisor_detail(request, meeting, *, confirm_form=None, suggest_form=None, d
         "open_decline": bool(decline_form),
         "overlap_warnings": warnings,
         "overlap_token": token,
-        "events": meeting.events.select_related("actor"),
+        **_history(meeting, staff=True),
     }, status=status)
 
 
@@ -204,18 +235,32 @@ def _unacknowledged_overlap(request, starts_at, duration, exclude_pk=None):
 
 @batch_advisor_required
 def advisor_meetings(request):
-    meetings = decorate(list(visible_meetings(request.user).order_by()), request.user)
+    cohorts = advisor_cohorts(request.user)
+    visible = visible_meetings(request.user).select_related("student", "semester", "section").order_by()
+    cohort = request.GET.get("cohort", "") if request.GET.get("cohort", "") in dict(cohorts) else ""
+    if cohort:  # validated against the advisor's own cohorts
+        batch_id, semester_id, section_id = (int(part) for part in cohort.split("."))
+        visible = visible.filter(batch_id=batch_id, semester_id=semester_id, section_id=section_id)
+    status = _status(request)
+    meetings = decorate(list(visible.filter(status=status) if status else visible), request.user)
     upcoming, closed = split_upcoming(meetings)
-    needs_decision = [m for m in upcoming if m.is_requested]
+    list_display(meetings, show_cohort=varies(meetings, cohort_key))
+    groups = [
+        ("Needs a decision", [m for m in upcoming if m.is_requested]),
+        ("Waiting for the student", [m for m in upcoming if m.is_time_suggested]),
+        ("Upcoming", [m for m in upcoming if m.is_confirmed]),
+        ("Past and closed", closed[:CLOSED_LIMIT]),
+    ]
+    cohort_choices = [("", "All assigned cohorts"), *cohorts]
     return render(request, "meetings/advisor.html", {
-        "needs_decision": needs_decision,
-        "waiting_for_student": [m for m in upcoming if m.is_time_suggested],
-        "groups": group_by_day([m for m in upcoming if m.is_confirmed]),
-        "closed": closed[:CLOSED_LIMIT],
-        "confirmed": [m for m in upcoming if m.is_confirmed],
-        "stats": meeting_stats(meetings),
+        "groups": [(title, items) for title, items in groups if items],
+        "stats": meeting_stats(visible),
+        **_list_context(request, status, cohort, extra_keys=("cohort",)),
+        "cohort_choices": cohort_choices,
+        "show_cohort_filter": len(cohorts) > 1,
+        "filter_specs": [("cohort", "Cohort", cohort_choices)],
         "view_urls": VIEW_URLS["advisor_meetings"],
-        "has_cohorts": bool(advisor_cohorts(request.user)),
+        "has_cohorts": bool(cohorts),
     })
 
 
@@ -330,20 +375,21 @@ def _meeting_cohorts(visible):
 def super_admin_meetings(request):
     visible = visible_meetings(request.user)
     filters = FilterForm(request.GET, cohorts=_meeting_cohorts(visible))
-    rows = visible.order_by()
-    if filters.value("status"):
-        rows = rows.filter(status=filters.value("status"))
+    base = visible.order_by()
     if filters.value("cohort"):  # validated against the offered choices
         batch_id, semester_id, section_id = (int(part) for part in filters.value("cohort").split("."))
-        rows = rows.filter(batch_id=batch_id, semester_id=semester_id, section_id=section_id)
-    page = Paginator(latest_first(list(rows)), ADMIN_PAGE_SIZE).get_page(request.GET.get("page"))
+        base = base.filter(batch_id=batch_id, semester_id=semester_id, section_id=section_id)
+    # The stat cards count within the cohort filter; the status narrows the list.
+    rows = base.filter(status=filters.value("status")) if filters.value("status") else base
+    page = Paginator(latest_first(list(rows.select_related("student", "semester", "section"))),
+                     ADMIN_PAGE_SIZE).get_page(request.GET.get("page"))
     decorate(page.object_list)
-    state = urlencode([(key, filters.value(key)) for key in ("status", "cohort") if filters.value(key)])
+    list_display(page.object_list, show_cohort=varies(page.object_list, cohort_key))
     return render(request, "meetings/super_admin.html", {
-        "filters": filters, "page": page, "page_state": state, "has_filters": bool(state),
-        "stats": meeting_stats(visible.order_by()),
-        "current": {name: filters.value(name) for name in ("status", "cohort")},
-        "list_keys": ("status", "cohort", "page"),
+        "filters": filters, "page": page,
+        "stats": meeting_stats(base),
+        **_list_context(request, filters.value("status"), filters.value("cohort"), extra_keys=("cohort",)),
+        "filter_specs": [("cohort", "Cohort", filters.fields["cohort"].choices)],
         "view_urls": VIEW_URLS["super_admin_meetings"],
     })
 
@@ -368,5 +414,5 @@ def super_admin_meeting_detail(request, pk):
         "viewer_is_admin": True,
         "list_url_name": "super_admin_meetings",
         "student_post": current_post(meeting.student),
-        "events": meeting.events.select_related("actor"),
+        **_history(meeting, staff=True),
     })

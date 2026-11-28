@@ -416,7 +416,8 @@ class GoogleCalendarTests(MeetingTestCase):
         self.assertNotContains(self.client.get(reverse("student_meeting_detail", args=[pending.pk])), "Add to Google Calendar")
         confirmed = self.confirmed()
         self.assertContains(self.client.get(reverse("student_meeting_detail", args=[confirmed.pk])), "Add to Google Calendar")
-        self.assertContains(self.client.get(reverse("student_meetings")), "calendar.google.com/calendar/render?action=TEMPLATE")
+        # The list rows are links to the detail; the home's upcoming card carries the link too.
+        self.assertContains(self.client.get(reverse("student_home")), "calendar.google.com/calendar/render?action=TEMPLATE")
 
 
 class MonthViewTests(MeetingTestCase):
@@ -555,7 +556,8 @@ class PageFlowTests(MeetingTestCase):
         meeting.refresh_from_db()
         self.assertEqual(meeting.status, Status.TIME_SUGGESTED)
         self.client.force_login(self.student)
-        self.assertContains(self.client.get(reverse("student_meetings")), "Accept")
+        self.assertContains(self.client.get(reverse("student_meetings")), "Waiting for reply")
+        self.assertContains(self.client.get(reverse("student_meeting_detail", args=[meeting.pk])), "Accept")
         self.client.post(reverse("student_meeting_accept", args=[meeting.pk]))
         meeting.refresh_from_db()
         self.assertEqual(meeting.status, Status.CONFIRMED)
@@ -598,18 +600,19 @@ class PageFlowTests(MeetingTestCase):
         declined = services.decline(self.advisor, self.request(), "Not needed.")
         self.client.force_login(self.student)
         response = self.client.get(reverse("student_meetings"))
-        upcoming = [m.pk for group in response.context["groups"] for m in group["meetings"]]
-        self.assertEqual(upcoming, [early.pk, late.pk])
-        self.assertEqual([m.pk for m in response.context["closed"]], [declined.pk])
+        # Polish v2 list groups: Waiting for reply · Upcoming · Past and closed.
+        groups = dict(response.context["groups"])
+        self.assertEqual([m.pk for m in groups["Upcoming"]], [early.pk, late.pk])
+        self.assertEqual([m.pk for m in groups["Past and closed"]], [declined.pk])
 
 
 class StudentHomeTests(MeetingTestCase):
-    def test_home_shows_meeting_updates_and_quick_access(self):
+    def test_home_shows_meeting_updates_and_the_request_action(self):
         self.confirmed()
         self.client.force_login(self.student)
         response = self.client.get(reverse("student_home"))
         self.assertContains(response, "Meeting confirmed")
-        self.assertContains(response, "My meetings")
+        self.assertContains(response, "Request meeting")
         self.assertContains(response, reverse("student_meetings"))
 
     def test_updates_are_limited_to_five_newest_first(self):

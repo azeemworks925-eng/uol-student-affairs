@@ -1,21 +1,19 @@
-{# Meetings as list rows or item cards. meetings, key, detail_url_name; show_student for staff; student_actions for the student's list. #}
-<ul class="sa-collection{% if not show_student %} sa-collection--no-who{% endif %}" data-view="list" data-view-key="{{ key }}">
-  {% for meeting in meetings %}
-  <li>
-    <a class="sa-item sa-item--{{ meeting.tone }}" href="{% url detail_url_name meeting.pk %}">
-      <span class="sa-item-ref"><time datetime="{{ meeting.when|date:'c' }}">{{ meeting.when|date:"j M, H:i" }}</time></span>
-      {% if show_student %}<span class="sa-item-who">{{ meeting.student.get_full_name }}</span>{% endif %}
-      <span class="sa-item-title">{{ meeting.reason|truncatechars:90 }}{% if meeting.starts_at %}<span class="sa-item-extra">{{ meeting.duration_minutes }} min · {{ meeting.location }}</span>{% else %}<span class="sa-item-extra">Preferred time</span>{% endif %}</span>
-      {% include "includes/ui/cohort.html" with record=meeting %}
-      {% include "complaints/student/_status.html" with tone=meeting.tone label=meeting.get_status_display %}
-      <span class="sa-item-when">{% if meeting.starts_at %}{{ meeting.duration_minutes }} min{% else %}Preferred{% endif %}</span>
-    </a>
-    {% if meeting.calendar_url or student_actions and meeting.is_time_suggested %}
-    <div class="sa-item-actions">
-      {% if meeting.calendar_url %}<a class="sa-card-action" href="{{ meeting.calendar_url }}" target="_blank" rel="noopener noreferrer">Add to Google Calendar</a>{% endif %}
-      {% if student_actions and meeting.is_time_suggested %}{% include "meetings/_student_actions.html" %}{% endif %}
-    </div>
-    {% endif %}
-  </li>
-  {% endfor %}
-</ul>
+{% load ui %}{% comment %}
+  Meetings as list rows and cards: pastel date blocks and status colours. meetings; key;
+  default_view; detail_url_name; query_suffix; show_person (staff: the student column).
+  meetings.presentation.list_display has set each meeting's tone, who it is with and its second line.
+{% endcomment %}
+<div class="sa-views" data-view="{{ default_view|default:'list' }}" data-view-key="{{ key }}" data-per-row="3">
+  <ul class="sa-rows{% if not show_person %} sa-rows--no-person{% endif %}" aria-label="{{ label|default:'Meetings' }}">
+    {% include "includes/ui/list_head.html" with c1="Meeting" c2="Student" c4="Time" %}
+    {% for m in meetings %}{% url detail_url_name m.pk as base %}
+    {% if show_person %}{% include "includes/ui/list_row.html" with url=base|add:query_suffix date=m.when primary=m.reason secondary=m.secondary person=m.with_name tone=m.tone status_label=m.get_status_display when=m.when when_label=m.when|date:"H:i" %}
+    {% else %}{% include "includes/ui/list_row.html" with url=base|add:query_suffix date=m.when primary=m.reason secondary=m.secondary tone=m.tone status_label=m.get_status_display when=m.when when_label=m.when|date:"H:i" %}{% endif %}
+    {% endfor %}
+  </ul>
+  <ul class="sa-cgrid" aria-label="{{ label|default:'Meetings' }}">
+    {% for m in meetings %}{% url detail_url_name m.pk as base %}
+    {% include "includes/ui/card_item.html" with url=base|add:query_suffix icon="calendar" title=m.reason sub=m.secondary tone=m.tone status_label=m.get_status_display f1_label="With" f1_value=m.with_name f2_label="When" f2_value=m.when|date:"D j M, H:i" %}
+    {% endfor %}
+  </ul>
+</div>

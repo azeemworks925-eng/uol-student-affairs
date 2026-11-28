@@ -3,40 +3,25 @@
 {# Student Meetings: upcoming and closed meetings, and a request form in a dialog (DEC-328). #}
 {% block title %}Meetings · UOL Student Affairs{% endblock %}
 {% block content %}
-<div class="sa-flow">
-  <header class="sa-page-header">
-    <div>
-      <h1 class="sa-page-title">Meetings</h1>
-      <p class="sa-page-subtitle">With your Batch Advisor</p>
-    </div>
-    <div class="sa-page-actions">
-      {% include "meetings/_view_switch.html" with active="list" %}
-      <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-meeting"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Request a meeting</button>
-    </div>
-  </header>
-
-  <div class="sa-stats">
-    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
-  </div>
-
-  <div class="sa-controls"><h2 class="sa-card-title" id="upcoming-title">Upcoming</h2><div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="student-meetings" %}</div></div>
-  {% if upcoming %}
-    {% include "meetings/_collection.html" with meetings=upcoming key="student-meetings" detail_url_name="student_meeting_detail" student_actions=True %}
+<div class="sa-page-flow">
+  {% include "includes/ui/banner.html" with title="Meetings" icon="calendar" pastel="mint" action_template="meetings/_request_action.html" %}
+  {% if total %}
+  {% include "includes/ui/stat_tabs.html" %}
+  {% include "includes/ui/list_bar.html" with status_choices=status_tabs status_current=current.status key="student-meetings" default_view="cards" extra_template="meetings/_views_extra.html" %}
+  {% if groups %}
+    {% include "meetings/_groups.html" with key="student-meetings" default_view="cards" detail_url_name="student_meeting_detail" %}
   {% else %}
-    {% include "includes/ui/empty.html" with title="No upcoming meetings." text="Send a request and your Batch Advisor will confirm a time." icon="calendar" %}
+    {% include "includes/ui/empty.html" with variant="no-results" title="No results" text="Nothing matches these filters." %}
   {% endif %}
-
-  <h2 class="sa-card-title" id="closed-title">Past and closed</h2>
-  {% if closed %}
-    {% include "meetings/_collection.html" with meetings=closed key="student-meetings" detail_url_name="student_meeting_detail" %}
   {% else %}
-    {% include "includes/ui/empty.html" with title="Nothing here yet." text="Finished, declined and cancelled meetings will appear here." icon="calendar" %}
+  <div class="sa-listbar"><div class="sa-listbar-end">{% include "meetings/_view_switch.html" with active="list" %}</div></div>
+  {% include "includes/ui/empty.html" with title="No meetings yet" text="Ask your Batch Advisor for a time." icon="calendar" link_url="?new=1" link_label="Request a meeting" %}
   {% endif %}
 </div>
 
 <dialog class="sa-dialog" id="dialog-meeting" aria-labelledby="meeting-form-title"{% if open_new %} data-open-on-load{% endif %}>
   <div class="sa-dialog-body">
-    {% include "includes/ui/dialog_head.html" with title="Request a meeting" id="meeting-form-title" %}
+    {% include "includes/ui/dialog_head.html" with title="Request a meeting" id="meeting-form-title" icon="calendar" tone="mint" %}
     <form method="post" action="{% url 'student_meetings' %}" novalidate data-once-submit>
       {% csrf_token %}
       {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}

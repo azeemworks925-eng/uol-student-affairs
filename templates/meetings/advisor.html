@@ -1,48 +1,21 @@
 {% extends "layouts/app.html" %}
-{# Batch Advisor Meetings: requests to decide, then upcoming confirmed meetings (DEC-328). #}
+{# Batch Advisor Meetings: requests to decide, then waiting, upcoming and past meetings (DEC-328). #}
 {% block title %}Meetings · UOL Student Affairs{% endblock %}
 {% block content %}
-<div class="sa-flow">
-  <header class="sa-page-header">
-    <div>
-      <h1 class="sa-page-title">Meetings</h1>
-      <p class="sa-page-subtitle">Your cohorts</p>
-    </div>
-    <div class="sa-page-actions">
-      {% include "meetings/_view_switch.html" with active="list" %}
-      {% if has_cohorts %}<a class="btn btn-sa-primary" href="{% url 'advisor_meeting_schedule' %}">Schedule a meeting</a>{% endif %}
-    </div>
-  </header>
-
+<div class="sa-page-flow">
+  {% include "includes/ui/banner.html" with title="Meetings" icon="calendar" pastel="mint" %}
   {% if not has_cohorts %}
-    {% include "includes/ui/empty.html" with title="No cohorts are assigned to you yet." text="The Super Admin assigns cohorts. Their meetings will appear here." %}
+    {% include "includes/ui/empty.html" with title="No cohorts yet" text="Assigned cohorts appear here." icon="users" %}
   {% else %}
-  <div class="sa-stats">
-    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
-  </div>
-
-  <div class="sa-controls"><h2 class="sa-card-title" id="decision-title">Needs a decision</h2><div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="advisor-meetings" %}</div></div>
-  {% if needs_decision %}
-    {% include "meetings/_collection.html" with meetings=needs_decision key="advisor-meetings" detail_url_name="advisor_meeting_detail" show_student=True %}
+  {% include "includes/ui/stat_tabs.html" %}
+  {% if show_cohort_filter or has_filters %}<div class="sa-filterbar">{% if show_cohort_filter %}{% include "includes/ui/filter_chip.html" with label="Cohort" param="cohort" choices=cohort_choices current=current.cohort %}{% endif %}{% include "includes/ui/active_filters.html" %}</div>{% endif %}
+  {% include "includes/ui/list_bar.html" with status_choices=status_tabs status_current=current.status key="advisor-meetings" extra_template="meetings/_views_extra.html" %}
+  {% if groups %}
+    {% include "meetings/_groups.html" with key="advisor-meetings" detail_url_name="advisor_meeting_detail" show_person=True %}
+  {% elif has_filters %}
+    {% include "includes/ui/empty.html" with variant="no-results" title="No results" text="Nothing matches these filters." %}
   {% else %}
-    {% include "includes/ui/empty.html" with title="Nothing needs a decision." %}
-  {% endif %}
-
-  {% if waiting_for_student %}
-  <h2 class="sa-card-title">Waiting for the student</h2>
-  {% include "meetings/_collection.html" with meetings=waiting_for_student key="advisor-meetings" detail_url_name="advisor_meeting_detail" show_student=True %}
-  {% endif %}
-
-  <h2 class="sa-card-title" id="confirmed-title">Upcoming confirmed</h2>
-  {% if confirmed %}
-    {% include "meetings/_collection.html" with meetings=confirmed key="advisor-meetings" detail_url_name="advisor_meeting_detail" show_student=True %}
-  {% else %}
-    {% include "includes/ui/empty.html" with title="No confirmed meetings coming up." icon="calendar" %}
-  {% endif %}
-
-  {% if closed %}
-  <h2 class="sa-card-title">Past and closed</h2>
-  {% include "meetings/_collection.html" with meetings=closed key="advisor-meetings" detail_url_name="advisor_meeting_detail" show_student=True %}
+    {% url 'advisor_meeting_schedule' as schedule_url %}{% include "includes/ui/empty.html" with title="No meetings yet" icon="calendar" link_url=schedule_url link_label="Schedule meeting" %}
   {% endif %}
   {% endif %}
 </div>
