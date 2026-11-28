@@ -238,7 +238,7 @@ class SupportTests(IssueTestCase):
         self.client.force_login(self.student)
         response = self.client.post(reverse("student_issue_support", args=[issue.reference]), {"from": "home"})
         self.assertRedirects(response, reverse("student_home"))
-        self.assertContains(self.client.get(reverse("student_home")), "You supported this")
+        self.assertContains(self.client.get(reverse("student_home")), "Supported ✓")
 
 
 class AdvisorActionTests(IssueTestCase):
@@ -360,7 +360,9 @@ class VisibilityTests(IssueTestCase):
         issue = services.mark_under_review(self.advisor, self.publish())
         home = self.page(self.student, "student_home")
         self.assertContains(home, issue.reference)
-        self.assertContains(home, "Open for support")
+        board = home.content.decode().split('id="board-title"')[1].split("</section>")[0]
+        self.assertIn(reverse("student_issue_support", args=[issue.reference]), board)  # still open for support
+        self.assertNotIn("Under review", board)
 
     def test_inactive_cohort_issue_leaves_the_noticeboard(self):
         issue = self.publish()
@@ -401,7 +403,7 @@ class VisibilityTests(IssueTestCase):
         issue = self.responded()
         page = self.page(self.advisor, "advisor_issue_detail", issue.reference)
         self.assertContains(page, RESPONSE)
-        self.assertContains(page, "<dt>Closed</dt>")
+        self.assertContains(page, "<dt>Support closed</dt>")
 
     def test_filters(self):
         open_issue = self.publish(title="Open issue title")
@@ -421,7 +423,7 @@ class VisibilityTests(IssueTestCase):
         issue = self.responded()
         page = self.page(self.admin, "super_admin_issue_detail", issue.reference)
         self.assertContains(page, RESPONSE)
-        self.assertContains(page, "Read-only oversight")
+        self.assertContains(page, "View only")
         self.assertNotContains(page, "<form method=\"post\" action=\"/advisor")
         self.assertContains(self.page(self.admin, "super_admin_issues"), issue.reference)
         self.client.force_login(self.admin)

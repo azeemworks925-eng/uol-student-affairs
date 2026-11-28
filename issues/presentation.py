@@ -23,17 +23,29 @@ def newest_first(issues):
     return merge_sort(list(issues), key=lambda issue: (issue.created_at, issue.pk), reverse=True)
 
 
-def add_display(issues):
+PROGRESS = {Status.RECEIVED: "0.2", Status.UNDER_REVIEW: "0.6", Status.RESOLVED: "1"}
+
+
+def add_display(issues, *, show_cohort=False):
+    """Tone, support label and the list's second line and pills. Counts only: never who supported."""
     for issue in issues:
         issue.tone = STATUS_TONES[issue.status]
         issue.support_label = "Open for support" if issue.support_is_open else "Support closed"
+        issue.support_tone = tones.tone("support_open" if issue.support_is_open else "support_closed", "issue")
+        issue.progress = PROGRESS[issue.status]
+        issue.badge = "cr" if issue.raised_as == "cr" else "gr"
+        issue.secondary = issue.reference + (f" · {issue.section.name} · S{issue.semester.number}" if show_cohort else "")
+        supporters = f"{issue.support_total} supporter{'' if issue.support_total == 1 else 's'}"
+        issue.flags = [{"label": supporters, "tone": "mint", "icon": "hand"},
+                       {"label": issue.support_label, "tone": issue.support_tone}]
     return issues
 
 
 def status_journey(issue):
     """Received → Under Review → Resolved, marking where the issue is now."""
     current = JOURNEY.index(issue.status)
-    return [{"label": step.label, "state": "done" if index < current else "current" if index == current else "upcoming"}
+    return [{"label": step.label, "state": "done" if index < current else "current" if index == current else "upcoming",
+             "tone": STATUS_TONES[step]}
             for index, step in enumerate(JOURNEY)]
 
 
@@ -49,13 +61,18 @@ def supported_ids(user, issues):
 
 
 def issue_stats(issues):
-    """The stat strip, from rows the user can already see."""
+    """The stat cards, from rows the user can already see within the page's other filters. Each
+    is a filter tab: the three statuses, and "Open for support"."""
     rows = list(issues)
     return [
-        {"value": sum(1 for i in rows if i.support_is_open), "label": "Open for support", "icon": "hand", "tone": "accent"},
-        {"value": sum(1 for i in rows if i.status == Status.UNDER_REVIEW), "label": "Under review", "icon": "clock", "tone": "review"},
-        {"value": sum(1 for i in rows if i.status == Status.RESOLVED), "label": "Resolved", "icon": "check", "tone": "resolved"},
-        {"value": sum(i.support_total for i in rows), "label": "Total supports", "icon": "users", "tone": "received"},
+        {"value": sum(1 for i in rows if i.status == Status.RECEIVED), "label": "Received", "icon": "inbox",
+         "tone": STATUS_TONES[Status.RECEIVED], "param": "status", "filter": Status.RECEIVED},
+        {"value": sum(1 for i in rows if i.status == Status.UNDER_REVIEW), "label": "Under review", "icon": "clock",
+         "tone": STATUS_TONES[Status.UNDER_REVIEW], "param": "status", "filter": Status.UNDER_REVIEW},
+        {"value": sum(1 for i in rows if i.status == Status.RESOLVED), "label": "Resolved", "icon": "check",
+         "tone": STATUS_TONES[Status.RESOLVED], "param": "status", "filter": Status.RESOLVED},
+        {"value": sum(1 for i in rows if i.support_is_open), "label": "Open for support", "icon": "hand",
+         "tone": "accent", "param": "support", "filter": "open"},
     ]
 
 

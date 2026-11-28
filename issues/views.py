@@ -20,6 +20,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
 
 from accounts.permissions import batch_advisor_required, student_required, super_admin_required
+from accounts.presentation import cohort_key, varies
 from accounts.representation import can_act_as_representative, current_representative
 from complaints.workspace import advisor_cohorts, cohort_value
 from dsa.sorting import merge_sort
@@ -43,14 +44,19 @@ PAGE_SIZE = 20
 LIST_PARAMS = ("q", "cohort", "status", "support", "page")
 FILTER_PARAMS = ("q", "cohort", "status", "support")
 SUPPORT_CHOICES = [("", "Any"), ("open", "Open"), ("closed", "Closed")]
-STATUS_CHOICES = [("", "All statuses"), *Status.choices]
+STATUS_CHOICES = [("", "All"), *Status.choices]
 ADVISOR_URLS = {"list": "advisor_issues", "detail": "advisor_issue_detail"}
 SUPER_ADMIN_URLS = {"list": "super_admin_issues", "detail": "super_admin_issue_detail"}
 
 
 def _detail_context(issue, *, show_private):
     add_display([issue])
-    context = {"issue": issue, "show_private": show_private}
+    # Non-representative students never receive the status (DEC-243): their hero is tinted by
+    # the support state instead. The supporter stack is anonymous: counts only (DEC-324).
+    shown = min(issue.support_total, 3)
+    context = {"issue": issue, "show_private": show_private,
+               "hero_tone": issue.tone if show_private else issue.support_tone,
+               "stack": range(shown), "stack_more": issue.support_total - shown}
     if show_private:
         context.update({"journey": status_journey(issue), "responses": private_responses(issue)})
     return context
@@ -64,13 +70,7 @@ def student_section_issues(request):
     period = current_representative(request.user)
     if period is None:
         raise Http404("No page found.")
-    visible = list(visible_issues(request.user).order_by())
-    rows = add_display(newest_first(visible))
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
-    return render(request, "issues/section.html", {
-        "page": page, "stats": issue_stats(visible), "can_raise": can_act_as_representative(request.user) is not None,
-        "list_keys": ("page",),
-    })
+    return _render_list(request, section=True)
 
 
 @student_required
@@ -186,11 +186,13 @@ def _list_state(request):
     return urlencode([(key, request.GET[key]) for key in LIST_PARAMS if request.GET.get(key)])
 
 
-def _render_list(request):
+def _render_list(request, *, section=False):
+    """The issues list: the CR's and GR's section page (`section`), or the staff Collective Issues
+    page (Batch Advisor: their exact cohorts; Super Admin: the department, read-only)."""
     user = request.user
     read_only = user.is_super_admin
-    visible = list(visible_issues(user).order_by())
-    cohorts = _cohort_choices(user, visible)
+    visible = list(visible_issues(user).select_related("batch", "semester", "section").order_by())
+    cohorts = [] if section else _cohort_choices(user, visible)
     cohort_filter = [("", "All cohorts" if read_only else "All assigned cohorts"), *cohorts]
     current = {
         "cohort": _clean_choice(request.GET.get("cohort", ""), cohorts),
@@ -198,15 +200,26 @@ def _render_list(request):
         "support": _clean_choice(request.GET.get("support", ""), SUPPORT_CHOICES),
     }
     query = _query(request)
-    matches = _filtered(visible_issues(user), query=query, **current)
-    rows = add_display(newest_first(matches))
+    # The stat cards count within every filter but the status and the support (Polish v2).
+    stats_base = _filtered(visible_issues(user), query=query, cohort=current["cohort"], status="", support="")
+    matches = _filtered(visible_issues(user), query=query, **current).select_related("raised_by", "semester", "section")
+    rows = newest_first(matches)
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
-    return render(request, "issues/workspace.html", {
+    add_display(page.object_list, show_cohort=varies(page.object_list, cohort_key))
+    state = _list_state(request)
+    show_cohort_filter = len(cohorts) > 1 or (read_only and bool(cohorts))
+    specs = [("q", "Search", None)] + ([("cohort", "Cohort", cohort_filter)] if show_cohort_filter else [])
+    return render(request, "issues/section.html" if section else "issues/workspace.html", {
         "read_only": read_only, "urls": SUPER_ADMIN_URLS if read_only else ADVISOR_URLS, "page": page,
-        "stats": issue_stats(visible), "query": query, "current": current,
-        "cohort_choices": cohort_filter, "status_choices": STATUS_CHOICES, "support_choices": SUPPORT_CHOICES,
-        "has_cohorts": read_only or bool(cohorts), "list_keys": LIST_PARAMS, "list_state": _list_state(request),
+        "stats": issue_stats(stats_base), "query": query, "current": current,
+        "cohort_choices": cohort_filter, "show_cohort_filter": show_cohort_filter,
+        "status_tabs": STATUS_CHOICES, "support_choices": SUPPORT_CHOICES,
+        "has_cohorts": section or read_only or bool(cohorts), "list_keys": LIST_PARAMS, "list_state": state,
+        "query_suffix": f"?{state}" if state else "",
+        "filter_specs": specs + [("support", "Support", SUPPORT_CHOICES)],
         "has_filters": any(request.GET.get(name) for name in FILTER_PARAMS),
+        "can_raise": section and can_act_as_representative(user) is not None,
+        "total": len(visible),
         "search_hidden": [(k, request.GET[k]) for k in ("cohort", "status", "support") if request.GET.get(k)],
     })
 

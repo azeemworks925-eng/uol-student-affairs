@@ -1,0 +1,6 @@
+{# The supporter count with an anonymous avatar stack (never who supported, DEC-324) and the support state. #}
+<div class="sa-support">
+  <div><span class="sa-support-count" data-countup="{{ issue.support_total }}" data-testid="support-count">{{ issue.support_total }}</span><span class="sa-support-label">supporter{{ issue.support_total|pluralize }}</span></div>
+  {% if issue.support_total %}<span class="sa-avstack" aria-hidden="true">{% for _ in stack %}<span class="sa-avatar sa-avatar--sm sa-avatar--icon sa-tone--mint"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-user"/></svg></span>{% endfor %}{% if stack_more > 0 %}<span class="sa-avatar sa-avatar--sm sa-avstack-more sa-tone--sand">+{{ stack_more }}</span>{% endif %}</span>{% endif %}
+</div>
+<div class="sa-daction-state">{% include "includes/ui/status_pill.html" with tone=issue.support_tone label=issue.support_label %}</div>

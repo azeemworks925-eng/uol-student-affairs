@@ -1,0 +1,1 @@
+{% if can_raise %}<a class="btn btn-sa-primary" href="{% url 'student_issue_new' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Raise an issue</a>{% else %}{% include "includes/ui/lock_pill.html" with kind="locked" tip="This cohort is inactive: no new issues" %}{% endif %}

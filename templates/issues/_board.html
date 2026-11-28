@@ -1,32 +1,38 @@
-{# Student Home "Your section": issues open for support, newest first. Never the status detail or advisor responses (DEC-243, DEC-324). #}
-<section class="sa-card" aria-labelledby="board-title">
-  {% if board.is_rep %}{% url 'student_section_issues' as issues_url %}{% include "includes/ui/card_head.html" with title="Your section" id="board-title" action_url=issues_url action_label="Section issues" %}{% else %}{% include "includes/ui/card_head.html" with title="Your section" id="board-title" %}{% endif %}
-  {% if board.can_raise %}<a class="btn btn-sa-secondary btn-sm mb-3" href="{% url 'student_issue_new' %}">Raise an issue</a>{% endif %}
+{% load ui %}{# Student Home "Your section": issues open for support, newest first. Never the status detail or advisor responses (DEC-243, DEC-324); counts only, never who supported. #}
+<section class="sa-card sa-col-12" aria-labelledby="board-title">
+  <header class="sa-card-head">
+    <div class="sa-card-titles"><h2 class="sa-card-title" id="board-title">Your section</h2></div>
+    <div class="sa-card-head-actions">
+      {% if board.can_raise %}<a class="btn btn-sa-primary btn-sm" href="{% url 'student_issue_new' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>Raise an issue</a>{% endif %}
+      {% if board.is_rep %}<a class="sa-card-action" href="{% url 'student_section_issues' %}">View all</a>{% endif %}
+    </div>
+  </header>
   {% if board.issues %}
-  <ul class="sa-board">
+  <ul class="sa-cgrid sa-board-grid">
     {% for issue in board.issues %}
-    <li class="sa-board-item">
-      <div class="sa-board-top"><span class="sa-ref">{{ issue.reference }}</span><span class="sa-flag">{{ issue.support_label }}</span></div>
-      <a class="sa-board-title" href="{% url 'student_issue_detail' issue.reference %}">{{ issue.title }}</a>
-      <p class="sa-small sa-muted sa-prose mb-0">{{ issue.description|truncatechars:140 }}</p>
-      <div class="sa-board-foot">
-        <span class="sa-small"><b>{{ issue.support_total }}</b> support{{ issue.support_total|pluralize }}</span>
+    <li class="sa-citem sa-board-card">
+      <header class="sa-citem-head">
+        <span class="sa-icon-chip sa-tone--amber" aria-hidden="true"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-hand"/></svg></span>
+        <h3 class="sa-citem-title"><a href="{% url 'student_issue_detail' issue.reference %}" class="sa-stretch">{{ issue.title }}</a></h3>
+      </header>
+      <p class="sa-citem-sub">{{ issue.description|truncatechars:120 }}</p>
+      <footer class="sa-citem-foot">
+        {% include "includes/ui/pill.html" with label="Supporters" count=issue.support_total icon="hand" tone="mint" %}
         {% if issue.has_supported %}
-        <span class="sa-small"><b>You supported this</b></span>
+        <span class="sa-pill sa-tone--mint sa-raise">Supported ✓</span>
         {% else %}
-        <form method="post" action="{% url 'student_issue_support' issue.reference %}" data-once-submit>
+        <form class="sa-raise" method="post" action="{% url 'student_issue_support' issue.reference %}" data-once-submit>
           {% csrf_token %}<input type="hidden" name="from" value="home">
-          <button type="submit" class="btn btn-sa-primary btn-sm" data-submit-label="Saving…" title="Support can't be withdrawn.">Support</button>
+          <button type="submit" class="btn btn-sa-primary btn-sm" data-submit-label="Saving…" data-tip="Support can't be withdrawn"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-hand"/></svg>Support</button>
         </form>
         {% endif %}
-      </div>
+      </footer>
     </li>
     {% endfor %}
   </ul>
-  <p class="sa-small sa-muted mb-0 mt-2">Support can't be withdrawn.</p>
   {% elif board.awaiting %}
-    {% include "includes/ui/empty.html" with title="No open issues in your section." text="Your section's CR and GR haven't been appointed yet. Collective issues start once they are." icon="hand" %}
+    {% include "includes/ui/empty.html" with title="No open issues" text="Your section's CR and GR aren't appointed yet." icon="hand" size="sm" %}
   {% else %}
-    {% include "includes/ui/empty.html" with title="No open issues in your section." text="Issues raised by your CR or GR appear here." icon="hand" %}
+    {% include "includes/ui/empty.html" with title="No open issues" icon="hand" size="sm" %}
   {% endif %}
 </section>

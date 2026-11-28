@@ -1,0 +1,12 @@
+{# The issues filter bar: search, cohort (staff, more than one), support, then the active filters and Reset. #}
+<div class="sa-filterbar">
+  <form method="get" action="{{ request.path }}" class="sa-pill-search" role="search">
+    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
+    <label class="visually-hidden" for="issue-search">Search by reference or title</label>
+    <input id="issue-search" type="search" name="q" maxlength="100" value="{{ query }}" placeholder="Search issues">
+    {% for key, value in search_hidden %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+  </form>
+  {% if show_cohort_filter %}{% include "includes/ui/filter_chip.html" with label="Cohort" param="cohort" choices=cohort_choices current=current.cohort %}{% endif %}
+  {% include "includes/ui/filter_chip.html" with label="Support" param="support" choices=support_choices current=current.support %}
+  {% include "includes/ui/active_filters.html" %}
+</div>
