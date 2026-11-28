@@ -1,8 +1,13 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static ui %}
 {% comment %}
-  Application shell for every signed-in role: top bar, collapsible sidebar (64px icon rail, a
-  drawer on phones) and the page. Students also keep their bottom navigation on phones (DEC-304).
+  Application shell for every signed-in role (Polish v2, docs/POLISH_V2.md "Shell"):
+  - top bar: breadcrumb (the only "back"), quick search, the create control, theme toggle,
+    notifications bell and avatar menu;
+  - a floating sidebar card (a 72px icon rail when collapsed, a drawer on phones) with a sliding
+    active pill, and the user's mini profile and Sign out at the bottom.
+  Popovers (create menu, bell, avatar) are <details>, so they open without JavaScript too.
+  Students keep their bottom navigation on phones (DEC-304).
 {% endcomment %}
 {% block head %}<script>try{if(localStorage.getItem("sa-sidebar")==="collapsed")document.documentElement.dataset.sidebar="collapsed"}catch(e){}</script>{% endblock %}
 {% block body_class %}sa-app-body{% endblock %}
@@ -25,18 +30,13 @@
     <label class="visually-hidden" for="sa-quick-search">Search</label>
     <input id="sa-quick-search" type="search" name="q" maxlength="60" placeholder="{% if role == 'student' %}Search your records{% else %}Search reference, name, SAP ID{% endif %}" autocomplete="off" spellcheck="false" value="{% if results.query %}{{ results.query }}{% endif %}">
     <kbd aria-hidden="true">/</kbd>
+    <button class="sa-iconbtn sa-search-close" type="button" data-search-close aria-label="Close search"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button>
   </form>
 
   <div class="sa-topbar-right">
     <button class="sa-iconbtn sa-search-open" type="button" data-search-open aria-label="Search"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg></button>
-    <div class="dropdown sa-new">
-      <button class="btn btn-sa-primary sa-new-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="New"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span>New</span></button>
-      <ul class="dropdown-menu dropdown-menu-end">
-        {% for item in sa_new_menu %}
-        <li><a class="dropdown-item sa-menu-link" href="{{ item.url }}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg>{{ item.label }}</a></li>
-        {% endfor %}
-      </ul>
-    </div>
+    {% include "includes/create_control.html" %}
+    {% if sa_show_theme_toggle %}{% include "includes/ui/theme_toggle.html" with extra_class="sa-theme--bar" %}{% endif %}
     {% include "includes/notifications_link.html" %}
     {% include "includes/account_menu.html" %}
   </div>
@@ -44,12 +44,12 @@
 
 <div class="sa-app{% if role == 'student' %} sa-app--student{% endif %}">
   <aside class="sa-sidebar" id="sa-sidebar" aria-label="Sidebar">
-    {% include "includes/nav_groups.html" %}
+    {% include "includes/nav_groups.html" with slide=True %}
+    {% include "includes/sidebar_foot.html" %}
   </aside>
 
   <div class="sa-main">
-    <main id="main" class="sa-page{% block page_class %}{% endblock %}" tabindex="-1">
-      {% block messages %}{% include "includes/messages.html" %}{% endblock %}
+    <main id="main" class="sa-page{% block page_class %}{% endblock %}" tabindex="-1" data-cascade>
       {% block content %}{% endblock %}
     </main>
 
@@ -70,8 +70,8 @@
   </div>
   <div class="offcanvas-body">
     {% include "includes/nav_groups.html" %}
+    {% include "includes/sidebar_foot.html" %}
   </div>
 </div>
 {% endwith %}
-<script src="{% static 'js/app.js' %}" defer></script>
 {% endblock %}

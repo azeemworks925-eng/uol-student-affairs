@@ -1,33 +1,49 @@
 {% load ui %}{% comment %}
-  The notifications bell: unread count, the latest five and "See all". Opening one is the existing
-  POST (it marks it read, then goes to its record). The badge is neutral ink (DEC-301).
+  The notifications bell and its panel (Polish v2): a Forest unread badge that pops when the count
+  changes; a panel that grows from the bell (a bottom sheet on phones) with the latest few grouped
+  Today / Earlier, each with a type icon chip coloured by the status map (accounts.tones), one
+  line, relative time and an unread dot. Opening one is the existing POST (it marks it read, then
+  goes to its record). "Mark all read" is the existing POST, scoped to the signed-in user.
+  A <details>, so it opens without JavaScript.
 {% endcomment %}
 {% if sa_notifications %}
-<div class="dropdown sa-bell">
-  <button class="sa-iconbtn" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="{{ sa_notifications.label }}" title="Notifications">
+<details class="sa-pop sa-bell" data-pop data-bell data-unread="{{ sa_notifications.count }}">
+  <summary class="sa-iconbtn" aria-label="{{ sa_notifications.label }}" title="Notifications">
     <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg>
-    {% if sa_notifications.count %}<span class="sa-badge sa-badge--dot" aria-hidden="true">{{ sa_notifications.display }}</span>{% endif %}
-  </button>
-  <div class="dropdown-menu dropdown-menu-end sa-bell-menu">
-    <p class="sa-menu-title">Notifications</p>
+    {% if sa_notifications.count %}<span class="sa-badge sa-badge--dot" aria-hidden="true" data-bell-badge>{{ sa_notifications.display }}</span>{% endif %}
+  </summary>
+  <div class="sa-pop-panel sa-pop-panel--sheet sa-bell-menu" role="dialog" aria-label="Notifications">
+    <div class="sa-bell-head">
+      <p class="sa-menu-title">Notifications</p>
+      {% if sa_notifications.count %}
+      <form method="post" action="{% url 'notifications_mark_all_read' %}" data-mark-all>
+        {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="sa-text-btn">Mark all read</button>
+      </form>
+      {% endif %}
+    </div>
     {% if sa_notifications.latest %}
-    <ul class="sa-bell-list">
-      {% for notification in sa_notifications.latest %}
-      <li>
-        <form method="post" action="{% url 'notification_open' notification.pk %}">
-          {% csrf_token %}
-          <button type="submit" class="sa-bell-item{% if not notification.is_read %} is-unread{% endif %}">
-            <span class="sa-notify-dot" aria-hidden="true"></span>
-            <span class="sa-bell-text">{% if not notification.is_read %}<span class="visually-hidden">Unread: </span>{% endif %}<span class="sa-bell-title">{{ notification.title }}</span><time class="sa-bell-time" datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|ago }}</time></span>
-          </button>
-        </form>
-      </li>
+      {% for group in sa_notifications.groups %}
+      <p class="sa-bell-group">{{ group.label }}</p>
+      <ul class="sa-bell-list">
+        {% for notification in group.items %}
+        <li>
+          <form method="post" action="{% url 'notification_open' notification.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="sa-bell-item{% if not notification.is_read %} is-unread{% endif %}">
+              <span class="sa-icon-chip sa-tone--{{ notification|notification_tone }}" aria-hidden="true"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ notification|notification_icon }}"/></svg></span>
+              <span class="sa-bell-text">{% if not notification.is_read %}<span class="visually-hidden">Unread: </span>{% endif %}<span class="sa-bell-title">{{ notification.title }}</span><time class="sa-bell-time" datetime="{{ notification.created_at|date:'c' }}">{{ notification.created_at|ago }}</time></span>
+              <span class="sa-notify-dot" aria-hidden="true"></span>
+            </button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
       {% endfor %}
-    </ul>
     {% else %}
-    <p class="sa-small sa-muted sa-bell-empty">No notifications yet.</p>
+      {% include "includes/ui/empty.html" with variant="all-caught-up" title="All caught up" size="sm" %}
     {% endif %}
-    <a class="sa-bell-all" href="{% url 'notifications' %}">See all</a>
+    <a class="sa-bell-all" href="{% url 'notifications' %}">View all <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-open"/></svg></a>
   </div>
-</div>
+</details>
 {% endif %}

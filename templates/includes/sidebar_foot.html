@@ -1,0 +1,11 @@
+{% load ui %}{# Sidebar bottom: the user's mini profile and Sign out (the existing POST, with CSRF). #}
+<div class="sa-sidebar-foot">
+  <div class="sa-mini-profile" title="{{ user.get_full_name }}">
+    {% include "includes/ui/avatar.html" with name=user.get_full_name %}
+    <span class="sa-mini-text sa-nav-text"><b>{{ user.get_full_name }}</b><small>{{ user.get_role_display }}</small></span>
+  </div>
+  <form method="post" action="{% url 'account_logout' %}" class="sa-signout-form">
+    {% csrf_token %}
+    <button class="sa-nav-link sa-signout" type="submit" data-tip="Sign out"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-signout"/></svg><span class="sa-nav-text">Sign out</span></button>
+  </form>
+</div>

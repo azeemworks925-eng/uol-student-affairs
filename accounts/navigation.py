@@ -9,6 +9,7 @@ url_name is set. Access control is never decided here: views enforce roles (acco
 from dataclasses import dataclass
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.urls import reverse
 
 from .models import User
@@ -125,17 +126,49 @@ NAVIGATION = {
 }
 
 
-# The top bar's "+ New" menu: existing pages only.
-NEW_MENU = {
+# The top bar's create actions: existing pages only, each with its icon chip's pastel.
+# Rule (Polish v2): exactly one action is a labelled button; two or more become a "+ New" menu.
+@dataclass(frozen=True)
+class CreateAction:
+    label: str
+    icon: str
+    url_name: str
+    query: str = ""
+    pastel: str = "mint"
+    # The label of the direct button when this is a role's only action.
+    button_label: str = ""
+
+    def resolve(self):
+        return {"label": self.label, "button_label": self.button_label or self.label, "icon": self.icon,
+                "pastel": self.pastel, "url": reverse(self.url_name) + self.query}
+
+
+CREATE_ACTIONS = {
     User.Role.STUDENT: [
-        ("New complaint", "file", "student_complaint_new"),
-        ("Student Voice", "voice", "student_voice", "?new=1"),
-        ("Request meeting", "calendar", "student_meetings", "?new=1"),
+        CreateAction("New complaint", "file", "student_complaint_new", pastel="sky"),
+        CreateAction("Voice submission", "voice", "student_voice", "?new=1", pastel="lavender"),
+        CreateAction("Request meeting", "calendar", "student_meetings", "?new=1", pastel="mint"),
     ],
-    User.Role.BATCH_ADVISOR: [("Schedule meeting", "calendar", "advisor_meeting_schedule")],
-    User.Role.SUPER_ADMIN: [("Add Batch Advisor", "user", "super_admin_staff", "?new=1")],
+    User.Role.BATCH_ADVISOR: [CreateAction("Schedule meeting", "calendar", "advisor_meeting_schedule", pastel="mint")],
+    User.Role.SUPER_ADMIN: [CreateAction("Add Batch Advisor", "user", "super_admin_staff", "?new=1", pastel="mint")],
 }
-RAISE_ISSUE = ("Raise a section issue", "hand", "student_issue_new")  # the current CR or GR only
+# The current CR or GR of an active cohort only.
+RAISE_ISSUE = CreateAction("Raise a section issue", "hand", "student_issue_new", pastel="amber")
+
+
+def create_actions(user, period=None):
+    """The resolved create actions for this user, in menu order."""
+    actions = list(CREATE_ACTIONS.get(user.role, []))
+    if period is not None and cohort_is_active(Cohort.of(period)):
+        actions.append(RAISE_ISSUE)
+    return [action.resolve() for action in actions]
+
+
+def create_control(actions):
+    """{"button": the one action, or None; "menu": the actions when there are two or more}."""
+    if len(actions) == 1:
+        return {"button": actions[0], "menu": []}
+    return {"button": None, "menu": actions}
 
 
 def _resolve(item, current_url_name):
@@ -164,14 +197,13 @@ def navigation(request):
         if built:  # a group with nothing built yet is left out, heading included
             groups.append({"heading": heading, "items": built})
     items = [i for g in groups for i in g["items"]]
-    new_menu = list(NEW_MENU[user.role])
-    if period is not None and cohort_is_active(Cohort.of(period)):
-        new_menu.append(RAISE_ISSUE)
+    actions = create_actions(user, period)
     return {
         "sa_nav": groups,
         "sa_nav_items": items,
         "sa_nav_bottom": [i for i in items if i["bottom_tab"]],
         "sa_nav_current": next((i for i in items if i["current"]), None),
-        "sa_new_menu": [{"label": entry[0], "icon": entry[1], "url": reverse(entry[2]) + (entry[3] if len(entry) > 3 else "")}
-                        for entry in new_menu],
+        "sa_new_menu": actions,
+        "sa_create": create_control(actions),
+        "sa_show_theme_toggle": getattr(settings, "SHOW_THEME_TOGGLE", True),
     }

@@ -1,0 +1,16 @@
+{% comment %}
+  The top bar's create control (accounts.navigation.create_control): exactly one action is a
+  labelled button; two or more are a "+ New" menu, each item with a coloured icon chip.
+{% endcomment %}
+{% if sa_create.button %}
+<a class="btn btn-sa-primary sa-new-btn" href="{{ sa_create.button.url }}" data-create-action><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span>{{ sa_create.button.button_label }}</span></a>
+{% elif sa_create.menu %}
+<details class="sa-pop sa-new" data-pop>
+  <summary class="btn btn-sa-primary sa-new-btn" aria-label="New"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg><span>New</span></summary>
+  <div class="sa-pop-panel sa-menu" role="menu">
+    {% for item in sa_create.menu %}
+    <a class="sa-menu-item" role="menuitem" href="{{ item.url }}"><span class="sa-icon-chip sa-tone--{{ item.pastel }}" aria-hidden="true"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></span>{{ item.label }}</a>
+    {% endfor %}
+  </div>
+</details>
+{% endif %}

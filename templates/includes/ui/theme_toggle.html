@@ -1,0 +1,9 @@
+{% comment %}
+  Theme toggle: a sun / moon segmented pill. Stored in localStorage and applied before first
+  paint (base.html); the first visit follows the device. Hidden with SHOW_THEME_TOGGLE = False.
+  Needs JavaScript, so it is hidden when JavaScript is off. extra_class: optional.
+{% endcomment %}
+<div class="sa-seg sa-seg--icons sa-theme{% if extra_class %} {{ extra_class }}{% endif %}" role="group" aria-label="Theme" data-seg data-theme-toggle>
+  <button type="button" data-theme-choice="light" aria-pressed="false" title="Light"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-sun"/></svg><span class="visually-hidden">Light</span></button>
+  <button type="button" data-theme-choice="dark" aria-pressed="false" title="Dark"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-moon"/></svg><span class="visually-hidden">Dark</span></button>
+</div>

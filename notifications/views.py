@@ -12,8 +12,9 @@ The signed-in user's notifications (Complaints Part 4 Stage 3; spec section 5.1)
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.http import Http404, HttpResponseRedirect
+from django.http import Http404, HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_GET, require_POST
 
 from . import services
@@ -46,9 +47,21 @@ def notification_open(request, pk):
     return response
 
 
+def _wants_json(request):
+    return "application/json" in request.headers.get("Accept", "")
+
+
 @login_required
 @require_POST
 def notification_mark_all_read(request):
+    """Mark all of the user's own notifications read. A fetch from the bell panel gets JSON; a
+    plain form post goes back to `next` (same site only) or the notifications page."""
     count = services.mark_all_read(request.user)
-    messages.success(request, "All notifications marked as read." if count else "There were no unread notifications.")
+    if _wants_json(request):
+        return JsonResponse({"marked": count, "unread": 0})
+    messages.success(request, "All caught up" if count else "Nothing unread")
+    target = request.POST.get("next", "")
+    if target and url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()},
+                                                  require_https=request.is_secure()):
+        return redirect(target)
     return redirect("notifications")

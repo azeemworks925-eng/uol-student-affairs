@@ -5,8 +5,10 @@
   {# resizes-content: the on-screen keyboard shrinks the layout instead of covering it (DESIGN_PLAN.md 5). #}
   <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
   <title>{% block title %}UOL Student Affairs{% endblock %}</title>
+  {# Before first paint: mark JS on, and apply the remembered theme (or the device's) so nothing flashes. #}
+  <script>(function(d){d.classList.add("js");var t=null;try{t=localStorage.getItem("sa-theme")}catch(e){}if(t!=="light"&&t!=="dark"){t=window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}d.dataset.theme=t})(document.documentElement)</script>
+  <meta name="color-scheme" content="light dark">
   <link rel="preload" href="{% static 'fonts/Inter-latin-variable.woff2' %}" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="{% static 'fonts/Newsreader-latin-variable.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'vendor/bootstrap-5.3.3/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   {% block head %}{% endblock %}
@@ -15,7 +17,9 @@
   <a class="skip-link" href="#main">Skip to content</a>
   {% include "includes/icons.html" %}
   {% block body %}{% endblock %}
+  {% include "includes/messages.html" %}
   <script src="{% static 'vendor/bootstrap-5.3.3/bootstrap.bundle.min.js' %}" defer></script>
+  <script src="{% static 'js/app.js' %}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>
