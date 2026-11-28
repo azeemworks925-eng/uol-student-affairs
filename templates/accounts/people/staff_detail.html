@@ -1,11 +1,10 @@
 {% extends "layouts/app.html" %}
 {% load ui %}
 {% block title %}{{ person.get_full_name }} · Staff · UOL Student Affairs{% endblock %}
-{% block crumb_root %}<li><a href="{% url 'super_admin_staff' %}">Staff</a></li>{% endblock %}
+{% block crumb_root %}<li><a href="{% url 'super_admin_staff' %}{% if person.is_super_admin %}?tab=admins{% endif %}">Staff</a></li>{% endblock %}
 {% block crumb %}<li>{{ person.get_full_name }}</li>{% endblock %}
 {% block content %}
 <div class="sa-flow">
-  <a class="sa-back" href="{% url 'super_admin_staff' %}{% if person.is_super_admin %}?tab=admins{% endif %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Back to staff</a>
 
   <div class="sa-detail">
     <div class="sa-detail-main">

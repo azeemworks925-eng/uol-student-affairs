@@ -1,1 +1,1 @@
-{% load ui %}<span class="sa-avatar{% if size %} sa-avatar--{{ size }}{% endif %}" aria-hidden="true">{{ name|initials }}</span>
+{% load ui %}{# Avatar: initials in a pastel circle (stable per name). name; size: sm | lg (optional); pastel: override (optional). #}<span class="sa-avatar sa-tone--{% if pastel %}{{ pastel }}{% else %}{{ name|avatar_pastel }}{% endif %}{% if size %} sa-avatar--{{ size }}{% endif %}" aria-hidden="true">{{ name|initials }}</span>

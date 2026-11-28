@@ -1,6 +1,17 @@
-{# Django and allauth messages (for example "You have signed out."). #}
+{% comment %}
+  Toasts: every Django / allauth message, for every layout (base.html).
+  Bottom-right (top on phones), about 4s, paused on hover or focus, with a close button, coloured
+  by level. static/js/app.js runs the timers; without JS a CSS animation fades them out instead.
+  Levels -> tones: success = resolved, info = received, warning = review, error = rejected.
+{% endcomment %}
 {% if messages %}
-  <ul class="sa-messages" role="status">
-    {% for message in messages %}<li class="sa-message{% if message.level_tag == 'error' %} sa-message--error{% endif %}">{{ message }}</li>{% endfor %}
-  </ul>
+<div class="sa-toasts" role="region" aria-label="Notices">
+  {% for message in messages %}
+  <div class="sa-toast sa-tone--{% if message.level_tag == 'error' %}rejected{% elif message.level_tag == 'warning' %}review{% elif message.level_tag == 'success' %}resolved{% else %}received{% endif %}" role="{% if message.level_tag == 'error' %}alert{% else %}status{% endif %}" data-toast>
+    <span class="sa-toast-icon" aria-hidden="true"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{% if message.level_tag == 'error' %}x{% elif message.level_tag == 'warning' %}clock{% elif message.level_tag == 'success' %}check{% else %}bell{% endif %}"/></svg></span>
+    <p class="sa-toast-text">{{ message }}</p>
+    <button type="button" class="sa-toast-close" data-toast-close aria-label="Dismiss"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></button>
+  </div>
+  {% endfor %}
+</div>
 {% endif %}

@@ -83,7 +83,7 @@ def student_issue_detail(request, reference):
         "can_support": issue.support_is_open and is_cohort_student(request.user, issue),
         "has_supported": issue.pk in supported_ids(request.user, [issue]),
         "back_url": reverse("student_section_issues" if is_rep else "student_home"),
-        "back_label": "Back to Section issues" if is_rep else "Back to Home",
+        "crumb_label": "Section issues" if is_rep else "Home",
     })
     return render(request, "issues/detail.html", context)
 
@@ -223,7 +223,7 @@ def _render_staff_detail(request, reference, *, response_form=None, resolve_form
         "read_only": read_only,
         "show_closed_at": True,
         "back_url": reverse(urls["list"]) + (f"?{state}" if state else ""),
-        "back_label": "Back to Collective Issues",
+        "crumb_label": "Collective Issues",
         "list_state": state,
         "can_review": not read_only and issue.status == Status.RECEIVED,
         "can_respond": not read_only and is_open,

@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from django.db.models import Count, Q
 from django.urls import reverse
 
+from accounts import tones
+
 from accounts.models import CohortRepresentation
 from dsa.sorting import merge_sort
 from notifications.models import Notification
@@ -21,13 +23,8 @@ from .models import Complaint, ComplaintEvent
 Status = Complaint.Status
 Kind = ComplaintEvent.Kind
 
-# The existing status pill tones in static/css/app.css (DEC-301).
-STATUS_TONES = {
-    Status.RECEIVED: "received",
-    Status.UNDER_REVIEW: "review",
-    Status.RESOLVED: "resolved",
-    Status.REJECTED: "rejected",
-}
+# The one status colour map (accounts.tones; docs/POLISH_V2.md).
+STATUS_TONES = tones.COMPLAINT
 
 # Owner changes are internal to staff (DEC-310): never shown to students. The Batch Advisor
 # workspace keeps its Part 3 history; the Super Admin workspace shows them (Part 4 Stage 1).
@@ -40,7 +37,7 @@ MESSAGE_LABELS = {
 
 
 def status_tone(status):
-    return STATUS_TONES.get(status, "received")
+    return tones.tone(status, "complaint")
 
 
 @dataclass(frozen=True)

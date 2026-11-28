@@ -2,11 +2,11 @@
 {% load static %}
 {# Staff Student Voice: Batch Advisor (acts) and Super Admin (read-only). The URL selects the list or one submission. #}
 {% block title %}{% if submission %}{{ submission.get_type_display }} · {% endif %}Student Voice · UOL Student Affairs{% endblock %}
+{% block crumb_root %}<li><a href="{% url urls.list %}{% if list_state %}?{{ list_state }}{% endif %}">Student Voice</a></li>{% endblock %}
 {% block crumb %}{% if submission %}<li>{{ submission.get_type_display }}</li>{% endif %}{% endblock %}
 {% block content %}
 <div class="sa-flow">
 {% if submission %}
-  <a class="sa-back" href="{% url urls.list %}{% if list_state %}?{{ list_state }}{% endif %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Back to Student Voice</a>
   <div class="sa-detail">
     <div class="sa-detail-main">
       <header class="sa-card sa-detail-head">

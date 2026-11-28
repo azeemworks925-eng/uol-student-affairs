@@ -4,6 +4,8 @@ from django.db.models import Count
 from django.urls import reverse
 from django.utils.text import Truncator
 
+from accounts import tones
+
 from complaints.presentation import HOME_UPDATE_LIMIT, StudentUpdate, student_updates
 from dsa.sorting import merge_sort
 from notifications.models import Notification
@@ -12,8 +14,8 @@ from .models import Submission
 
 Status = Submission.Status
 
-# The existing status pill colours in static/css/app.css.
-STATUS_TONES = {Status.WAITING: "received", Status.REVIEWED: "review", Status.ANSWERED: "resolved"}
+# The one status colour map (accounts.tones; docs/POLISH_V2.md).
+STATUS_TONES = tones.VOICE
 
 
 def add_tones(submissions):

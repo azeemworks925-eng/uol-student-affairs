@@ -1,6 +1,7 @@
 """Header unread count for the signed-in user. Lazy: the single indexed COUNT runs only when a
 template (the application layout) reads it, so sign-in pages and others never query."""
 
+from django.utils import timezone
 from django.utils.functional import cached_property
 
 from . import services
@@ -20,6 +21,15 @@ class UnreadNotifications:
     def latest(self):
         """The newest few, for the bell's dropdown."""
         return list(services.for_user(self._user)[:LATEST_LIMIT])
+
+    @cached_property
+    def groups(self):
+        """The latest few as [{"label": "Today" | "Earlier", "items": [...]}], empty groups left out."""
+        today = timezone.localdate()
+        buckets = {"Today": [], "Earlier": []}
+        for notification in self.latest:
+            buckets["Today" if timezone.localdate(notification.created_at) == today else "Earlier"].append(notification)
+        return [{"label": label, "items": items} for label, items in buckets.items() if items]
 
     @property
     def display(self):

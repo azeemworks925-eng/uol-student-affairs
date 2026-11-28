@@ -1,0 +1,4 @@
+{% comment %}
+  Lock / visibility pill with a tooltip, replacing a rule sentence.
+  kind: locked | cr-gr | private | view-only; tip (optional): overrides the default tooltip.
+{% endcomment %}{% if kind == "locked" %}{% include "includes/ui/pill.html" with label="Locked" icon="lock" tone="neutral" tip=tip|default:"Can't be edited after publishing" %}{% elif kind == "cr-gr" %}{% include "includes/ui/pill.html" with label="CR & GR only" icon="eye" tone="lavender" tip=tip|default:"Only the section's CR and GR see this" %}{% elif kind == "private" %}{% include "includes/ui/pill.html" with label="Private" icon="lock" tone="lavender" tip=tip|default:"Only you and your Batch Advisors see this" %}{% elif kind == "view-only" %}{% include "includes/ui/pill.html" with label="View only" icon="eye" tone="neutral" tip=tip|default:"Oversight: no actions from this role" %}{% endif %}

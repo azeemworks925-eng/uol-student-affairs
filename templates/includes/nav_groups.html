@@ -1,11 +1,15 @@
-{# Grouped navigation list, shared by the sidebar and the phone drawer. #}
+{% comment %}
+  Grouped navigation list, shared by the sidebar and the phone drawer. The current item carries
+  the active pill; in the sidebar (slide=True) the pill has a view-transition-name, so it slides
+  to the new item between pages. Hover is a lighter tint without the accent bar.
+{% endcomment %}
 <nav aria-label="Main navigation">
   {% for group in sa_nav %}
     {% if group.heading %}<div class="sa-nav-group"><span>{{ group.heading }}</span></div>{% endif %}
     <ul class="sa-nav">
       {% for item in group.items %}
       <li>
-        <a class="sa-nav-link" href="{{ item.url }}" data-tip="{{ item.label }}"{% if item.current %} aria-current="page"{% endif %}><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg><span class="sa-nav-text">{{ item.label }}</span></a>
+        <a class="sa-nav-link" href="{{ item.url }}" data-tip="{{ item.label }}"{% if item.current %} aria-current="page"{% endif %}>{% if item.current %}<span class="sa-nav-pill{% if slide %} sa-nav-pill--slide{% endif %}" aria-hidden="true"></span>{% endif %}<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg><span class="sa-nav-text">{{ item.label }}</span></a>
       </li>
       {% endfor %}
     </ul>

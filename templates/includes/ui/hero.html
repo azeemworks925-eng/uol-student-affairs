@@ -1,0 +1,17 @@
+{% comment %}
+  Tier 1 hero: only on each role's home. A rounded Forest card with a soft Forest -> sage gradient.
+  greeting (the big line), date (a date; shown as "Tuesday, 24 November"), lead (optional line);
+  Slots: chips_template (cohort, role, term pills), actions_template (buttons) and
+  doodle_template (Prompt 3's large doodle; a soft placeholder until then) name templates that
+  are included with the page's context.
+{% endcomment %}
+<header class="sa-hero-card">
+  <div class="sa-hero-body">
+    {% if date %}<p class="sa-hero-date">{{ date|date:"l, j F" }}</p>{% endif %}
+    <h1 class="sa-hero-title">{{ greeting }}</h1>
+    {% if lead %}<p class="sa-hero-lead">{{ lead }}</p>{% endif %}
+    {% if chips_template %}<div class="sa-hero-chips">{% include chips_template %}</div>{% endif %}
+    {% if actions_template %}<div class="sa-hero-actions">{% include actions_template %}</div>{% endif %}
+  </div>
+  <div class="sa-hero-art" aria-hidden="true" data-doodle-slot="hero">{% if doodle_template %}{% include doodle_template %}{% else %}<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plane"/></svg>{% endif %}</div>
+</header>

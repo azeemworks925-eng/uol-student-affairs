@@ -1,0 +1,1 @@
+{# Role badge. role: cr | gr | super_admin | batch_advisor | student; label (optional, defaults to the short name). #}<span class="sa-role sa-role--{{ role }}">{% if label %}{{ label }}{% elif role == "cr" %}CR{% elif role == "gr" %}GR{% elif role == "super_admin" %}Super Admin{% elif role == "batch_advisor" %}Batch Advisor{% else %}Student{% endif %}</span>

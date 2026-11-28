@@ -1,0 +1,15 @@
+{% comment %}
+  Tier 2 slim pastel banner: every module page and form.
+  title (the page's h1, matching its sidebar label); subtitle (optional: a count or one line);
+  pastel (optional: the banner tint, default mint); icon (the small doodle slot's placeholder);
+  action_url + action_label (optional: the page's primary action), or action_template (a
+  template to include, for example a button that opens a dialog). The doodle is hidden below 480px.
+{% endcomment %}
+<header class="sa-banner sa-tone--{{ pastel|default:'mint' }}">
+  <div class="sa-banner-art" aria-hidden="true" data-doodle-slot="banner"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ icon|default:'file' }}"/></svg></div>
+  <div class="sa-banner-text">
+    <h1 class="sa-page-title">{{ title }}</h1>
+    {% if subtitle %}<p class="sa-page-subtitle">{{ subtitle }}</p>{% endif %}
+  </div>
+  {% if action_template %}<div class="sa-banner-action">{% include action_template %}</div>{% elif action_url %}<div class="sa-banner-action"><a class="btn btn-sa-primary" href="{{ action_url }}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>{{ action_label }}</a></div>{% endif %}
+</header>

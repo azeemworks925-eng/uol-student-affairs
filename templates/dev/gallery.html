@@ -1,0 +1,148 @@
+{% extends "layouts/app.html" %}
+{% load ui %}
+{% comment %}
+  Component gallery (DEBUG + staff only; accounts.dev_views). Every shared component from
+  templates/includes/ui/, shown once in light and once in dark. Not linked anywhere.
+{% endcomment %}
+{% block title %}Components · UOL Student Affairs{% endblock %}
+{% block crumb_root %}<li>Components</li>{% endblock %}
+{% block content %}
+{% include "includes/ui/banner.html" with title="Component gallery" subtitle="Polish v2 foundation · light and dark" icon="layers" pastel="lavender" %}
+
+{% for theme in themes %}
+<section class="sa-gallery-theme sa-gallery" data-theme="{{ theme }}" aria-label="{{ theme|capfirst }} theme">
+  <h2 class="sa-h2">{{ theme|capfirst }}</h2>
+
+  <div class="sa-card sa-gallery">
+    <h3 class="sa-card-title">Palette and tones</h3>
+    <div class="sa-gallery-swatches">
+      {% for pastel in pastels %}<div class="sa-swatch sa-tone--{{ pastel }}">{{ pastel }}<i></i></div>{% endfor %}
+    </div>
+    <div class="sa-gallery-swatches">
+      {% for tone in tones %}<div class="sa-swatch sa-tone--{{ tone }}">tone: {{ tone }}<i></i></div>{% endfor %}
+    </div>
+  </div>
+
+  <div class="sa-card sa-gallery">
+    <h3 class="sa-card-title">Buttons</h3>
+    <div class="sa-gallery-row">
+      <button class="btn btn-sa-primary" type="button"><svg class="sa-i" aria-hidden="true"><use href="#i-plus"/></svg>Primary</button>
+      <button class="btn btn-sa-primary is-not-ready" type="button">Not ready</button>
+      <button class="btn btn-sa-secondary" type="button">Secondary</button>
+      <button class="btn btn-sa-ghost" type="button">Ghost</button>
+      <button class="btn btn-sa-danger" type="button">Delete</button>
+      <button class="btn btn-sa-primary btn-sm" type="button">Small</button>
+      <button class="btn btn-sa-primary btn-lg" type="button">Large</button>
+      <button class="sa-iconbtn sa-iconbtn--round" type="button" aria-label="More"><svg class="sa-i" aria-hidden="true"><use href="#i-more"/></svg></button>
+      <a class="sa-open" href="#" aria-label="Open"><svg class="sa-i" aria-hidden="true"><use href="#i-open"/></svg></a>
+    </div>
+  </div>
+
+  <div class="sa-card sa-gallery">
+    <h3 class="sa-card-title">Pills</h3>
+    <div class="sa-gallery-row">
+      {% for domain, value, label in statuses %}{% include "includes/ui/status_pill.html" with status=value label=label domain=domain %}{% endfor %}
+    </div>
+    <div class="sa-gallery-row">
+      {% include "includes/ui/pill.html" with label="Neutral" %}
+      {% include "includes/ui/pill.html" with label="Supporters" count=12 tone="mint" icon="hand" %}
+      {% include "includes/ui/pill.html" with label="Category: Labs" remove_url="#" %}
+      {% include "includes/ui/pill.html" with label="Supported ✓" tone="mint" %}
+      {% for value, label in voice_types %}{% include "includes/ui/pill.html" with label=label tone=value|voice_type_pastel %}{% endfor %}
+      <span class="sa-cohort" title="Fall 2026 · Semester 4 · Section DEMO-A">DEMO-A · S4</span>
+    </div>
+    <div class="sa-gallery-row">
+      {% include "includes/ui/role_badge.html" with role="cr" %}
+      {% include "includes/ui/role_badge.html" with role="gr" %}
+      {% include "includes/ui/role_badge.html" with role="super_admin" %}
+      {% include "includes/ui/role_badge.html" with role="batch_advisor" %}
+      {% include "includes/ui/lock_pill.html" with kind="locked" %}
+      {% include "includes/ui/lock_pill.html" with kind="cr-gr" %}
+      {% include "includes/ui/lock_pill.html" with kind="private" %}
+      {% include "includes/ui/lock_pill.html" with kind="view-only" %}
+    </div>
+  </div>
+
+  <div class="sa-card sa-gallery">
+    <h3 class="sa-card-title">Dropdowns, segmented controls, filter bar</h3>
+    <div class="sa-filterbar">
+      <label class="sa-pill-search"><svg class="sa-i" aria-hidden="true"><use href="#i-search"/></svg><span class="visually-hidden">Search</span><input type="search" placeholder="Search"></label>
+      {% include "includes/ui/filter_chip.html" with label="Status" param="status" choices=choices current="under_review" %}
+      <label class="visually-hidden" for="gallery-sort-{{ theme }}">Sort</label>
+      <select class="form-select" id="gallery-sort-{{ theme }}" data-filter data-label="Sort"><option value="newest">Newest</option><option value="oldest">Oldest</option></select>
+      {% include "includes/ui/pill.html" with label="Status: Under review" remove_url="#" %}
+      <a class="sa-pill sa-pill--reset sa-tone--accent" href="#"><svg class="sa-i" aria-hidden="true"><use href="#i-reset"/></svg>Reset · 2</a>
+      <div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="gallery" %}</div>
+    </div>
+    <div class="sa-gallery-row">
+      {% include "includes/ui/segmented.html" with name="per-row-"|add:theme choices=choices current="received" label="Status" %}
+      {% include "includes/ui/theme_toggle.html" %}
+    </div>
+    <div class="sa-grid-2">
+      <div class="mb-0"><label class="form-label" for="gallery-cat-{{ theme }}">Category</label>
+        <select class="form-select" id="gallery-cat-{{ theme }}"><option value="">Choose a category</option><option>Labs and equipment</option><option>Classrooms</option><option>Timetable</option></select></div>
+      <div class="mb-0"><label class="form-label" for="gallery-title-{{ theme }}">Title</label><input class="form-control" id="gallery-title-{{ theme }}" placeholder="Short title"></div>
+    </div>
+  </div>
+
+  <div class="sa-stats">
+    {% include "includes/ui/stat.html" with value=16 label="Open complaints" icon="file" tone="received" url="#" %}
+    {% include "includes/ui/stat.html" with value=7 label="Under review" icon="clock" tone="review" url="#" selected=True %}
+    {% include "includes/ui/stat.html" with value=42 label="Resolved" icon="check" tone="resolved" hint="This term" %}
+    {% include "includes/ui/stat.html" with value=3 label="Rejected" icon="x" tone="rejected" %}
+  </div>
+
+  <div class="sa-cgrid">
+    {% include "includes/ui/card_item.html" with url="#" icon="file" title="Projector in Lab 3 has not worked for two weeks" sub="CMP-2026-00012 · Labs and equipment" status="under_review" status_label="Under review" progress="0.5" f1_label="Updated" f1_value="2h ago" f2_label="Cohort" f2_value="DEMO-A · S4" %}
+    {% include "includes/ui/card_item.html" with url="#" icon="hand" title="Water cooler on the second floor" sub="CI-2026-00003" status="resolved" status_label="Resolved" progress="1" f1_label="Supporters" f1_value="18" %}
+    {% include "includes/ui/card_item.html" with url="#" icon="voice" pastel="lavender" title="Could the library stay open later during exams?" status="waiting" status_label="Waiting" progress="0.2" f1_label="Type" f1_value="Idea" %}
+  </div>
+
+  <ul class="sa-rows">
+    {% include "includes/ui/list_head.html" %}
+    {% include "includes/ui/list_row.html" with url="#" primary="Projector in Lab 3" secondary="CMP-2026-00012" person="Ayesha Khan" status="received" status_label="Received" when=now %}
+    {% include "includes/ui/list_row.html" with url="#" primary="Timetable clash on Thursday" secondary="CMP-2026-00009" person="Bilal Ahmed" person_badge="cr" status="rejected" status_label="Rejected" when=earlier selected=True %}
+  </ul>
+
+  <div class="sa-grid-2">
+    <div class="sa-card sa-gallery">
+      <h3 class="sa-card-title">Steppers</h3>
+      {% include "includes/ui/journey.html" with journey=journey %}
+      {% include "includes/ui/journey.html" with journey=journey_resolved size="lg" %}
+      {% include "includes/ui/journey.html" with journey=journey_rejected size="lg" %}
+      <span class="sa-progress sa-tone--review"><i data-fill="0.62" style="--fill: 0.62"></i></span>
+    </div>
+    <div class="sa-card">
+      <h3 class="sa-card-title mb-3">Timeline</h3>
+      <ol class="sa-timeline">
+        {% include "includes/ui/timeline_item.html" with title="Submitted" when=earlier tone="received" status_label="Received" by="Ayesha Khan" %}
+        {% include "includes/ui/timeline_item.html" with kind="response" by="Dr. Sara Malik" by_role="Batch Advisor" when=now tone="received" message="Thanks. The lab assistant will check the projector tomorrow morning." %}
+        {% include "includes/ui/timeline_item.html" with kind="resolution" when=now tone="resolved" message="The projector bulb was replaced." %}
+      </ol>
+    </div>
+  </div>
+
+  <div class="sa-grid-2">
+    <div class="sa-card">{% include "includes/ui/empty.html" with variant="nothing-yet" title="No complaints yet" text="Raise a concern and track it here." link_url="#" link_label="New complaint" %}</div>
+    <div class="sa-card">{% include "includes/ui/empty.html" with variant="no-results" title="No results" text="Nothing matches these filters." reset_url="#" %}</div>
+    <div class="sa-card">{% include "includes/ui/empty.html" with variant="all-caught-up" title="All caught up" text="Nothing is waiting for you." %}</div>
+    <div class="sa-card sa-gallery">
+      <h3 class="sa-card-title">Dialog and toast</h3>
+      <div class="sa-gallery-row"><button class="btn btn-sa-secondary" type="button" data-dialog-open="gallery-dialog-{{ theme }}">Open dialog</button></div>
+      <div class="sa-toast sa-tone--resolved" role="status"><span class="sa-toast-icon" aria-hidden="true"><svg class="sa-i" aria-hidden="true"><use href="#i-check"/></svg></span><p class="sa-toast-text">Complaint submitted</p><button type="button" class="sa-toast-close" aria-label="Dismiss"><svg class="sa-i" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+      <div class="sa-toast sa-tone--rejected" role="status"><span class="sa-toast-icon" aria-hidden="true"><svg class="sa-i" aria-hidden="true"><use href="#i-x"/></svg></span><p class="sa-toast-text">That page is no longer available</p><button type="button" class="sa-toast-close" aria-label="Dismiss"><svg class="sa-i" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    </div>
+  </div>
+
+  <dialog class="sa-dialog" id="gallery-dialog-{{ theme }}" aria-labelledby="gallery-dialog-{{ theme }}-title">
+    <div class="sa-dialog-body">
+      {% include "includes/ui/dialog_head.html" with title="Add Batch Advisor" id="gallery-dialog-"|add:theme|add:"-title" icon="user" helper="They sign in with their UOL Google account." %}
+      <label class="form-label" for="gallery-dialog-name-{{ theme }}">Full name</label><input class="form-control" id="gallery-dialog-name-{{ theme }}" required>
+      <div class="sa-dialog-foot"><button class="btn btn-sa-ghost" type="button" data-dialog-close>Cancel</button><button class="btn btn-sa-primary" type="button" data-dialog-close>Add</button></div>
+    </div>
+  </dialog>
+
+  {% include "includes/ui/hero.html" with greeting="Good evening, Ayesha" date=now lead="Two updates since your last visit." %}
+</section>
+{% endfor %}
+{% endblock %}

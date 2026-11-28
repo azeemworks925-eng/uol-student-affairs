@@ -2,6 +2,8 @@
 
 from django.db.models import Q
 
+from accounts import tones
+
 from accounts.representation import current_period, current_representative
 from dsa.sorting import merge_sort
 
@@ -10,7 +12,7 @@ from .permissions import student_cohort, visible_issues
 
 Status = CollectiveIssue.Status
 
-STATUS_TONES = {Status.RECEIVED: "received", Status.UNDER_REVIEW: "review", Status.RESOLVED: "resolved"}
+STATUS_TONES = tones.ISSUE  # the one status colour map (accounts.tones)
 JOURNEY = (Status.RECEIVED, Status.UNDER_REVIEW, Status.RESOLVED)
 # The database form of CollectiveIssue.support_is_open, for the support filter.
 SUPPORT_OPEN = Q(first_response_at__isnull=True, batch__is_active=True, semester__is_active=True,

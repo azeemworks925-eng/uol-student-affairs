@@ -1,0 +1,14 @@
+{% load ui %}{% comment %}
+  List row (Pillio "lab results" anatomy), used inside a .sa-rows block whose first child is
+  includes/ui/list_head.html. Columns: primary (two lines), person, status, date, ↗.
+  url; primary; secondary (optional second line); person (optional: a name, shown with its avatar);
+  person_badge (optional: cr | gr, a role badge after the name);
+  status + status_label (+ optional domain) or tone + status_label; when (a datetime); selected (optional).
+{% endcomment %}{% tone_for status domain tone as t %}
+<li class="sa-row{% if selected %} is-selected{% endif %}">
+  <span class="sa-row-main"><a class="sa-stretch" href="{{ url }}">{{ primary }}</a>{% if secondary %}<small>{{ secondary }}</small>{% endif %}</span>
+  <span class="sa-row-person">{% if person %}{% include "includes/ui/avatar.html" with name=person size="sm" %}<span>{{ person }}</span>{% if person_badge %}{% include "includes/ui/role_badge.html" with role=person_badge %}{% endif %}{% endif %}</span>
+  <span class="sa-row-status">{% if status_label %}<span class="sa-status sa-tone--{{ t }}">{{ status_label }}</span>{% endif %}</span>
+  <time class="sa-row-when" datetime="{{ when|date:'c' }}" title="{{ when|date:'j M Y, H:i' }}">{{ when|ago }}</time>
+  <span class="sa-open" aria-hidden="true"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-open"/></svg></span>
+</li>

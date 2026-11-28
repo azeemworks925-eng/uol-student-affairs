@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import include, path
 
+from accounts.dev_views import component_gallery
 from accounts.views import admin_login_redirect
 from issues.urls import advisor_patterns as issues_advisor, student_patterns as issues_student, super_admin_patterns as issues_super_admin
 from meetings.urls import advisor_patterns as meetings_advisor, student_patterns as meetings_student, super_admin_patterns as meetings_super_admin
@@ -27,5 +28,7 @@ urlpatterns = [
     path("advisor/collective-issues/", include(issues_advisor)),
     path("super-admin/collective-issues/", include(issues_super_admin)),
     path("notifications/", include("notifications.urls")),
+    # DEBUG-only component gallery (404 otherwise); not linked anywhere.
+    path("dev/ui/", component_gallery, name="dev_component_gallery"),
     path("", include("accounts.urls")),
 ]

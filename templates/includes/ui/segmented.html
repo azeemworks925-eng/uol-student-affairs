@@ -1,0 +1,17 @@
+{% load ui %}{% comment %}
+  Segmented control: a pill track with a highlight that slides to the chosen option.
+  Two forms, both working without JavaScript:
+  - radios (default): name, choices [(value, text)], current; inside a form, like any radio group.
+    autosubmit (optional): submit the form when the choice changes (with JS).
+  - links: links=True, param, choices [(value, text)], current; each option is a filter link.
+  label: the group's accessible name. size: sm (optional).
+{% endcomment %}
+{% if links %}
+<nav class="sa-seg{% if size %} sa-seg--{{ size }}{% endif %}" aria-label="{{ label }}" data-seg>
+  {% for value, text in choices %}<a href="{% filter_url param value %}"{% if value|stringformat:'s' == current|default:''|stringformat:'s' %} aria-current="true"{% endif %}>{{ text }}</a>{% endfor %}
+</nav>
+{% else %}
+<div class="sa-seg{% if size %} sa-seg--{{ size }}{% endif %}" role="radiogroup" aria-label="{{ label }}" data-seg{% if autosubmit %} data-autosubmit{% endif %}>
+  {% for value, text in choices %}<label><input type="radio" name="{{ name }}" value="{{ value }}"{% if value|stringformat:'s' == current|default:''|stringformat:'s' %} checked{% endif %}><span>{{ text }}</span></label>{% endfor %}
+</div>
+{% endif %}

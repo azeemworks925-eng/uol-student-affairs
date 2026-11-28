@@ -1,22 +1,22 @@
-{% load ui %}{# Avatar menu: who is signed in, and Sign out (the existing POST). #}
-<div class="dropdown sa-account">
-  <button class="sa-iconbtn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu for {{ user.get_full_name }}">
+{% load ui %}{# Avatar menu: name, email, role (and cohort for students), theme, and Sign out (the existing POST). #}
+<details class="sa-pop sa-account" data-pop>
+  <summary class="sa-iconbtn sa-account-btn" aria-label="Account menu for {{ user.get_full_name }}">
     {% include "includes/ui/avatar.html" with name=user.get_full_name %}
-  </button>
-  <div class="dropdown-menu dropdown-menu-end sa-account-menu">
+  </summary>
+  <div class="sa-pop-panel sa-account-menu">
     <div class="sa-account-who">
       {% include "includes/ui/avatar.html" with name=user.get_full_name size="lg" %}
       <div>
         <p class="sa-account-name">{{ user.get_full_name }}</p>
         <p class="sa-account-line">{{ user.email }}</p>
-        <p class="sa-account-line">{{ user.get_role_display }}</p>
+        <p class="sa-account-line">{% include "includes/ui/role_badge.html" with role=user.role label=user.get_role_display %}</p>
         {% if user.is_student and user.student_profile %}<p class="sa-account-cohort">{% include "includes/ui/cohort.html" with record=user.student_profile %}</p>{% endif %}
       </div>
     </div>
-    {% if user.is_super_admin %}<a class="dropdown-item sa-small" href="{% url 'admin:index' %}">Advanced: Django admin</a>{% endif %}
+    {% if sa_show_theme_toggle %}<div class="sa-account-theme"><span>Theme</span>{% include "includes/ui/theme_toggle.html" %}</div>{% endif %}
     <form method="post" action="{% url 'account_logout' %}">
       {% csrf_token %}
-      <button class="dropdown-item" type="submit">Sign out</button>
+      <button class="sa-menu-item sa-menu-item--danger" type="submit"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-signout"/></svg>Sign out</button>
     </form>
   </div>
-</div>
+</details>

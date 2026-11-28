@@ -5,7 +5,6 @@
 {% block crumb %}<li>{{ category.name }}</li>{% endblock %}
 {% block content %}
 <div class="sa-flow" data-focus-invalid>
-  <a class="sa-back" href="{% url 'super_admin_categories' %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Back to categories</a>
   <header>
     <h1 class="sa-page-title">{{ category.name }}</h1>
     <p class="sa-cat-summary mt-1">{% include "complaints/categories/_state.html" with active=category.is_active %} <span class="sa-muted">{{ complaint_count }} complaint{{ complaint_count|pluralize }} · {{ subcategories|length }} subcategor{{ subcategories|length|pluralize:"y,ies" }}</span></p>

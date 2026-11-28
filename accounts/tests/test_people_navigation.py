@@ -25,7 +25,9 @@ class NavigationTests(TestCase):
     def admin_links(self, html):
         return re.findall(r'href="(/admin/[^"]*)"', html)
 
-    def test_the_only_admin_link_for_the_super_admin_is_the_avatar_fallback(self):
+    def test_no_role_sees_a_django_admin_link(self):
+        # Polish v2: the "Advanced: Django admin" link is gone. The admin stays reachable by URL,
+        # for superusers only.
         self.client.force_login(self.admin)
         pages = ["super_admin_home", "super_admin_students", "super_admin_student_changes", "super_admin_staff",
                  "super_admin_structure", "super_admin_terms", "super_admin_representatives", "super_admin_categories",
@@ -33,9 +35,9 @@ class NavigationTests(TestCase):
         for name in pages:
             with self.subTest(page=name):
                 html = self.client.get(reverse(name)).content.decode()
-                self.assertEqual(self.admin_links(html), [reverse("admin:index")])
-                menu = html[html.index('class="dropdown-menu dropdown-menu-end sa-account-menu"'):]
-                self.assertIn("Advanced: Django admin", menu[:menu.index("</form>")])
+                self.assertEqual(self.admin_links(html), [])
+                self.assertNotIn("Advanced: Django admin", html)
+        self.assertEqual(self.client.get(reverse("admin:index")).status_code, 200)
 
     def test_other_roles_have_no_admin_link(self):
         for user, page in ((self.student, "student_home"), (self.advisor, "advisor_home")):

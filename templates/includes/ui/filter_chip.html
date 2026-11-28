@@ -1,12 +1,17 @@
-{% load ui %}{# Filter chip: a menu of links that sets one query parameter. label, param, choices [(value, text)], current. #}
-<div class="dropdown sa-chip-menu">
-  <button class="sa-chip{% if current %} is-active{% endif %}" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+{% load ui %}{% comment %}
+  Filter dropdown (link menu): the same look as every dropdown in the portal (.sa-dd) — a pill
+  trigger "Label: Value", a menu of tinted rounded items with ✓ on the selected one. Each item is
+  a link that sets one query parameter, so it works without JavaScript (a <details>).
+  label, param, choices [(value, text)], current.
+{% endcomment %}
+<details class="sa-dd sa-chip-menu{% if current %} is-active{% endif %}" data-pop data-dd>
+  <summary class="sa-dd-trigger sa-chip{% if current %} is-active{% endif %}">
     <span class="sa-chip-label">{{ label }}</span>{% for value, text in choices %}{% if value|stringformat:"s" == current|stringformat:"s" and current %}<span class="sa-chip-value">{{ text }}</span>{% endif %}{% endfor %}
-    <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-chevron"/></svg>
-  </button>
-  <ul class="dropdown-menu">
+    <svg class="sa-i sa-dd-caret" aria-hidden="true" focusable="false"><use href="#i-chevron"/></svg>
+  </summary>
+  <ul class="sa-pop-panel sa-dd-menu" role="menu">
     {% for value, text in choices %}
-    <li><a class="dropdown-item{% if value|stringformat:'s' == current|default:''|stringformat:'s' %} active{% endif %}" href="{% filter_url param value %}"{% if value|stringformat:'s' == current|default:''|stringformat:'s' %} aria-current="true"{% endif %}>{{ text }}</a></li>
+    <li role="none"><a role="menuitem" class="sa-dd-item{% if value|stringformat:'s' == current|default:''|stringformat:'s' %} is-selected{% endif %}" href="{% filter_url param value %}"{% if value|stringformat:'s' == current|default:''|stringformat:'s' %} aria-current="true"{% endif %}><span>{{ text }}</span><svg class="sa-i sa-dd-check" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></a></li>
     {% endfor %}
   </ul>
-</div>
+</details>

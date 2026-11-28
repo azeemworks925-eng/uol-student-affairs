@@ -2,10 +2,10 @@
 {% load static %}
 {# Complaint details for the student who submitted it (DEC-031, DEC-221 to DEC-224). #}
 {% block title %}{{ complaint.reference }} · UOL Student Affairs{% endblock %}
+{% block crumb_root %}<li><a href="{{ back_url }}">Complaints</a></li>{% endblock %}
 {% block crumb %}<li class="mono">{{ complaint.reference }}</li>{% endblock %}
 {% block content %}
 <div class="sa-flow">
-  <a class="sa-back" href="{{ back_url }}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Back to complaints</a>
 
   <div class="sa-detail">
     <div class="sa-detail-main">

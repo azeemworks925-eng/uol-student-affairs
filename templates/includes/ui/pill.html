@@ -1,0 +1,7 @@
+{% comment %}
+  Pill. One shape for every small label; never an outlined box.
+  label; tone (optional: a tone or pastel name, default neutral); icon (optional);
+  count (optional: a count pill, for example "Supporters 12");
+  remove_url (optional: a removable filter pill with ×, linking to the URL without this filter);
+  tip (optional: a tooltip).
+{% endcomment %}{% if remove_url %}<a class="sa-pill sa-pill--remove sa-tone--{{ tone|default:'accent' }}" href="{{ remove_url }}"{% if tip %} data-tip="{{ tip }}"{% endif %}>{% if icon %}<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ icon }}"/></svg>{% endif %}{{ label }}<svg class="sa-i sa-pill-x" aria-hidden="true" focusable="false"><use href="#i-x"/></svg><span class="visually-hidden"> (remove filter)</span></a>{% else %}<span class="sa-pill sa-tone--{{ tone|default:'neutral' }}"{% if tip %} data-tip="{{ tip }}" tabindex="0"{% endif %}>{% if icon %}<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ icon }}"/></svg>{% endif %}{{ label }}{% if count is not None and count != "" %}<b class="sa-pill-count">{{ count }}</b>{% endif %}</span>{% endif %}

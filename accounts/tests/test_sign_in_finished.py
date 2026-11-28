@@ -33,7 +33,7 @@ from .helpers import (
 )
 
 TIMED_OUT = "Your session timed out. Please sign in again."
-SIGNED_OUT = "You have signed out."
+SIGNED_OUT = "You’ve signed out"
 DEMO_ADMIN = "demo.owner@example.test"
 DEMO_ADVISOR = "demo.helper@example.test"
 NOT_LISTED = "someone.else@example.test"

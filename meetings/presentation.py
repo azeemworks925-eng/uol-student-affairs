@@ -11,6 +11,8 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import Truncator
 
+from accounts import tones
+
 from complaints.presentation import HOME_UPDATE_LIMIT, StudentUpdate
 from dsa.intervals import overlaps_with
 from dsa.sorting import merge_sort
@@ -22,14 +24,8 @@ from .models import Meeting, MeetingEvent
 Status = Meeting.Status
 Kind = MeetingEvent.Kind
 
-# The existing status pill colours in static/css/app.css.
-STATUS_TONES = {
-    Status.REQUESTED: "received",
-    Status.TIME_SUGGESTED: "review",
-    Status.CONFIRMED: "resolved",
-    Status.DECLINED: "rejected",
-    Status.CANCELLED: "rejected",
-}
+# The one status colour map (accounts.tones; docs/POLISH_V2.md).
+STATUS_TONES = tones.MEETING
 GOOGLE_CALENDAR_URL = "https://calendar.google.com/calendar/render"
 MONTH_PATTERN = re.compile(r"(\d{4})-(\d{2})")
 FIRST_YEAR, LAST_YEAR = 2000, 2100

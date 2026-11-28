@@ -120,6 +120,10 @@ ACCOUNT_SIGNUP_FIELDS = ["email*"]
 ACCOUNT_EMAIL_VERIFICATION = "none"  # Google verifies the email; the adapter checks the claim.
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_LOGOUT_ON_GET = False
+
+# Polish v2: the sun / moon theme toggle in the top bar. Set to False to hide it (for example for
+# a demo) without touching any template; a stored choice still applies.
+SHOW_THEME_TOGGLE = env_bool("SHOW_THEME_TOGGLE", True)
 ACCOUNT_ADAPTER = "accounts.adapters.PortalAccountAdapter"
 SOCIALACCOUNT_ADAPTER = "accounts.adapters.PortalSocialAccountAdapter"
 SOCIALACCOUNT_AUTO_SIGNUP = True

@@ -1,5 +1,14 @@
-{# Stat tile. value, label, icon; tone: accent (default), received, review, resolved, rejected; url optional. #}
-{% if url %}<a class="sa-stat sa-stat--{{ tone|default:'accent' }}" href="{{ url }}">{% else %}<div class="sa-stat sa-stat--{{ tone|default:'accent' }}">{% endif %}
+{% comment %}
+  Stat card: one component for every dashboard and list page.
+  value (a number; it counts up on load), label, icon;
+  tone (optional): a tone (received | review | resolved | rejected | neutral), a pastel name or
+    "accent" (default) — the colour of the icon chip;
+  url (optional): the whole card is a link, with hover lift;
+  hint (optional): one short context line under the label;
+  selected (optional): the selected outline (a stat used as a filter tab).
+  The final number is in the HTML, so it reads correctly without JavaScript.
+{% endcomment %}
+{% if url %}<a class="sa-stat sa-stat--{{ tone|default:'accent' }} sa-tone--{{ tone|default:'accent' }}{% if selected %} is-selected{% endif %}" href="{{ url }}"{% if selected %} aria-current="true"{% endif %}>{% else %}<div class="sa-stat sa-stat--{{ tone|default:'accent' }} sa-tone--{{ tone|default:'accent' }}">{% endif %}
   <span class="sa-stat-icon"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ icon }}"/></svg></span>
-  <span class="sa-stat-text"><span class="sa-stat-value">{{ value }}</span><span class="sa-stat-label">{{ label }}</span></span>
+  <span class="sa-stat-text"><span class="sa-stat-value" data-countup="{{ value }}">{{ value }}</span><span class="sa-stat-label">{{ label }}</span>{% if hint %}<span class="sa-stat-context">{{ hint }}</span>{% endif %}</span>
 {% if url %}</a>{% else %}</div>{% endif %}

@@ -77,6 +77,15 @@ class PortalAccountAdapter(DefaultAccountAdapter):
     def get_login_redirect_url(self, request):
         return reverse("home")
 
+    # Polish v2: no "Successfully signed in as ..." message, for any role on any page.
+    SILENT_MESSAGES = frozenset({"account/messages/logged_in.txt"})
+
+    def add_message(self, request, level, message_template=None, message_context=None, extra_tags="", message=None):
+        if message_template in self.SILENT_MESSAGES:
+            return
+        super().add_message(request, level, message_template=message_template, message_context=message_context,
+                            extra_tags=extra_tags, message=message)
+
     def is_safe_url(self, url):
         """`next` must be a path on this site. Anything else is dropped, so sign-in goes Home."""
         return bool(url) and url.startswith("/") and url_has_allowed_host_and_scheme(url, allowed_hosts=None)

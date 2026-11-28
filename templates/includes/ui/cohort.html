@@ -1,1 +1,1 @@
-{% load ui %}<span class="sa-cohort" title="{{ record|cohort_full }}">{{ record|cohort_short }}<span class="visually-hidden"> ({{ record|cohort_full }})</span></span>
+{% load ui %}{# Cohort pill: the short label ("DEMO-A · S4") with the full cohort in its tooltip. record: anything with batch, semester, section. #}<span class="sa-cohort" title="{{ record|cohort_full }}">{{ record|cohort_short }}<span class="visually-hidden"> ({{ record|cohort_full }})</span></span>
