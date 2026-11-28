@@ -5,62 +5,41 @@
 {% block crumb_root %}<li><a href="{{ back_url }}">Complaints</a></li>{% endblock %}
 {% block crumb %}<li class="mono">{{ complaint.reference }}</li>{% endblock %}
 {% block content %}
-<div class="sa-flow">
+<div class="sa-dpage">
+  {% include "includes/ui/detail_hero.html" with tone=tone reference=complaint.reference status_label=complaint.get_status_display title=complaint.title text=complaint.description journey=journey pills_template="complaints/_locked_pill.html" %}
 
-  <div class="sa-detail">
-    <div class="sa-detail-main">
-      <header class="sa-card sa-detail-head">
-        <div>
-          <div class="sa-detail-ids"><span class="sa-ref">{{ complaint.reference }}</span>{% include "complaints/student/_status.html" with tone=tone label=complaint.get_status_display %}</div>
-          <h1 class="sa-detail-title">{{ complaint.title }}</h1>
-        </div>
-        {% include "includes/ui/journey.html" %}
-      </header>
+  <div class="sa-dmain">{% include "complaints/_timeline.html" %}</div>
 
-      <section class="sa-card" aria-labelledby="original-title">
-        <h2 class="sa-card-title mb-2" id="original-title">Your original complaint</h2>
-        <div class="sa-prose">{{ complaint.description|linebreaksbr }}</div>
-        <p class="sa-small sa-muted mt-2 mb-0">The original stays as you wrote it. Anything you add appears in the history below.</p>
-      </section>
-
-      {% include "complaints/_timeline.html" %}
-    </div>
-
-    <aside class="sa-detail-side" data-sticky-panel aria-label="Complaint details and actions">
-      <section class="sa-card" aria-labelledby="case-details-title">
-        <h2 class="sa-card-title mb-2" id="case-details-title">Case details</h2>
-        <dl class="sa-facts-list">
-          <div><dt>Category</dt><dd>{{ complaint.category }}{% if complaint.subcategory %} · {{ complaint.subcategory.name }}{% endif %}</dd></div>
-          <div><dt>Submitted</dt><dd>{{ complaint.created_at|date:"j M Y, H:i" }}</dd></div>
-          <div><dt>Last activity</dt><dd>{{ last_activity|date:"j M Y, H:i" }}</dd></div>
-          <div><dt>Section</dt><dd>{% include "includes/ui/cohort.html" with record=complaint %}</dd></div>
-        </dl>
-      </section>
-
-      <section class="sa-card sa-side-actions-card" aria-labelledby="actions-title">
-        <h2 class="sa-card-title mb-2" id="actions-title">What you can do</h2>
-        <div class="sa-side-actions">
+  <aside class="sa-dside" aria-label="Actions and details">
+    <div class="sa-dside-inner" data-sticky-panel>
+      <section class="sa-card sa-daction" aria-labelledby="actions-title">
+        {% include "includes/ui/card_head.html" with title="Actions" id="actions-title" %}
+        <div class="sa-daction-buttons">
           {% if can_mark_still_not_resolved %}<button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-still">Still not resolved</button>{% endif %}
           <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-information">Add information</button>
-          {% if can_request_cancellation %}<button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-cancel">Request cancellation</button>
-          {% elif cancellation_requested %}<p class="sa-small sa-muted mb-0">You have asked to cancel this complaint. Your request is in the history.</p>{% endif %}
+          {% if can_request_cancellation %}<button type="button" class="btn btn-sa-ghost" data-dialog-open="dialog-cancel">Request cancellation</button>
+          {% elif cancellation_requested %}<div class="sa-daction-state">{% include "includes/ui/pill.html" with label="Cancellation requested" icon="clock" tone="rose" tip="Recorded in the history" %}</div>{% endif %}
         </div>
       </section>
-    </aside>
-  </div>
 
-  <nav class="sa-actionbar" aria-label="Complaint actions">
-    {% if can_mark_still_not_resolved %}<button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-still">Not resolved</button>{% endif %}
-    <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-information">Add info</button>
-    {% if can_request_cancellation %}<button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-cancel">Cancel</button>{% endif %}
-  </nav>
+      <section class="sa-card sa-ddetails" aria-labelledby="details-title">
+        {% include "includes/ui/card_head.html" with title="Details" id="details-title" %}
+        <dl class="sa-facts">
+          <div><dt>Reference</dt><dd><span class="sa-ref">{{ complaint.reference }}</span><button type="button" class="sa-copy" data-copy="{{ complaint.reference }}" data-tip="Copy" aria-label="Copy {{ complaint.reference }}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg></button></dd></div>
+          <div><dt>Category</dt><dd>{{ complaint.category }}{% if complaint.subcategory %} · {{ complaint.subcategory.name }}{% endif %}</dd></div>
+          <div><dt>Submitted</dt><dd><time datetime="{{ complaint.created_at|date:'c' }}" title="{{ complaint.created_at|date:'j M Y, H:i' }}">{{ complaint.created_at|date:"j M Y" }}</time></dd></div>
+          <div><dt>Updated</dt><dd><time datetime="{{ last_activity|date:'c' }}" title="{{ last_activity|date:'j M Y, H:i' }}">{{ last_activity|date:"j M Y" }}</time></dd></div>
+          <div><dt>Cohort</dt><dd>{% include "includes/ui/cohort.html" with record=complaint %}</dd></div>
+        </dl>
+      </section>
+    </div>
+  </aside>
 </div>
 
 {% if can_mark_still_not_resolved %}
 <dialog class="sa-dialog" id="dialog-still" aria-labelledby="still-title"{% if open_panel == "still_form" %} data-open-on-load{% endif %}>
   <div class="sa-dialog-body">
-    {% include "includes/ui/dialog_head.html" with title="Still not resolved?" id="still-title" %}
-    <p class="sa-small sa-muted">Your complaint goes back to Under Review.</p>
+    {% include "includes/ui/dialog_head.html" with title="Still not resolved?" id="still-title" icon="reset" tone="review" helper="It goes back to Under Review." %}
     <form method="post" action="{% url 'student_complaint_still_not_resolved' complaint.reference %}" novalidate data-once-submit>
       {% csrf_token %}
       {% if still_form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ still_form.non_field_errors|join:" " }}</div>{% endif %}
@@ -73,8 +52,7 @@
 
 <dialog class="sa-dialog" id="dialog-information" aria-labelledby="information-title"{% if open_panel == "information_form" %} data-open-on-load{% endif %}>
   <div class="sa-dialog-body">
-    {% include "includes/ui/dialog_head.html" with title="Add further information" id="information-title" %}
-    <p class="sa-small sa-muted">Your original complaint stays unchanged.</p>
+    {% include "includes/ui/dialog_head.html" with title="Add further information" id="information-title" icon="plus" helper="The original stays unchanged." %}
     <form method="post" action="{% url 'student_complaint_add_information' complaint.reference %}" novalidate data-once-submit>
       {% csrf_token %}
       {% if information_form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ information_form.non_field_errors|join:" " }}</div>{% endif %}
@@ -87,10 +65,9 @@
 {% if can_request_cancellation %}
 <dialog class="sa-dialog" id="dialog-cancel" aria-labelledby="cancel-title"{% if open_panel == "cancel_form" %} data-open-on-load{% endif %}>
   <div class="sa-dialog-body">
-    {% include "includes/ui/dialog_head.html" with title="Request cancellation" id="cancel-title" %}
+    {% include "includes/ui/dialog_head.html" with title="Request cancellation" id="cancel-title" icon="x" tone="rejected" helper="Recorded only: the status doesn't change." %}
     <form method="post" action="{% url 'student_complaint_request_cancellation' complaint.reference %}" novalidate data-once-submit>
       {% csrf_token %}
-      <p class="sa-small">Records your request. It does not cancel or delete the complaint. Its status does not change.</p>
       {% if cancel_form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ cancel_form.non_field_errors|join:" " }}</div>{% endif %}
       {% include "includes/form_field.html" with field=cancel_form.reason %}
       <button type="submit" class="btn btn-sa-secondary" data-submit-label="Sending…">Send cancellation request</button>

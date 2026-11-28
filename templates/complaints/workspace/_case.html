@@ -1,36 +1,15 @@
-{# One complaint: main column (title, journey, original, history) and the sticky panel (student, case details, actions). #}
-<div class="sa-flow">
+{% load ui %}{# One complaint for staff: the detail model (status-tinted hero with the stepper, history, sticky actions and details). #}
+<div class="sa-dpage">
+  {% include "includes/ui/detail_hero.html" with tone=tone reference=complaint.reference status_label=complaint.get_status_display title=complaint.title text=complaint.description journey=journey title_id="case-title" pills_template="complaints/_locked_pill.html" %}
 
-  <div class="sa-detail">
-    <div class="sa-detail-main">
-      <header class="sa-card sa-detail-head">
-        <div>
-          <div class="sa-detail-ids"><span class="sa-ref">{{ complaint.reference }}</span>{% include "complaints/student/_status.html" with tone=tone label=complaint.get_status_display %}</div>
-          <h1 class="sa-detail-title" id="case-title">{{ complaint.title }}</h1>
-        </div>
-        {% include "includes/ui/journey.html" %}
-      </header>
+  <div class="sa-dmain">{% include "complaints/_timeline.html" %}</div>
 
-      <section class="sa-card" aria-labelledby="original-title">
-        <h2 class="sa-card-title mb-2" id="original-title">Student's original complaint</h2>
-        <div class="sa-prose">{{ complaint.description|linebreaksbr }}</div>
-      </section>
-
-      {% include "complaints/_timeline.html" %}
-    </div>
-
-    {% include "complaints/workspace/_context.html" %}
-  </div>
-
-  <nav class="sa-actionbar" aria-label="Case actions">
-    <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-respond">Respond</button>
-    <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-status">Update status</button>
-  </nav>
+  {% include "complaints/workspace/_context.html" %}
 </div>
 
 <dialog class="sa-dialog" id="dialog-respond" aria-labelledby="respond-title"{% if error_panel == "response" %} data-open-on-load{% endif %}>
   <div class="sa-dialog-body" id="respond">
-    {% include "includes/ui/dialog_head.html" with title="Respond" id="respond-title" %}
+    {% include "includes/ui/dialog_head.html" with title="Respond" id="respond-title" icon="voice" %}
     <form method="post" action="{% url urls.respond complaint.reference %}{% if list_state %}?{{ list_state }}{% endif %}" novalidate data-once-submit>
       {% csrf_token %}
       {% if error_panel == "response" %}<div class="sa-message sa-message--error mb-3" role="alert" tabindex="-1" data-error-focus>Your response was not sent. {% if response_form.non_field_errors %}{{ response_form.non_field_errors|join:" " }}{% else %}Check the field below.{% endif %}</div>{% endif %}
@@ -42,13 +21,13 @@
 
 <dialog class="sa-dialog" id="dialog-status" aria-labelledby="status-title"{% if error_panel == "status" %} data-open-on-load{% endif %}>
   <div class="sa-dialog-body" id="update-status">
-    {% include "includes/ui/dialog_head.html" with title="Update status" id="status-title" %}
+    {% include "includes/ui/dialog_head.html" with title="Update status" id="status-title" icon="clock" tone="review" %}
     {% if can_update_status %}
       {% include "complaints/workspace/_status_form.html" %}
     {% elif complaint.status == "resolved" %}
-      <p class="mb-0">This complaint is resolved. No further status changes are available to staff; the student can reopen it with “Still not resolved”.</p>
+      <p class="mb-0">Resolved: no further staff changes. The student can reopen it.</p>
     {% else %}
-      <p class="mb-0">This complaint is rejected. No further status changes are available.</p>
+      <p class="mb-0">Rejected: no further changes.</p>
     {% endif %}
   </div>
 </dialog>
@@ -56,7 +35,7 @@
 {% if workspace.department_wide %}
 <dialog class="sa-dialog" id="dialog-owner" aria-labelledby="owner-title"{% if error_panel == "owner" %} data-open-on-load{% endif %}>
   <div class="sa-dialog-body" id="owner">
-    {% include "includes/ui/dialog_head.html" with title="Responsible owner" id="owner-title" %}
+    {% include "includes/ui/dialog_head.html" with title="Responsible owner" id="owner-title" icon="user" %}
     {% include "complaints/workspace/_owner_form.html" %}
   </div>
 </dialog>

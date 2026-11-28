@@ -229,8 +229,8 @@ class SubmissionPageTests(StudentPagesTestCase):
 class ListPageTests(StudentPagesTestCase):
     def test_empty_state(self):
         response = self.client.get(reverse("student_complaints"))
-        self.assertContains(response, "You have not submitted any complaints.")
-        self.assertContains(response, "Nothing here yet.")
+        self.assertContains(response, "No complaints yet")
+        self.assertContains(response, "Raise a concern and track it here.")
         self.assertContains(response, reverse("student_complaint_new"))
 
     def test_lists_only_own_complaints(self):
@@ -240,7 +240,8 @@ class ListPageTests(StudentPagesTestCase):
         self.assertContains(response, mine.reference)
         self.assertContains(response, "My complaint")
         self.assertNotContains(response, "Classmate complaint")
-        self.assertContains(response, "You have 1 open complaint.")
+        # The stat cards count only the student's own complaints.
+        self.assertEqual({s["label"]: s["value"] for s in response.context["stats"]}["Received"], 1)
 
     def test_status_filter_and_activity_date(self):
         resolved = submit(self.student, self.categories["academic"], title="Resolved one")
@@ -249,7 +250,7 @@ class ListPageTests(StudentPagesTestCase):
         response = self.client.get(reverse("student_complaints"), {"status": Status.RESOLVED})
         self.assertContains(response, "Resolved one")
         self.assertNotContains(response, "Open one")
-        self.assertContains(response, "Last update")
+        self.assertContains(response, "Updated")
         self.assertContains(response, f'href="{reverse("student_complaints")}?status=resolved" aria-current="true"')
         # An unknown status shows everything rather than failing.
         response = self.client.get(reverse("student_complaints"), {"status": "overdue"})
@@ -259,7 +260,7 @@ class ListPageTests(StudentPagesTestCase):
     def test_filter_with_no_matches(self):
         submit(self.student, self.categories["academic"])
         response = self.client.get(reverse("student_complaints"), {"status": Status.REJECTED})
-        self.assertContains(response, "No complaints with this status.")
+        self.assertContains(response, "Nothing matches these filters.")
 
     def test_pagination(self):
         for i in range(PAGE_SIZE + 2):
@@ -284,7 +285,8 @@ class DetailPageTests(StudentPagesTestCase):
     def test_shows_the_case_and_original_description_read_only(self):
         response = self.get()
         self.assertContains(response, self.complaint.reference)
-        self.assertContains(response, "Your original complaint")
+        # The original complaint is the detail hero's text (Polish v2 detail model).
+        self.assertContains(response, 'class="sa-dhero')
         self.assertContains(response, self.complaint.description)
         self.assertContains(response, "Test Academic · Exams")
         self.assertContains(response, "Fall 2024 · Semester 4 · Section A")
@@ -352,7 +354,7 @@ class DetailPageTests(StudentPagesTestCase):
 
     def test_cancellation_request_records_without_changing_status(self):
         response = self.get()
-        self.assertContains(response, "It does not cancel or delete the complaint.")
+        self.assertContains(response, "Recorded only: the status doesn't change.")
         response = self.client.post(self.action_url("request_cancellation", self.complaint), {"reason": "Sorted out."}, follow=True)
         self.assertContains(response, "Your cancellation request was recorded.")
         self.assertContains(response, "You asked to cancel this complaint")
@@ -362,7 +364,7 @@ class DetailPageTests(StudentPagesTestCase):
         self.assertTrue(Complaint.objects.filter(pk=self.complaint.pk).exists())
         # The form is replaced by a note once a request is recorded.
         self.assertNotContains(response, "Send cancellation request")
-        self.assertContains(response, "You have asked to cancel this complaint.")
+        self.assertContains(response, "Cancellation requested")
 
     def test_no_delete_or_status_controls_for_students(self):
         content = self.get().content.decode()

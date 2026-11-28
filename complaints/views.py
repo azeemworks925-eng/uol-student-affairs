@@ -21,13 +21,15 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from accounts.permissions import student_required
+from accounts.presentation import cohort_key, varies
 
 from . import services
 from .forms import CancellationRequestForm, ComplaintSubmissionForm, FurtherInformationForm, StillNotResolvedForm
 from .models import Complaint, ComplaintCategory
 from .ordering import DEFAULT_SORT, STUDENT_SORTS, clean_sort, sort_complaints
 from .permissions import get_visible_complaint, visible_complaints
-from .presentation import has_cancellation_request, status_journey, status_stats, status_tone, student_timeline
+from .presentation import (has_cancellation_request, list_display, status_journey, status_stats, status_tone,
+                           student_timeline)
 
 PAGE_SIZE = 10
 LIST_PARAMS = ("q", "status", "category", "sort", "page")
@@ -94,10 +96,14 @@ def complaint_new(request):
     })
 
 
+STATUS_TABS = [("", "All"), ("open", "Open"), *Status.choices]
+
+
 @student_required
 def complaint_list(request):
+    """Complaints (the sidebar's name; DEC-031's "My Submissions"): the student's own only."""
     status = request.GET.get("status", "")
-    if status not in Status.values:
+    if status not in dict(STATUS_TABS):
         status = ""
     sort = clean_sort(request.GET.get("sort"), STUDENT_SORTS)
     own = visible_complaints(request.user)
@@ -106,35 +112,37 @@ def complaint_list(request):
     category = request.GET.get("category", "")
     if category not in {str(c.pk) for c in categories}:
         category = ""
-    complaints = own.filter(status=status) if status else own
-    if category:
-        complaints = complaints.filter(category_id=int(category))
+    # Every filter but the status: the stat cards count within it (Polish v2 "Filters & reset").
+    narrowed = own.filter(category_id=int(category)) if category else own
     if query:
-        complaints = complaints.filter(Q(reference__icontains=query) | Q(title__icontains=query))
-    complaints = complaints.annotate(last_activity=Max("events__created_at"), event_count=Count("events")).order_by()
+        narrowed = narrowed.filter(Q(reference__icontains=query) | Q(title__icontains=query))
+    if status == "open":
+        complaints = narrowed.filter(status__in=OPEN_STATUSES)
+    else:
+        complaints = narrowed.filter(status=status) if status else narrowed
+    complaints = (complaints.select_related("category", "batch", "semester", "section")
+                  .annotate(last_activity=Max("events__created_at"), event_count=Count("events")).order_by())
     # Filtered in the database, merge-sorted in Python (dsa.sorting), then paginated.
     page = Paginator(sort_complaints(list(complaints), sort), PAGE_SIZE).get_page(request.GET.get("page"))
-    for complaint in page:
-        complaint.tone = status_tone(complaint.status)
-    total = own.count()
-    open_count = own.filter(status__in=OPEN_STATUSES).count() if total else 0
+    list_display(page.object_list, show_cohort=varies(page.object_list, cohort_key))
+    state = _student_list_state(request.GET)
+    category_choices = [("", "All categories")] + [(str(c.pk), c.name) for c in categories]
     return render(request, "complaints/student/list.html", {
         "page": page,
-        "status": status,
-        "filters": [("", "All")] + list(Status.choices),
-        "category": category,
-        "category_choices": [("", "All categories")] + [(str(c.pk), c.name) for c in categories],
         "query": query,
-        "has_filters": bool(status or category or query),
+        "status_tabs": STATUS_TABS,
+        "category_choices": category_choices,
         "sort": sort,
-        "sort_current": sort if sort != DEFAULT_SORT else "",
         "sorts": STUDENT_SORTS,
+        "current": {"status": status, "category": category, "sort": sort if sort != DEFAULT_SORT else ""},
+        "has_filters": bool(status or category or query),
         "list_keys": LIST_PARAMS,
-        "list_query": _student_list_state(request.GET),
+        "list_defaults": {"sort": DEFAULT_SORT},
+        "filter_specs": [("q", "Search", None), ("category", "Category", category_choices), ("sort", "Sort", STUDENT_SORTS)],
+        "query_suffix": f"?{state}" if state else "",
         "search_hidden": [(k, request.GET[k]) for k in ("status", "category", "sort") if request.GET.get(k)],
-        "stats": status_stats(own),
-        "total": total,
-        "open_count": open_count,
+        "stats": status_stats(narrowed, param="status"),
+        "total": own.count(),
     })
 
 

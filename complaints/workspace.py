@@ -35,13 +35,14 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import AdvisorAssignment, StudentProfile, User
+from accounts.presentation import cohort_key, varies
 from academics.models import AcademicTerm, Batch, Section, Semester
 
 from . import ordering, services
 from .forms import AdvisorResponseForm, ComplaintListFilterForm, ResponsibleOwnerForm, StatusUpdateForm
 from .models import Complaint, ComplaintCategory, ComplaintEvent
 from .permissions import get_visible_complaint, visible_complaints
-from .presentation import current_post, staff_timeline, status_journey, status_stats, status_tone
+from .presentation import current_post, list_display, staff_timeline, status_journey, status_stats, status_tone
 
 PAGE_SIZE = 20
 LIST_PARAMS = ("q", "cohort", "status", "category", "owner", "sort", "page")
@@ -170,7 +171,8 @@ def _headline(visible, workspace):
     return f"{subject} {open_total} open {noun}: {' and '.join(parts)}."
 
 
-def _filtered(visible, filters, workspace, term=None):
+def _filtered(visible, filters, workspace, term=None, with_status=True):
+    """The list's filters. Without the status, it is what the stat cards count (Polish v2)."""
     complaints = visible
     if term is not None:
         # Submission date within the term's reporting window (academics.models.term_window).
@@ -188,7 +190,7 @@ def _filtered(visible, filters, workspace, term=None):
     if cohort:  # Validated against the offered choices.
         batch_id, semester_id, section_id = (int(part) for part in cohort.split("."))
         complaints = complaints.filter(batch_id=batch_id, semester_id=semester_id, section_id=section_id)
-    status = filters.value("status")
+    status = filters.value("status") if with_status else ""
     if status == ComplaintListFilterForm.OPEN:
         complaints = complaints.filter(status__in=OPEN_STATUSES)
     elif status:
@@ -201,14 +203,18 @@ def _filtered(visible, filters, workspace, term=None):
         complaints = complaints.filter(responsible__isnull=True)
     elif owner:
         complaints = complaints.filter(responsible_id=int(owner))
-    complaints = complaints.annotate(
-        last_activity=Max("events__created_at"),
-        # Factual labels only (P3-2): recorded events, never "needs a response" (DEC-312).
-        cancellation_requested=Exists(ComplaintEvent.objects.filter(complaint=OuterRef("pk"), kind=Kind.CANCELLATION_REQUESTED)),
-        reopened=Exists(ComplaintEvent.objects.filter(complaint=OuterRef("pk"), kind=Kind.STILL_NOT_RESOLVED)),
-    )
     # No database ordering: the list is merge-sorted in Python (render_workspace).
     return complaints.order_by()
+
+
+def _with_row_details(complaints):
+    """What each row shows: its last activity and two factual flags (P3-2: recorded events,
+    never "needs a response", DEC-312)."""
+    return complaints.annotate(
+        last_activity=Max("events__created_at"),
+        cancellation_requested=Exists(ComplaintEvent.objects.filter(complaint=OuterRef("pk"), kind=Kind.CANCELLATION_REQUESTED)),
+        reopened=Exists(ComplaintEvent.objects.filter(complaint=OuterRef("pk"), kind=Kind.STILL_NOT_RESOLVED)),
+    ).select_related("student__student_profile", "category", "responsible", "semester", "section")
 
 
 def _owner_context(user, complaint, forms):
@@ -258,6 +264,21 @@ def _case_context(user, complaint, forms, workspace):
     return context
 
 
+def _filter_specs(filters, workspace, *, show_cohort, terms=None):
+    """The removable pills of the active filters: (param, label, choices). The status is a tab."""
+    fields = filters.fields
+    specs = [("q", "Search", None)]
+    if show_cohort:
+        specs.append(("cohort", "Cohort", fields["cohort"].choices))
+    specs.append(("category", "Category", fields["category"].choices))
+    if "term" in fields:
+        # The term pill keeps the exact reporting window as its tooltip (Part 4 Stage 4a).
+        specs.append(("term", "Term", fields["term"].choices, {str(t.pk): t.dates_label for t in terms or ()}))
+    if "owner" in fields:
+        specs.append(("owner", "Owner", fields["owner"].choices))
+    return specs
+
+
 def render_workspace(request, workspace, reference=None, status=200, **forms):
     user = request.user
     visible = visible_complaints(user)
@@ -270,15 +291,15 @@ def render_workspace(request, workspace, reference=None, status=200, **forms):
     terms = list(AcademicTerm.objects.all()) if workspace.department_wide else None
     filters = ComplaintListFilterForm(
         request.GET, cohorts=cohorts, categories=categories, owners=owners, terms=terms,
-        include_open=not workspace.department_wide,
         all_cohorts_label="All cohorts" if workspace.department_wide else "All assigned cohorts",
     )
     # Only an existing term chosen from the form's choices filters; anything else is ignored.
     selected_term = next((t for t in terms if str(t.pk) == filters.value("term")), None) if terms else None
-    rows = ordering.sort_complaints(list(_filtered(visible, filters, workspace, selected_term)), filters.value("sort"))
+    matches = _with_row_details(_filtered(visible, filters, workspace, selected_term))
+    rows = ordering.sort_complaints(list(matches), filters.value("sort"))
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
-    for item in page:
-        item.tone = status_tone(item.status)
+    list_display(page.object_list, show_cohort=varies(page.object_list, cohort_key),
+                 department_wide=workspace.department_wide)
 
     # An empty selected cohort is told apart from filters that match nothing (Part 4 3.1).
     selected_cohort, empty_cohort_label = filters.value("cohort"), ""
@@ -300,7 +321,10 @@ def render_workspace(request, workspace, reference=None, status=200, **forms):
         ),
         "page": page,
         "headline": _headline(visible, workspace),
-        "stats": status_stats(visible),
+        "stats": status_stats(_filtered(visible, filters, workspace, selected_term, with_status=False)),
+        "filter_specs": _filter_specs(filters, workspace, show_cohort=len(cohorts) > 1 or (workspace.department_wide and bool(cohorts)), terms=terms),
+        "list_defaults": {"sort": ordering.DEFAULT_SORT},
+        "query_suffix": f"?{state}" if state else "",
         "list_keys": keys,
         "current": {name: filters.value(name) for name in (*workspace.filter_params, "sort")},
         "search_hidden": [(key, request.GET[key]) for key in keys if key not in ("q", "page") and request.GET.get(key)],

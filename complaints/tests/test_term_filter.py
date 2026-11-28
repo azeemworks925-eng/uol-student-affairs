@@ -106,7 +106,7 @@ class TermOnlyTests(TermFilterTestCase):
         empty = AcademicTerm.objects.create(name="Summer 2026", start_date=date(2026, 7, 1), end_date=date(2026, 8, 15))
         response = self.get(term=empty.pk)
         self.assertEqual(self.refs(response), set())
-        self.assertContains(response, "No complaints match these filters.")
+        self.assertContains(response, "Nothing matches these filters.")
 
     def test_the_widest_supported_term_filters_without_error(self):
         # Dates outside 1900-9998 cannot be stored (academics.0003), so every stored term has a
@@ -171,12 +171,13 @@ class ChipAndStateTests(TermFilterTestCase):
     def test_chip_shows_the_term_name_and_exact_dates(self):
         response = self.get(term=self.fall.pk)
         html = response.content.decode()
-        chip = html[html.index('class="sa-filter-chip"'):html.index("</p>", html.index('class="sa-filter-chip"'))]
-        self.assertIn("Fall 2026", chip)
-        self.assertIn("1 Sep 2026 – 15 Jan 2027", chip)
-        self.assertIn('aria-label="Remove the academic term filter (Fall 2026)"', chip)
+        # Polish v2: a removable filter pill, with the exact dates as its tooltip, and "Reset".
+        chip = html[html.index('class="sa-pill sa-pill--remove'):html.index("</a>", html.index('class="sa-pill sa-pill--remove'))]
+        self.assertIn("Term: Fall 2026", chip)
+        self.assertIn('data-tip="1 Sep 2026 – 15 Jan 2027"', chip)
+        self.assertIn("(remove filter)", chip)
         self.assertTrue(response.context["has_filters"])
-        self.assertContains(response, "Clear filters")
+        self.assertContains(response, "Reset · 1")
 
     def test_removing_the_term_keeps_the_other_filters(self):
         response = self.get(term=self.fall.pk, status=Status.RECEIVED, q="Ali", sort="newest", page="2")
@@ -188,7 +189,8 @@ class ChipAndStateTests(TermFilterTestCase):
 
     def test_clear_filters_removes_the_term_too(self):
         response = self.get(term=self.fall.pk, status=Status.RECEIVED)
-        self.assertContains(response, f'<a class="sa-clear" href="{LIST}">Clear filters</a>', html=True)
+        self.assertContains(response, f'href="{LIST}" data-reset-pill')
+        self.assertContains(response, "Reset · 2")
 
     def test_pagination_and_case_links_keep_the_term(self):
         with mock.patch("complaints.workspace.PAGE_SIZE", 1):

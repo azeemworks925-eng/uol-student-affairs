@@ -1,0 +1,21 @@
+{% load ui %}{% comment %}
+  Complaints as list rows and cards: one collection, two views (List / Cards, remembered).
+  page; key (data-view-key); default_view; detail_url_name; query_suffix ("?…" list state or "");
+  show_person (staff: the student column). complaints.presentation.list_display has set each
+  complaint's tone, progress, secondary line and flags.
+{% endcomment %}
+<div class="sa-views" data-view="{{ default_view|default:'list' }}" data-view-key="{{ key }}" data-per-row="3">
+  <ul class="sa-rows{% if not show_person %} sa-rows--no-person{% endif %}" aria-label="Complaints">
+    {% include "includes/ui/list_head.html" with c1="Complaint" c2="Student" c4="Updated" %}
+    {% for c in page %}{% url detail_url_name c.reference as base %}
+    {% if show_person %}{% include "includes/ui/list_row.html" with url=base|add:query_suffix primary=c.title secondary=c.secondary flags=c.flags person=c.student.get_full_name tone=c.tone status_label=c.get_status_display when=c.last_activity|default:c.created_at %}
+    {% else %}{% include "includes/ui/list_row.html" with url=base|add:query_suffix primary=c.title secondary=c.secondary flags=c.flags tone=c.tone status_label=c.get_status_display when=c.last_activity|default:c.created_at %}{% endif %}
+    {% endfor %}
+  </ul>
+  <ul class="sa-cgrid" aria-label="Complaints">
+    {% for c in page %}{% url detail_url_name c.reference as base %}
+    {% if show_person %}{% include "includes/ui/card_item.html" with url=base|add:query_suffix icon="file" title=c.title sub=c.secondary chips=c.flags tone=c.tone status_label=c.get_status_display progress=c.progress f1_label="Student" f1_value=c.student.get_full_name f2_label="Updated" f2_value=c.last_activity|default:c.created_at|ago %}
+    {% else %}{% include "includes/ui/card_item.html" with url=base|add:query_suffix icon="file" title=c.title sub=c.secondary chips=c.flags tone=c.tone status_label=c.get_status_display progress=c.progress f1_label="Updated" f1_value=c.last_activity|default:c.created_at|ago %}{% endif %}
+    {% endfor %}
+  </ul>
+</div>

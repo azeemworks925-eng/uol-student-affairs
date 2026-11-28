@@ -109,7 +109,7 @@ class AccessTests(WorkspaceTestCase):
     def test_advisor_without_assignments_sees_the_empty_state(self):
         self.client.force_login(make_advisor("new@uol.edu.pk"))
         response = self.client.get(LIST)
-        self.assertContains(response, "No cohorts are assigned to you yet.")
+        self.assertContains(response, "No cohorts yet")
         self.assertEqual(list(response.context["page"].object_list), [])
 
     def test_actions_require_post(self):
@@ -236,9 +236,9 @@ class SearchFilterSortTests(WorkspaceTestCase):
         self.assertContains(self.client.get(LIST), "There are no open complaints in your cohorts.")
 
     def test_no_matches_and_empty_states(self):
-        self.assertContains(self.client.get(LIST, {"q": "nothing like this"}), "No complaints match these filters.")
+        self.assertContains(self.client.get(LIST, {"q": "nothing like this"}), "Nothing matches these filters.")
         self.client.force_login(make_advisor("quiet@uol.edu.pk", cohorts=[cohort(self.academics, section="other_section")]))
-        self.assertContains(self.client.get(LIST), "There are no complaints in your cohorts.")
+        self.assertContains(self.client.get(LIST), "No complaints yet")
 
 
 class RespondTests(WorkspaceTestCase):
@@ -285,10 +285,10 @@ class StatusUpdateTests(WorkspaceTestCase):
         services.change_status(self.advisor, self.mine, Status.RESOLVED, "Done.")
         choices, response = self.offered(self.mine)
         self.assertEqual(choices, [])
-        self.assertContains(response, "This complaint is resolved.")
+        self.assertContains(response, "Resolved: no further staff changes.")
         self.assertNotContains(response, 'name="new_status"')
         services.change_status(self.advisor, self.classmates, Status.REJECTED, "Not ours.")
-        self.assertContains(self.client.get(detail(self.classmates)), "This complaint is rejected.")
+        self.assertContains(self.client.get(detail(self.classmates)), "Rejected: no further changes.")
 
     def test_valid_change_creates_an_event(self):
         response = self.post_status(self.mine, Status.UNDER_REVIEW, "Checking with the timetable office.")
@@ -376,7 +376,7 @@ class HistoryAndContextTests(WorkspaceTestCase):
             "Response from Dr. Ayesha Rahman (Batch Advisor)",
             "Ali Khan submitted this complaint",
         ])
-        self.assertContains(response, "Mr. Bilal Shah (Batch Advisor)")
+        self.assertContains(response, "· Mr. Bilal Shah")
         self.assertContains(response, "Resolution note")
         self.assertNotContains(response, "Responsible")
         self.assertNotContains(response, "responsible_changed")
@@ -393,7 +393,7 @@ class HistoryAndContextTests(WorkspaceTestCase):
         retired.save()
         other_mine = submit(self.student, self.categories["other"], title="My second complaint")
         html = self.html(detail(self.mine))
-        context = between(html, '<aside class="sa-detail-side"', "</aside>")
+        context = between(html, '<aside class="sa-dside"', "</aside>")
         self.assertIn("Ali Khan", context)
         self.assertIn("12345678", context)
         self.assertIn("Fall 2024 · Semester 4 · Section A", context)
@@ -419,7 +419,7 @@ class FlagsAndInvariantTests(WorkspaceTestCase):
         services.request_cancellation(self.student, self.mine)
         services.change_status(self.advisor, self.classmates, Status.RESOLVED, "Done.")
         services.mark_still_not_resolved(self.classmate, self.classmates)
-        rows = between(self.html(LIST), '<ul class="sa-collection"', "</ul>")
+        rows = between(self.html(LIST), '<ul class="sa-rows', "</ul>")
         self.assertEqual(rows.count("Cancellation requested"), 1)
         self.assertEqual(rows.count("Reopened by student"), 1)
 

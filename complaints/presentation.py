@@ -42,6 +42,10 @@ def status_tone(status):
 
 @dataclass(frozen=True)
 class TimelineEntry:
+    """One history entry. `kind` picks its look (includes/ui/timeline_item.html): a status change,
+    a speech-bubble response, or a resolution note as a quote. `by` is a name for staff and a role
+    for students (P3-7); `by_role` is the role pill beside a staff name."""
+
     title: str
     when: object
     by: str = ""
@@ -50,6 +54,8 @@ class TimelineEntry:
     status: str = ""  # the status the complaint moved to, if any
     note: str = ""
     by_student: bool = False
+    kind: str = "status"
+    by_role: str = ""
 
     @property
     def status_label(self):
@@ -57,11 +63,9 @@ class TimelineEntry:
 
     @property
     def tone(self):
-        return status_tone(self.status) if self.status else ""
-
-
-def _staff_role(actor):
-    return actor.get_role_display()
+        if self.status:
+            return status_tone(self.status)
+        return "neutral" if self.by_student else "received"
 
 
 def _staff_name(actor):
@@ -72,32 +76,36 @@ def _entry(event, audience):
     """One history entry. Students see staff by role and "you"; staff see names (Part 3)."""
     kind, student = event.kind, audience == "student"
     student_name = "" if student else event.complaint.student.get_full_name()
+    actor_role = event.actor.get_role_display()
+    by = actor_role if student else event.actor.get_full_name()
     if kind == Kind.SUBMITTED:
         title = "You submitted this complaint" if student else f"{student_name} submitted this complaint"
         return TimelineEntry(title, event.created_at, by_student=True, status=Status.RECEIVED)
     if kind == Kind.STATUS_CHANGED:
         new = Status(event.to_status)
+        resolution = new == Status.RESOLVED and bool(event.message)
         return TimelineEntry(
-            f"Status changed to {new.label}", event.created_at,
-            by=_staff_role(event.actor) if student else _staff_name(event.actor),
+            f"Status changed to {new.label}", event.created_at, by=by,
             message=event.message, message_label=MESSAGE_LABELS.get(new, "Note"), status=new,
+            kind="resolution" if resolution else "status",
         )
     if kind == Kind.STILL_NOT_RESOLVED:
         return TimelineEntry(
             "You said this is still not resolved" if student else f"{student_name} marked this as still not resolved",
             event.created_at, message=event.message,
             message_label="Your note" if student else "Student's note",
-            status=Status.UNDER_REVIEW, by_student=True, note="The complaint returned to Under Review.",
+            status=Status.UNDER_REVIEW, by_student=True,
         )
     if kind == Kind.RESPONSE:
         return TimelineEntry(
-            f"Response from {_staff_role(event.actor) if student else _staff_name(event.actor)}",
-            event.created_at, message=event.message,
+            f"Response from {actor_role if student else _staff_name(event.actor)}",
+            event.created_at, by=by, by_role="" if student else actor_role, message=event.message, kind="response",
         )
     if kind == Kind.FURTHER_INFORMATION:
         return TimelineEntry(
             "You added further information" if student else f"Further information from {student_name}",
-            event.created_at, message=event.message, by_student=True,
+            event.created_at, by="You" if student else student_name, by_role="" if student else "Student",
+            message=event.message, by_student=True, kind="response",
         )
     if kind == Kind.RESPONSIBLE_CHANGED and not student:
         owner = event.responsible
@@ -105,14 +113,12 @@ def _entry(event, audience):
             f"{_staff_name(event.actor)} took over this complaint" if owner.pk == event.actor_id
             else f"Responsible owner set to {_staff_name(owner)}"
         )
-        return TimelineEntry(title, event.created_at, by="" if owner.pk == event.actor_id else _staff_name(event.actor))
+        return TimelineEntry(title, event.created_at, by="" if owner.pk == event.actor_id else event.actor.get_full_name())
     if kind == Kind.CANCELLATION_REQUESTED:
         return TimelineEntry(
             "You asked to cancel this complaint" if student else f"{student_name} asked to cancel this complaint",
             event.created_at, message=event.message,
             message_label="Your reason" if student else "Student's reason", by_student=True,
-            note="Your request was recorded. It does not cancel or change the complaint by itself." if student
-            else "Recorded only. The status does not change.",
         )
     return None
 
@@ -136,15 +142,47 @@ def staff_timeline(complaint, include_owner_changes=False):
     return _timeline(complaint, "staff", newest_first=True, include_owner_changes=include_owner_changes)
 
 
-def status_stats(visible):
-    """The four status tiles of a complaints list, from the complaints this user can see."""
+def status_stats(visible, param="status"):
+    """The four status cards of a complaints list, from the complaints this user can see within
+    the page's other filters. Each card is also a filter tab that sets `param` to its status."""
     counts = dict(visible.order_by().values_list("status").annotate(n=Count("id")))
     return [
-        {"value": counts.get(Status.RECEIVED, 0), "label": "Received", "icon": "inbox", "tone": "received"},
-        {"value": counts.get(Status.UNDER_REVIEW, 0), "label": "Under review", "icon": "clock", "tone": "review"},
-        {"value": counts.get(Status.RESOLVED, 0), "label": "Resolved", "icon": "check", "tone": "resolved"},
-        {"value": counts.get(Status.REJECTED, 0), "label": "Rejected", "icon": "x", "tone": "rejected"},
+        {"value": counts.get(status, 0), "label": label, "icon": icon, "tone": status_tone(status),
+         "param": param, "filter": status}
+        for status, label, icon in ((Status.RECEIVED, "Received", "inbox"), (Status.UNDER_REVIEW, "Under review", "clock"),
+                                    (Status.RESOLVED, "Resolved", "check"), (Status.REJECTED, "Rejected", "x"))
     ]
+
+
+# How far along a complaint is, for the progress bar on its card (Polish v2 cards).
+STATUS_PROGRESS = {Status.RECEIVED: "0.2", Status.UNDER_REVIEW: "0.6", Status.RESOLVED: "1", Status.REJECTED: "1"}
+
+
+def list_display(complaints, *, show_cohort=False, department_wide=False):
+    """What a complaint row or card shows besides the model: its tone, progress, second line and
+    flags. The cohort is left out when every row shares it (Polish v2: no redundant columns). The
+    flags are factual recorded events only (P3-2), never "needs a response" (DEC-312)."""
+    for complaint in complaints:
+        parts = [complaint.reference]
+        if department_wide:
+            profile = getattr(complaint.student, "student_profile", None)
+            if profile:
+                parts.append(profile.sap_id)
+        parts.append(complaint.category.name + ("" if complaint.category.is_active or not department_wide else " (inactive)"))
+        if show_cohort:
+            parts.append(f"{complaint.section.name} · S{complaint.semester.number}")
+        if department_wide:
+            parts.append(f"Owner: {complaint.responsible.get_full_name()}" if complaint.responsible else "Unassigned")
+        complaint.secondary = " · ".join(part for part in parts if part)
+        complaint.tone = status_tone(complaint.status)
+        complaint.progress = STATUS_PROGRESS.get(complaint.status, "0")
+        flags = []
+        if getattr(complaint, "cancellation_requested", False):
+            flags.append({"label": "Cancellation requested", "tone": "rose"})
+        if getattr(complaint, "reopened", False):
+            flags.append({"label": "Reopened by student", "tone": "amber"})
+        complaint.flags = flags
+    return complaints
 
 
 def current_post(student):

@@ -122,9 +122,10 @@ class ListTests(SuperAdminWorkspaceTestCase):
 
     def test_rows_show_sap_id_cohort_category_owner_and_status(self):
         services.assign_responsible(self.admin, self.mine, self.advisor)
-        rows = between(self.html(LIST), '<ul class="sa-collection"', "</ul>")
-        for text in ("Ali Khan", "12345678", "Fall 2024 · Semester 4 · Section A", "Test Academic",
-                     "Owner: Dr. Ayesha Rahman", "Unassigned", "Received", "Last activity"):
+        rows = between(self.html(LIST), '<ul class="sa-rows', "</ul>")
+        # Polish v2 list rows: the cohort is a short label, and the column head is "Updated".
+        for text in ("Ali Khan", "12345678", "A · S4", "Test Academic",
+                     "Owner: Dr. Ayesha Rahman", "Unassigned", "Received", "Updated"):
             self.assertIn(text, rows)
 
     def test_search_by_reference_title_name_and_sap_id(self):
@@ -149,13 +150,15 @@ class ListTests(SuperAdminWorkspaceTestCase):
                                          semester=self.academics["semester"], section=self.academics["other_section"])
         empty = cohort_value(self.academics["batch"].pk, self.academics["semester"].pk, self.academics["other_section"].pk)
         self.assertContains(self.client.get(LIST, {"cohort": empty}),
-                            "No complaints have been submitted in Fall 2024 · Semester 4 · Section B.")
-        self.assertContains(self.client.get(LIST, {"q": "nothing like this"}), "No complaints match these filters.")
+                            "No complaints in this cohort")
+        self.assertContains(self.client.get(LIST, {"cohort": empty}), "Fall 2024 · Semester 4 · Section B")
+        self.assertContains(self.client.get(LIST, {"q": "nothing like this"}), "Nothing matches these filters.")
 
     def test_status_filter_options_and_default(self):
         response = self.client.get(LIST)
         values = [value for value, _ in response.context["filters"].fields["status"].choices]
-        self.assertEqual(values, ["", Status.RECEIVED, Status.UNDER_REVIEW, Status.RESOLVED, Status.REJECTED])
+        # Polish v2: the status is a segmented tab row, with "Open" (Received + Under review) second.
+        self.assertEqual(values, ["", "open", Status.RECEIVED, Status.UNDER_REVIEW, Status.RESOLVED, Status.REJECTED])
         services.change_status(self.advisor, self.mine, Status.RESOLVED, "Done.")
         self.assertEqual(self.refs(self.client.get(LIST, {"status": Status.RESOLVED})), [self.mine.reference])
 
@@ -210,8 +213,9 @@ class CaseTests(SuperAdminWorkspaceTestCase):
             "Responsible owner set to Dr. Ayesha Rahman (Batch Advisor)",
             "Ali Khan submitted this complaint",
         ])
-        context = between(response.content.decode(), '<aside class="sa-detail-side"', "</aside>")
-        for text in ("Ali Khan", "12345678", "Fall 2024 · Semester 4 · Section A", "Head of Batch Advisors (Super Admin)",
+        context = between(response.content.decode(), '<aside class="sa-dside"', "</aside>")
+        # Short labels in the details card: no "(Super Admin)" repeat (Polish v2 detail model).
+        for text in ("Ali Khan", "12345678", "Fall 2024 · Semester 4 · Section A", "Head of Batch Advisors",
                      "Dr. Ayesha Rahman", "Mr. Bilal Shah"):
             self.assertIn(text, context)
         self.assertNotIn(self.student.email, response.content.decode())

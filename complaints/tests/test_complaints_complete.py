@@ -291,7 +291,7 @@ class StudentHomeTests(CompleteTestCase):
         notification_services.mark_read(self.ali, newest.pk)
         response = self.client.get(reverse("student_home"))
         self.assertEqual([u.is_new for u in response.context["updates"]], [False, True])
-        self.assertContains(response, '<span class="sa-flag sa-flag--new">New</span>', count=1)
+        self.assertContains(response, '<span class="sa-pill sa-tone--accent">New</span>', count=1)
 
     def test_at_most_five_and_only_own(self):
         for i in range(4):
@@ -310,7 +310,7 @@ class StudentHomeTests(CompleteTestCase):
         self.client.force_login(newcomer)
         response = self.client.get(reverse("student_home"))
         self.assertEqual(response.context["updates"], [])
-        self.assertContains(response, "No updates yet.")
+        self.assertContains(response, "No updates yet")
         self.assertContains(response, "Nothing needs your attention today.")
 
 
@@ -324,7 +324,9 @@ class AdvisorOverviewTests(CompleteTestCase):
         [card] = response.context["assignments"]
         # z1 was resolved on T0 + 4 days (long ago), a2 two days ago; a1 is still open.
         self.assertEqual(card.counts, {"open": 1, "resolved_recently": 1, "total": 4})
-        self.assertContains(response, "Resolved 7d")
+        # Polish v2 bento: the per-cohort card charts the open count, linked to the cohort's list.
+        [bar] = response.context["dashboard"]["cohort_bars"]
+        self.assertEqual((bar["value"], bar["url"]), (1, card.complaints_url))
 
     def test_cohort_without_complaints_and_other_cohorts(self):
         empty = cohort(self.academics, section="other_section")
@@ -339,4 +341,4 @@ class AdvisorOverviewTests(CompleteTestCase):
         self.client.force_login(self.advisor)
         response = self.client.get(reverse("advisor_home"))
         self.assertNotContains(response, "as each part of the portal opens")
-        self.assertContains(response, "View complaints")
+        self.assertContains(response, "Open complaints per cohort")

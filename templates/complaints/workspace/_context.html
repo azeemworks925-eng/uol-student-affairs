@@ -1,39 +1,33 @@
-{# Sticky side panel. Student name, SAP ID and the cohort at submission, never the email (P3-1, P3-5); no other complaints (DEC-305). The responsible owner is Super Admin only (DEC-310). #}
-<aside class="sa-detail-side" data-sticky-panel aria-labelledby="context-title">
-  <h2 class="visually-hidden" id="context-title">Context</h2>
-
-  <section class="sa-card" aria-label="Student">
-    <div class="sa-person">
-      {% include "includes/ui/avatar.html" with name=student_name size="lg" %}
-      <div>
-        <div class="sa-person-name">{{ student_name }}{% if student_post %}<span class="sa-post-badge">{{ student_post }}</span>{% endif %}</div>
-        {% if sap_id %}<span class="sa-small sa-muted">SAP ID <span class="sa-ref">{{ sap_id }}</span></span>{% endif %}
+{% load ui %}{# Sticky side: actions on top, then the student and the case details. Name, SAP ID and the cohort at submission, never the email (P3-1, P3-5); no other complaints (DEC-305). The responsible owner is Super Admin only (DEC-310). #}
+<aside class="sa-dside" aria-label="Actions and details">
+  <div class="sa-dside-inner" data-sticky-panel>
+    <section class="sa-card sa-daction" aria-labelledby="actions-title">
+      {% include "includes/ui/card_head.html" with title="Actions" id="actions-title" %}
+      <div class="sa-daction-buttons">
+        <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-respond">Respond</button>
+        <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-status">Update status</button>
+        {% if workspace.department_wide %}<button type="button" class="btn btn-sa-ghost" data-dialog-open="dialog-owner">{% if owner %}Change owner{% else %}Assign owner{% endif %}</button>{% endif %}
       </div>
-    </div>
-    <dl class="sa-facts-list">
-      <div><dt>Cohort at submission</dt><dd>{% include "includes/ui/cohort.html" with record=complaint %}</dd></div>
-    </dl>
-  </section>
+    </section>
 
-  <section class="sa-card" aria-labelledby="case-details-title">
-    <h3 class="sa-card-title mb-2" id="case-details-title">Case details</h3>
-    <dl class="sa-facts-list">
-      {# Staff only: inactive categories and subcategories are marked (Part 4 Stage 2). #}
-      <div><dt>Category</dt><dd>{{ complaint.category }}{% if not complaint.category.is_active %} (inactive){% endif %}{% if complaint.subcategory %} · {{ complaint.subcategory.name }}{% if not complaint.subcategory.is_active %} (inactive){% endif %}{% endif %}</dd></div>
-      <div><dt>Submitted</dt><dd>{{ complaint.created_at|date:"j M Y, H:i" }}</dd></div>
-      <div><dt>Last activity</dt><dd>{{ last_activity|date:"j M Y, H:i" }}</dd></div>
-      {% if workspace.department_wide %}
-      <div><dt>Responsible owner</dt><dd>{% if owner %}{{ owner_label }}{% if owner_no_longer_eligible %}<span class="d-block sa-small sa-muted">No longer eligible: not an active advisor of this cohort.</span>{% endif %}{% else %}Unassigned{% endif %}<button type="button" class="sa-link-btn" data-dialog-open="dialog-owner">{% if owner %}Change owner{% else %}Assign owner{% endif %}</button></dd></div>
-      {% endif %}
-      <div><dt>Batch Advisors</dt><dd><ul class="sa-ws-advisors">{% for advisor in cohort_advisors %}<li>{{ advisor.name }}{% if advisor.is_you %} <span class="sa-muted">(you)</span>{% endif %}</li>{% empty %}<li class="sa-muted">None currently assigned</li>{% endfor %}</ul></dd></div>
-    </dl>
-  </section>
-
-  <section class="sa-card sa-side-actions-card" aria-labelledby="actions-title">
-    <h3 class="sa-card-title mb-2" id="actions-title">Actions</h3>
-    <div class="sa-side-actions">
-      <button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-respond">Respond</button>
-      <button type="button" class="btn btn-sa-secondary" data-dialog-open="dialog-status">Update status</button>
-    </div>
-  </section>
+    <section class="sa-card sa-ddetails" aria-labelledby="case-details-title">
+      <h2 class="visually-hidden" id="case-details-title">Case details</h2>
+      <div class="sa-person-row sa-person">
+        {% include "includes/ui/avatar.html" with name=student_name size="lg" %}
+        <div><b class="sa-person-name">{{ student_name }}{% if student_post %} {% include "includes/ui/role_badge.html" with role=student_post|lower %}{% endif %}</b>{% if sap_id %}<small>SAP ID <span class="sa-ref">{{ sap_id }}</span></small>{% endif %}</div>
+      </div>
+      <dl class="sa-facts">
+        <div><dt>Reference</dt><dd><span class="sa-ref">{{ complaint.reference }}</span><button type="button" class="sa-copy" data-copy="{{ complaint.reference }}" data-tip="Copy" aria-label="Copy {{ complaint.reference }}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-copy"/></svg></button></dd></div>
+        {# Staff only: inactive categories and subcategories are marked (Part 4 Stage 2). #}
+        <div><dt>Category</dt><dd>{{ complaint.category }}{% if not complaint.category.is_active %} (inactive){% endif %}{% if complaint.subcategory %} · {{ complaint.subcategory.name }}{% if not complaint.subcategory.is_active %} (inactive){% endif %}{% endif %}</dd></div>
+        <div><dt>Cohort</dt><dd>{% include "includes/ui/cohort.html" with record=complaint %}</dd></div>
+        <div><dt>Submitted</dt><dd><time datetime="{{ complaint.created_at|date:'c' }}" title="{{ complaint.created_at|date:'j M Y, H:i' }}">{{ complaint.created_at|date:"j M Y" }}</time></dd></div>
+        <div><dt>Last activity</dt><dd><time datetime="{{ last_activity|date:'c' }}" title="{{ last_activity|date:'j M Y, H:i' }}">{{ last_activity|date:"j M Y" }}</time></dd></div>
+        {% if workspace.department_wide %}
+        <div><dt>Owner</dt><dd>{% if owner %}{{ owner.get_full_name }}{% if owner_no_longer_eligible %}{% include "includes/ui/pill.html" with label="No longer eligible" tone="rose" tip="Not an active advisor of this cohort" %}{% endif %}{% else %}{% include "includes/ui/pill.html" with label="Unassigned" %}{% endif %}</dd></div>
+        {% endif %}
+        <div><dt>Advisors</dt><dd>{% for advisor in cohort_advisors %}<span>{{ advisor.name }}{% if advisor.is_you %} <span class="sa-muted">(you)</span>{% endif %}{% if not forloop.last %},{% endif %}</span>{% empty %}<span class="sa-muted">None assigned</span>{% endfor %}</dd></div>
+      </dl>
+    </section>
+  </div>
 </aside>

@@ -1,74 +1,39 @@
-{% load ui %}{# Full-width complaints list. Every link carries the list state. #}
-<div class="sa-flow">
-  <header class="sa-page-header">
-    <div>
-      <h1 class="sa-page-title" id="ws-list-title">Complaints</h1>
-      <p class="sa-page-subtitle">{% if workspace.department_wide %}Department{% else %}Your cohorts{% endif %}</p>
-      {% if has_assignments %}<p class="visually-hidden">{{ headline }}</p>{% endif %}
-    </div>
-    {% if can_take_next %}<div class="sa-page-actions"><a class="btn btn-sa-primary" href="{% url urls.next %}">Next complaint<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a></div>{% endif %}
-  </header>
+{% load ui %}{# Staff complaints list (Batch Advisor and Super Admin). Every link carries the list state. #}
+<div class="sa-page-flow">
+  {% if can_take_next %}{% include "includes/ui/banner.html" with title="Complaints" icon="file" pastel="sky" action_template="complaints/workspace/_next.html" %}{% else %}{% include "includes/ui/banner.html" with title="Complaints" icon="file" pastel="sky" %}{% endif %}
+  {% if has_assignments %}<p class="visually-hidden">{{ headline }}</p>{% endif %}
 
   {% if not has_assignments %}
-    {% include "includes/ui/empty.html" with title="No cohorts are assigned to you yet." text="The Super Admin assigns cohorts. Complaints from them will appear here." %}
+    {% include "includes/ui/empty.html" with title="No cohorts yet" text="Assigned cohorts appear here." icon="users" %}
   {% else %}
-  <div class="sa-controls">
+  {% include "includes/ui/stat_tabs.html" %}
+
+  <div class="sa-filterbar">
     <form method="get" action="{% url urls.list %}" class="sa-pill-search" role="search">
       <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
       <label class="visually-hidden" for="ws-search">Search complaints by reference, {% if workspace.department_wide %}title, {% endif %}student name or SAP ID</label>
       <input id="ws-search" type="search" name="q" maxlength="100" value="{{ current.q }}" placeholder="Search complaints">
       {% for key, value in search_hidden %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
     </form>
-    {% include "includes/ui/filter_chip.html" with label="Status" param="status" choices=filters.fields.status.choices current=current.status %}
     {% if show_cohort_filter %}{% include "includes/ui/filter_chip.html" with label="Cohort" param="cohort" choices=filters.fields.cohort.choices current=current.cohort %}{% endif %}
     {% include "includes/ui/filter_chip.html" with label="Category" param="category" choices=filters.fields.category.choices current=current.category %}
     {% if filters.term %}{% include "includes/ui/filter_chip.html" with label="Term" param="term" choices=filters.fields.term.choices current=current.term %}{% endif %}
     {% if filters.owner %}{% include "includes/ui/filter_chip.html" with label="Owner" param="owner" choices=filters.fields.owner.choices current=current.owner %}{% endif %}
     {% include "includes/ui/filter_chip.html" with label="Sort" param="sort" choices=filters.fields.sort.choices current=current.sort %}
-    {% if has_filters %}<a class="sa-clear" href="{% url urls.list %}">Clear filters</a>{% endif %}
-    <div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="staff-complaints" %}</div>
+    {% include "includes/ui/active_filters.html" %}
   </div>
-  {% if selected_term %}
-  <p class="sa-filter-chip">
-    <span><span class="visually-hidden">Filtered to complaints </span>Submitted in <strong>{{ selected_term.name }}</strong> <span class="sa-nowrap">{{ selected_term.dates_label }}</span></span>
-    <a class="sa-filter-chip-remove" href="{{ term_clear_url }}" aria-label="Remove the academic term filter ({{ selected_term.name }})">Remove</a>
-  </p>
-  {% endif %}
 
-  <div class="sa-stats">
-    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
-  </div>
+  {% include "includes/ui/list_bar.html" with status_choices=filters.fields.status.choices status_current=current.status key="staff-complaints" %}
 
   {% if page.object_list %}
-  <ul class="sa-collection" data-view="list" data-view-key="staff-complaints">
-    {% for item in page %}
-    <li>
-      <a class="sa-item sa-item--{{ item.tone }}" href="{% url urls.detail item.reference %}{% if list_state %}?{{ list_state }}{% endif %}">
-        <span class="sa-item-ref">{{ item.reference }}</span>
-        <span class="sa-item-who">{{ item.student.get_full_name }}</span>
-        <span class="sa-item-title">{{ item.title }}
-          {% if item.cancellation_requested or item.reopened %}<span class="sa-item-flags">{% if item.cancellation_requested %}<span class="sa-flag">Cancellation requested</span>{% endif %}{% if item.reopened %}<span class="sa-flag">Reopened by student</span>{% endif %}</span>{% endif %}
-          {% if workspace.department_wide %}<span class="sa-item-extra">{% if item.student.student_profile %}<span class="sa-ref">{{ item.student.student_profile.sap_id }}</span> · {% endif %}{{ item.category }}{% if not item.category.is_active %} (inactive){% endif %} · {% if item.responsible %}Owner: {{ item.responsible.get_full_name }}{% else %}Unassigned{% endif %}</span>{% endif %}
-        </span>
-        {% include "includes/ui/cohort.html" with record=item %}
-        {% include "complaints/student/_status.html" with tone=item.tone label=item.get_status_display %}
-        <span class="sa-item-when"><span class="visually-hidden">Last activity </span>{{ item.last_activity|date:"j M Y" }}</span>
-      </a>
-    </li>
-    {% endfor %}
-  </ul>
-  {% include "includes/ui/pagination.html" with label="Complaint list pages" %}
+    {% include "complaints/_collection.html" with key="staff-complaints" detail_url_name=urls.detail show_person=True %}
+    {% include "includes/ui/pagination.html" with label="Complaint list pages" %}
   {% elif empty_cohort_label %}
-    <div class="sa-empty">
-      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg>
-      <div><p class="title">No complaints have been submitted in {{ empty_cohort_label }}.</p><p class="sa-small mb-0"><a href="{% url urls.list %}">Show all complaints</a></p></div>
-    </div>
+    {% url urls.list as all_url %}{% include "includes/ui/empty.html" with title="No complaints in this cohort" text=empty_cohort_label link_url=all_url link_label="Show all complaints" %}
   {% elif has_filters %}
-    {% url urls.list as clear_url %}{% include "includes/ui/empty.html" with title="No complaints match these filters." link_url=clear_url link_label="Clear filters" %}
-  {% elif workspace.department_wide %}
-    {% include "includes/ui/empty.html" with title="No complaints have been submitted yet." text="Complaints submitted by students in every cohort appear here." %}
+    {% include "includes/ui/empty.html" with variant="no-results" title="No results" text="Nothing matches these filters." %}
   {% else %}
-    {% include "includes/ui/empty.html" with title="There are no complaints in your cohorts." text="Complaints submitted by students in your assigned cohorts appear here." %}
+    {% include "includes/ui/empty.html" with title="No complaints yet" icon="file" %}
   {% endif %}
   {% endif %}
 </div>
