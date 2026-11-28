@@ -1,0 +1,6 @@
+{% with next=dashboard.next %}{% if next %}
+<a class="btn btn-sa-primary btn-lg" href="{% url 'advisor_complaint_next' %}">Next complaint<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>
+<span class="sa-hero-helper" data-tip="{{ next.reference }}, submitted {{ next.since|date:'j M Y, H:i' }}" tabindex="0">Oldest waiting: {% if next.days == 0 %}today{% else %}{{ next.days }} day{{ next.days|pluralize }}{% endif %}</span>
+{% else %}
+<span class="sa-hero-done"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-check"/></svg>All caught up</span>
+{% endif %}{% endwith %}

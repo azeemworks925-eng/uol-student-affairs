@@ -1,70 +1,44 @@
 {% extends "layouts/app.html" %}
 {% comment %}
-  Super Admin Overview. Every value comes from complaints.analytics and accounts.dashboards, which
-  decide suppression first: a hidden cohort arrives here with no count and no URL (DEC-318).
-  States: "setup" (no current term), "withheld" (DEC-319, identical in both cases), "ready".
+  Super Admin Overview: Tier 1 hero and the bento (docs/POLISH_V2.md "Super Admin"). Every figure
+  comes from complaints.analytics and accounts.dashboards, for the current term only (DEC-316).
+  States: "setup" (no current term) and "ready".
 {% endcomment %}
 {% block title %}Overview · UOL Student Affairs{% endblock %}
 {% block content %}
 {% with a=analytics d=dashboard %}
-<div class="sa-flow">
+<div class="sa-bento">
   {% if a.state == "setup" %}
-  {% include "includes/ui/greeting.html" with lead="Set the current academic term to see this term’s figures." %}
-  <p class="mb-0"><a class="btn btn-sa-primary" href="{{ terms_url }}">Set the current term</a></p>
-  {% elif a.state == "withheld" %}
-  <header class="sa-greeting">
-    <p class="sa-greeting-date">{{ today|date:"l, j F" }}</p>
-    <h1 class="sa-greeting-title">{{ greeting }}{% if first_name %}, {{ first_name }}{% endif %}.</h1>
-    <p class="sa-greeting-summary">Figures for {{ a.term.name }} are withheld. <span class="soft"><span class="sa-nowrap">{{ a.term.dates_label }}.</span> Showing them could identify students in small cohorts. They appear once they can be shown safely.</span></p>
-  </header>
+  <div class="sa-col-12">{% include "includes/ui/hero.html" with greeting=hello date=today lead="Set the current academic term." actions_template="accounts/home/_admin_setup_actions.html" %}</div>
   {% else %}
-  <header class="sa-greeting">
-    <p class="sa-greeting-date">{{ today|date:"l, j F" }}</p>
-    <h1 class="sa-greeting-title">{{ greeting }}{% if first_name %}, {{ first_name }}{% endif %}.</h1>
-    <p class="sa-greeting-summary">{{ a.headline }} <span class="soft sa-nowrap">{{ a.term.dates_label }}</span></p>
-  </header>
+  <div class="sa-col-12">{% include "includes/ui/hero.html" with greeting=hello date=today lead=a.headline chips_template="accounts/home/_admin_chips.html" %}</div>
 
-  <div class="sa-stats">
-    {% for stat in d.stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
-  </div>
+  {% for s in d.stats %}<div class="sa-col-3">{% include "includes/ui/stat.html" with value=s.value label=s.label icon=s.icon tone=s.tone url=s.url %}</div>{% endfor %}
 
-  <div class="sa-analytics sa-grid-2">
-    <section class="sa-card" aria-labelledby="chart-weekly">
-      {% include "includes/ui/card_head.html" with title="Complaints per week" id="chart-weekly" takeaway=d.weekly_takeaway %}
-      {% if d.weekly %}{% include "includes/ui/chart_line.html" with chart=d.weekly label="Complaints per week" uid="weekly" %}{% else %}{% include "includes/ui/empty.html" with title="No complaints this term yet." icon="chart" %}{% endif %}
-    </section>
+  <section class="sa-card sa-col-8" aria-labelledby="chart-weekly">
+    {% include "includes/ui/card_head.html" with title="Complaints per week" id="chart-weekly" takeaway=d.weekly_takeaway %}
+    {% if d.weekly %}{% include "includes/ui/chart_line.html" with chart=d.weekly label="Complaints per week" uid="weekly" %}{% else %}{% include "includes/ui/empty.html" with title="No complaints this term" icon="chart" size="sm" %}{% endif %}
+  </section>
 
-    <section class="sa-card" aria-labelledby="chart-categories">
-      {% include "includes/ui/card_head.html" with title="By category" id="chart-categories" takeaway=a.category_takeaway %}
-      {% include "includes/ui/chart_bars.html" with rows=d.category_bars %}
-    </section>
+  <section class="sa-card sa-col-4" aria-labelledby="chart-status">
+    {% include "includes/ui/card_head.html" with title="Resolved vs open" id="chart-status" takeaway=a.status_takeaway %}
+    {% if d.donut %}{% include "includes/ui/chart_donut.html" with segments=d.donut centre=d.donut_centre centre_label="resolved" label="Resolved, open and rejected complaints" uid="status" %}{% else %}{% include "includes/ui/empty.html" with title="No complaints this term" icon="chart" size="sm" %}{% endif %}
+  </section>
 
-    <section class="sa-card" aria-labelledby="chart-sections">
-      {% include "includes/ui/card_head.html" with title="By section" id="chart-sections" takeaway=a.cohort_takeaway %}
-      {% if d.section_bars %}{% include "includes/ui/chart_bars.html" with rows=d.section_bars %}{% endif %}
-      {% if d.grid_rows %}<div class="sa-map-block">{% include "includes/ui/chart_grid.html" with rows=d.grid_rows sections=a.sections term=a.term %}</div>{% endif %}
-    </section>
+  <section class="sa-card sa-col-8" aria-labelledby="chart-categories">
+    {% include "includes/ui/card_head.html" with title="By category" id="chart-categories" takeaway=a.category_takeaway %}
+    {% include "includes/ui/chart_bars.html" with rows=d.category_bars %}
+  </section>
 
-    <div class="sa-flow">
-      <section class="sa-card" aria-labelledby="chart-status">
-        {% include "includes/ui/card_head.html" with title="Resolved vs open" id="chart-status" takeaway=a.status_takeaway %}
-        {% if a.total %}{% include "includes/ui/chart_stacked.html" with segments=d.status_segments label="Resolved, open and rejected complaints" uid="status" %}{% endif %}
-        <ul class="sa-legend">
-          <li><i class="sa-seg--resolved" aria-hidden="true"></i><a href="{{ a.resolved.url }}">Resolved</a> <b>{{ a.resolved.count }}</b></li>
-          <li><i class="sa-seg--open" aria-hidden="true"></i>Open <b>{{ d.open_count }}</b> <span class="sa-muted">(<a href="{{ d.received.url }}">Received {{ d.received.count }}</a>, <a href="{{ d.review.url }}">Under review {{ d.review.count }}</a>)</span></li>
-          <li><i class="sa-seg--rejected" aria-hidden="true"></i><a href="{{ d.rejected.url }}">Rejected</a> <b>{{ d.rejected.count }}</b></li>
-        </ul>
-        <p class="sa-small sa-muted mt-2 mb-0">Rejected complaints are closed: they are not awaiting action.</p>
-      </section>
+  <section class="sa-card sa-col-4 sa-row-2" aria-labelledby="recent-activity">
+    {% include "includes/ui/card_head.html" with title="Recent activity" id="recent-activity" action_url=d.activity_url action_label="View all" %}
+    {% if d.activity %}{% include "includes/ui/activity.html" with items=d.activity %}{% else %}{% include "includes/ui/empty.html" with title="No activity yet" icon="clock" size="sm" %}{% endif %}
+  </section>
 
-      <section class="sa-card" aria-labelledby="recent-activity">
-        {% include "includes/ui/card_head.html" with title="Recent activity" id="recent-activity" %}
-        {% if d.activity %}{% include "includes/ui/activity.html" with items=d.activity %}{% else %}{% include "includes/ui/empty.html" with title="No activity to show." %}{% endif %}
-      </section>
-    </div>
-  </div>
-
-  <p class="sa-small sa-muted mb-0">Cohorts with fewer than five active students are hidden, with any cohort hidden alongside them.</p>
+  <section class="sa-card sa-col-8" aria-labelledby="chart-sections">
+    {% include "includes/ui/card_head.html" with title="By section" id="chart-sections" takeaway=a.cohort_takeaway %}
+    {% if d.section_bars %}{% include "includes/ui/chart_bars.html" with rows=d.section_bars %}{% else %}{% include "includes/ui/empty.html" with title="No cohorts yet" icon="users" size="sm" %}{% endif %}
+  </section>
   {% endif %}
 </div>
 {% endwith %}

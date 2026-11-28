@@ -10,7 +10,7 @@ from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 
-from accounts.dashboards import bar_rows, line_chart, shade, stacked
+from accounts.dashboards import bar_rows, donut, line_chart
 from accounts.representation import Cohort, appoint_representatives
 from accounts.templatetags.ui import ago, initials
 from complaints import services as complaint_services
@@ -236,7 +236,7 @@ class DashboardNumberTests(RedesignTestCase):
         voice_services.answer(self.advisor, submission, "On Friday.")
         voice_services.submit(self.classmate, type="question", text="A question from somebody else entirely.")
         response = self.get(self.student, "student_home")
-        self.assertEqual(self.values(response), {"Open complaints": 1, "Resolved complaints": 0, "Student Voice answers": 1, "Upcoming meetings": 0})
+        self.assertEqual(self.values(response), {"Open complaints": 1, "Resolved": 0, "Voice answers": 1, "Upcoming meetings": 0})
         body = main(response)
         self.assertNotIn(self.classmates.title, body)
         self.assertNotIn("<svg viewBox", body)  # no charts for students
@@ -248,8 +248,8 @@ class DashboardNumberTests(RedesignTestCase):
         voice_services.submit(self.student, type="idea", text="An idea that is waiting for a review.")
         voice_services.submit(self.outsider, type="idea", text="An idea from a cohort that is not assigned.")
         response = self.get(self.advisor, "advisor_home")
-        self.assertEqual(self.values(response), {"Open": 1, "Received": 0, "Under review": 1, "Resolved (7 days)": 1})
-        self.assertEqual(response.context["dashboard"]["voice_waiting"], 1)
+        # Polish v2 "Batch Advisor": Open complaints · Issues waiting · Voice waiting · Meetings this week.
+        self.assertEqual(self.values(response), {"Open complaints": 1, "Issues waiting": 0, "Voice waiting": 1, "Meetings this week": 0})
         self.assertNotIn(self.theirs.reference, main(response))
 
     def test_advisor_activity_hides_owner_changes(self):
@@ -265,11 +265,11 @@ class DashboardNumberTests(RedesignTestCase):
         self.assertEqual([m.student for m in response.context["dashboard"]["meetings"]], [self.student])
 
     def test_greeting_skips_a_title(self):
-        self.assertContains(self.get(self.advisor, "advisor_home"), ", Ayesha.")
+        self.assertContains(self.get(self.advisor, "advisor_home"), ", Ayesha<")
 
 
-class OverviewSuppressionTests(TestCase):
-    """Hidden cohort values never reach the HTML, attributes or chart data of the new cards."""
+class OverviewTests(TestCase):
+    """The Overview's cards after DEC-339: every cohort is counted, and students stay anonymous."""
 
     @classmethod
     def setUpTestData(cls):
@@ -278,16 +278,12 @@ class OverviewSuppressionTests(TestCase):
         cls.category = ComplaintCategory.objects.create(name="Redesign Category", position=90)
         cls.term = make_term()
         cls.small = (cls.a["batch"], cls.a["semester"], cls.a["section"])
-        cls.complement = (cls.a["other_batch"], cls.a["semester"], cls.a["section"])
-        cls.visible = (cls.a["batch"], cls.a["other_semester"], cls.a["other_section"])
+        cls.large = (cls.a["batch"], cls.a["other_semester"], cls.a["other_section"])
         cls.small_students = make_students(cls.small, 3)
-        cls.complement_students = make_students(cls.complement, 9)
-        cls.visible_students = make_students(cls.visible, 6)
-        add_complaints(cls.small_students[0], cls.small, cls.category, 37, status=Status.RECEIVED)
-        add_complaints(cls.complement_students[0], cls.complement, cls.category, 20, status=Status.UNDER_REVIEW)
-        add_complaints(cls.complement_students[0], cls.complement, cls.category, 21, status=Status.RESOLVED)
-        add_complaints(cls.visible_students[0], cls.visible, cls.category, 12, status=Status.RECEIVED)
-        for student in (cls.small_students[0], cls.complement_students[0], cls.visible_students[0]):
+        cls.large_students = make_students(cls.large, 6)
+        add_complaints(cls.small_students[0], cls.small, cls.category, 4, status=Status.RECEIVED)
+        add_complaints(cls.large_students[0], cls.large, cls.category, 12, status=Status.RECEIVED)
+        for student in (cls.small_students[0], cls.large_students[0]):
             complaint = Complaint.objects.filter(student=student).first()
             complaint.reference = f"CMP-2026-{complaint.pk:05d}"  # bulk_create assigns no reference
             QuerySet(Complaint).filter(pk=complaint.pk).update(reference=complaint.reference)
@@ -297,51 +293,29 @@ class OverviewSuppressionTests(TestCase):
     def overview(self):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("super_admin_home"))
-        region = re.sub(r'<p class="sa-greeting-date">.*?</p>', "", main(response))
-        return response, region
+        return response, main(response)
 
-    def test_activity_covers_only_visible_cohorts_and_names_no_student(self):
+    def test_activity_names_no_student(self):
         response, region = self.overview()
-        activity = response.context["dashboard"]["activity"]
-        self.assertTrue(activity)
-        with_reference = Complaint.objects.exclude(reference=None)
-        visible_refs = set(with_reference.filter(student=self.visible_students[0]).values_list("reference", flat=True))
-        hidden_refs = with_reference.exclude(student=self.visible_students[0]).values_list("reference", flat=True)
-        self.assertEqual(len(hidden_refs), 2)
-        for item in activity:
-            self.assertTrue(any(ref in item["what"] for ref in visible_refs), item)
-            self.assertEqual(item["url"], "")
-        for reference in hidden_refs:
-            self.assertNotIn(reference, region)
-        for student in (*self.small_students, *self.complement_students, *self.visible_students):
+        self.assertTrue(response.context["dashboard"]["activity"])
+        for student in (*self.small_students, *self.large_students):
             self.assertNotIn(student.full_name, region)
         self.assertIn("A student", region)
 
-    def test_no_hidden_value_in_any_new_card(self):
+    def test_a_small_cohort_is_charted_with_its_real_count(self):
         response, region = self.overview()
-        without_links = re.sub(r'href="[^"]*"', "", region)
-        without_links = re.sub(r"CMP-\d{4}-\d+", "", without_links)
-        without_links = re.sub(r'datetime="[^"]*"', "", without_links)  # a clock time can contain 37 or 41
-        for number in (37, 41):
-            self.assertIsNone(re.search(rf"(?<![\d.]){number}(?![\d.])", without_links), number)
         data = response.context["dashboard"]
-        self.assertEqual([row["value"] for row in data["section_bars"]], [12])  # only the visible cohort is charted
-        self.assertEqual(sum(1 for row in data["grid_rows"] for item in row["cells"] if item["cell"].state == "hidden"), 2)
-        self.assertFalse([item for row in data["grid_rows"] for item in row["cells"] if item["cell"].state == "hidden" and item["shade"]])
-
-    def test_shading_is_scaled_to_visible_cells(self):
-        _, region = self.overview()
-        self.assertIn("sa-cell sa-cell--count sa-shade-4", region)  # the largest visible cell, however large the hidden ones are
-        self.assertEqual(region.count("sa-shade-"), 1)
-
-    def test_withheld_state_has_no_cards(self):
-        self.client.force_login(self.admin)
-        with mock.patch("accounts.views.build_overview", return_value=Overview(state="withheld", term=self.term)):
-            response = self.client.get(reverse("super_admin_home"))
-        region = main(response)
-        self.assertEqual(response.context["dashboard"], {})
-        for piece in ("sa-stats", "sa-analytics", "sa-activity", "<svg viewBox"):
+        self.assertEqual(sorted(row["value"] for row in data["section_bars"]), [4, 12])
+        for piece in ("sa-heatmap", "Suppressed", "fewer than"):
             self.assertNotIn(piece, region)
+
+    def test_setup_state_has_no_cards(self):
+        self.client.force_login(self.admin)
+        with mock.patch("accounts.views.build_overview", return_value=Overview(state="setup")):
+            response = self.client.get(reverse("super_admin_home"))
+        self.assertEqual(response.context["dashboard"], {})
+        for piece in ("sa-stat-row", "<svg viewBox"):
+            self.assertNotIn(piece, main(response))
 
 
 class ChartGeometryTests(SimpleTestCase):
@@ -356,13 +330,10 @@ class ChartGeometryTests(SimpleTestCase):
         self.assertEqual([r["width"] for r in bar_rows([{"value": 2}, {"value": 4}, {"value": 0}])], ["50", "100", "0"])
         self.assertEqual(bar_rows([{"value": 0}])[0]["width"], "0")
 
-    def test_stacked_skips_empty_segments(self):
-        drawn = stacked([{"key": "a", "value": 1}, {"key": "b", "value": 0}, {"key": "c", "value": 3}])
-        self.assertEqual([(s["key"], s["x"], s["width"]) for s in drawn], [("a", "0", "25"), ("c", "25", "75")])
-        self.assertEqual(stacked([{"key": "a", "value": 0}]), [])
-
-    def test_shade_levels(self):
-        self.assertEqual([shade(n, 8) for n in (0, 1, 2, 3, 4, 8)], [0, 1, 1, 2, 2, 4])
+    def test_donut_skips_empty_segments(self):
+        drawn = donut([{"key": "a", "value": 1}, {"key": "b", "value": 0}, {"key": "c", "value": 3}])
+        self.assertEqual([(s["key"], s["length"], s["offset"]) for s in drawn], [("a", "25", "25"), ("c", "75", "0")])
+        self.assertEqual(donut([{"key": "a", "value": 0}]), [])
 
     def test_initials_and_relative_time(self):
         self.assertEqual(initials("Dr. Ayesha Rahman"), "AR")
@@ -374,21 +345,25 @@ class ChartGeometryTests(SimpleTestCase):
 
 class ListAndDetailTests(RedesignTestCase):
     def test_list_cards_toggle_on_every_list(self):
-        pages = ((self.student, "student_complaints", "student-complaints"), (self.advisor, "advisor_complaints", "staff-complaints"),
-                 (self.admin, "super_admin_complaints", "staff-complaints"))
-        for user, name, key in pages:
+        # Students default to cards, staff to the list (docs/POLISH_V2.md "Student Complaints").
+        pages = ((self.student, "student_complaints", "student-complaints", "cards"),
+                 (self.advisor, "advisor_complaints", "staff-complaints", "list"),
+                 (self.admin, "super_admin_complaints", "staff-complaints", "list"))
+        for user, name, key, view in pages:
             with self.subTest(page=name):
                 html = self.get(user, name).content.decode()
                 self.assertIn(f'data-view-toggle="{key}"', html)
-                self.assertIn(f'data-view="list" data-view-key="{key}"', html)
+                self.assertIn(f'data-view="{view}" data-view-key="{key}"', html)
                 self.assertIn('data-view-choice="cards"', html)
-                self.assertIn("sa-item--received", html)
+                self.assertIn('data-per-row-toggle="{key}"'.format(key=key), html)
+                self.assertIn("sa-status sa-tone--received", html)
                 self.assertEqual(html.count('class="sa-stat '), 4)
 
     def test_student_list_has_no_student_column(self):
-        collection = between(self.get(self.student, "student_complaints").content.decode(), '<ul class="sa-collection', "</ul>")
-        self.assertIn("sa-collection--no-who", collection)
-        self.assertNotIn("sa-item-who", collection)
+        collection = between(self.get(self.student, "student_complaints").content.decode(), '<ul class="sa-rows', "</ul>")
+        self.assertIn("sa-rows--no-person", collection)
+        self.assertIn('<span class="sa-row-person"></span>', collection)  # the hidden column stays empty
+        self.assertNotIn("sa-avatar", collection)
 
     def test_filter_links_keep_the_other_filters_and_reset_the_page(self):
         html = self.get(self.advisor, "advisor_complaints", status="received", sort="oldest", page="1").content.decode()
@@ -402,17 +377,18 @@ class ListAndDetailTests(RedesignTestCase):
 
     def test_advisor_panel(self):
         html = self.get(self.advisor, "advisor_complaint_detail", self.mine.reference).content.decode()
-        panel = between(html, '<aside class="sa-detail-side"', "</aside>")
+        panel = between(html, '<aside class="sa-dside"', "</aside>")
         for text in ("Ali Khan", "12345678", "Case details", "Last activity", "Dr. Ayesha Rahman", 'data-dialog-open="dialog-respond"', 'data-dialog-open="dialog-status"'):
             self.assertIn(text, panel)
-        self.assertNotIn("sa-post-badge", panel)
+        self.assertNotIn("sa-role--cr", panel)
+        self.assertNotIn("sa-role--gr", panel)
         self.assertNotIn("owner", panel.lower())  # the owner stays Super Admin only (DEC-310)
         self.assertNotIn(self.student.email, html)  # P3-1
 
     def test_super_admin_panel_has_the_owner_control(self):
         html = self.get(self.admin, "super_admin_complaint_detail", self.mine.reference).content.decode()
-        panel = between(html, '<aside class="sa-detail-side"', "</aside>")
-        self.assertIn("Responsible owner", panel)
+        panel = between(html, '<aside class="sa-dside"', "</aside>")
+        self.assertIn("Assign owner", panel)
         self.assertIn('data-dialog-open="dialog-owner"', panel)
         self.assertIn(f'action="{reverse("super_admin_complaint_owner", args=[self.mine.reference])}"', html)
 
@@ -420,18 +396,18 @@ class ListAndDetailTests(RedesignTestCase):
         appoint_representatives(self.advisor, Cohort(*(part.pk for part in self.home)), cr=self.student, gr=self.classmate)
         for complaint, post in ((self.mine, "CR"), (self.classmates, "GR")):
             with self.subTest(post=post):
-                panel = between(self.get(self.advisor, "advisor_complaint_detail", complaint.reference).content.decode(), '<aside class="sa-detail-side"', "</aside>")
-                self.assertIn(f'<span class="sa-post-badge">{post}</span>', panel)
+                panel = between(self.get(self.advisor, "advisor_complaint_detail", complaint.reference).content.decode(), '<aside class="sa-dside"', "</aside>")
+                self.assertIn(f'<span class="sa-role sa-role--{post.lower()}">{post}</span>', panel)
 
     def test_student_view_has_no_student_card_and_their_own_actions(self):
         html = self.get(self.student, "student_complaint_detail", self.mine.reference).content.decode()
-        panel = between(html, '<aside class="sa-detail-side"', "</aside>")
+        panel = between(html, '<aside class="sa-dside"', "</aside>")
         self.assertNotIn("sa-person", panel)
         self.assertIn('data-dialog-open="dialog-information"', panel)
         self.assertIn('data-dialog-open="dialog-cancel"', panel)
         self.assertNotIn('data-dialog-open="dialog-still"', panel)
         complaint_services.change_status(self.advisor, self.mine, Status.RESOLVED, "Fixed.")
-        panel = between(self.get(self.student, "student_complaint_detail", self.mine.reference).content.decode(), '<aside class="sa-detail-side"', "</aside>")
+        panel = between(self.get(self.student, "student_complaint_detail", self.mine.reference).content.decode(), '<aside class="sa-dside"', "</aside>")
         self.assertIn('data-dialog-open="dialog-still"', panel)
 
     def test_voice_detail_panel(self):
@@ -440,7 +416,7 @@ class ListAndDetailTests(RedesignTestCase):
         self.assertIn('data-dialog-open="dialog-answer"', advisor)
         admin = self.get(self.admin, "super_admin_voice_detail", submission.pk).content.decode()
         self.assertNotIn("dialog-answer", admin)
-        self.assertIn("Read-only oversight", admin)
+        self.assertIn("View only", admin)
 
 
 class WeekViewTests(RedesignTestCase):

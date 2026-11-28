@@ -12,13 +12,19 @@ from django.utils import timezone
 from accounts.forms import StudentRegistrationForm
 from accounts.presentation import NOTHING_TO_SHOW, Summary, first_name, greeting, personal_summary
 
-from accounts import navigation, views
+from accounts import navigation
 from accounts.models import User
 
 from .helpers import GOOGLE_PROVIDERS, cohort, make_academics, make_advisor, make_student, make_super_admin
 
 FOOTER = "An independent student project, not an official University of Lahore system."
 UNBUILT_WORDING = ("Soon", "not available yet", "Available soon", 'aria-disabled="true"')
+
+
+def hero_card(html):
+    """The home's Tier 1 hero card."""
+    start = html.index('<header class="sa-hero-card"')
+    return html[start:html.index("</header>", start)]
 
 
 def section(html, opening):
@@ -96,30 +102,23 @@ class StudentHomeTests(TestCase):
 
     def test_exact_cohort_and_greeting(self):
         self.assertContains(self.response, "Fall 2024 · Semester 4 · Section A")
-        self.assertContains(self.response, ", Ali.")
+        self.assertContains(self.response, ", Ali<")
 
     def test_zero_state_summary(self):
         self.assertContains(self.response, NOTHING_TO_SHOW)
-        self.assertContains(self.response, "No updates yet.")
-        self.assertContains(self.response, "No open issues in your section.")
+        self.assertContains(self.response, "No updates yet")
+        self.assertContains(self.response, "No open issues")
 
-    def test_quick_access_shows_only_built_actions(self):
-        quick = section(self.html, '<nav class="sa-quick"')
-        # Only built destinations appear: complaints, Student Voice and meetings.
-        self.assertEqual(re.findall(r'<a [^>]*href="([^"]+)"', quick), [reverse("student_complaint_new"), reverse("student_voice"), reverse("student_meetings")])
-        self.assertIn("Submit a complaint", quick)
-        self.assertIn("Raise a problem with your Batch Advisor", quick)
-        self.assertIn("Student Voice", quick)
+    def test_hero_actions_replace_quick_access(self):
+        # Polish v2 "Student/CR home": the hero's actions replace the Quick actions card.
+        hero = hero_card(self.html)
+        self.assertEqual(re.findall(r'<a [^>]*href="([^"]+)"', hero),
+                         [reverse("student_complaint_new"), reverse("student_voice"), reverse("student_meetings") + "?new=1"])
+        for label in ("New complaint", "Student Voice", "Request meeting"):
+            self.assertIn(label, hero)
+        self.assertNotIn('class="sa-quick"', self.html)
         for label in UNBUILT_WORDING:
-            self.assertNotIn(label, quick)
-
-    def test_quick_access_keeps_unbuilt_actions_for_later(self):
-        labels = [item["label"] for item in views.QUICK_ACCESS]
-        self.assertEqual(labels, ["Submit a complaint", "Student Voice", "My meetings"])
-        built = [dict(item) for item in views.QUICK_ACCESS]
-        built[2]["url_name"] = "student_complaints"  # stands in for the meetings page once it exists
-        with mock.patch.object(views, "QUICK_ACCESS", built):
-            self.assertEqual([item["label"] for item in views.quick_access()], labels)
+            self.assertNotIn(label, hero)
 
     def test_bottom_navigation_lists_only_built_destinations(self):
         bottom = section(self.html, '<nav class="sa-bottomnav"')
@@ -164,7 +163,8 @@ class AdvisorHomeTests(TestCase):
         self.assertNotIn('sa-rail-link', html)  # the old fixed advisor rail is gone
         self.assertNotIn('class="sa-bottomnav"', html)
         self.assertIn('id="sa-drawer"', html)
-        self.assertContains(response, "You advise 2 cohorts.")
+        hero = hero_card(html)  # the advisor's cohorts are hero chips
+        self.assertEqual(hero.count('class="sa-cohort"'), 2)
         self.assertContains(response, "Semester 4 · Section A")
         self.assertContains(response, "Semester 4 · Section B")
         self.assertRegex(html, r'class="sa-nav-link" href="{}"[^>]*aria-current="page"'.format(reverse("advisor_home")))
@@ -179,7 +179,7 @@ class AdvisorHomeTests(TestCase):
 
     def test_no_assignments(self):
         self.client.force_login(self.unassigned)
-        self.assertContains(self.client.get(reverse("advisor_home")), "No cohorts are assigned to you yet.")
+        self.assertContains(self.client.get(reverse("advisor_home")), "No cohorts assigned yet.")
 
 
 class SuperAdminHomeTests(TestCase):
@@ -218,8 +218,10 @@ class SuperAdminHomeTests(TestCase):
 
     def test_empty_overview_has_no_invented_figures(self):
         # No current academic term: the Stage 4b setup state, never all-time figures (DEC-316).
-        self.assertContains(self.response, "Set the current academic term to see this term’s figures.")
-        self.assertNotContains(self.response, 'class="sa-analytics"')
+        self.assertContains(self.response, "Set the current academic term.")
+        self.assertContains(self.response, reverse("super_admin_terms"))
+        self.assertNotContains(self.response, 'class="sa-stat ')
+        self.assertNotContains(self.response, "<svg viewBox")
 
 
 class AuthLayoutTests(TestCase):

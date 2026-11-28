@@ -1,0 +1,1 @@
+{% if dashboard.term %}{% include "includes/ui/pill.html" with label=dashboard.term.name icon="calendar" tip=dashboard.term.dates_label %}{% endif %}{% for a in assignments %}{% include "includes/ui/cohort.html" with record=a %}{% endfor %}

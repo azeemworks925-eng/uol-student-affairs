@@ -34,6 +34,23 @@ def first_name(user):
     return (names or words or [""])[0]
 
 
+def hello(user, now=None):
+    """The home hero's line: "Good evening, Ayesha" (or just the greeting without a name)."""
+    name = first_name(user)
+    return f"{greeting(now)}, {name}" if name else greeting(now)
+
+
+def varies(items, key):
+    """Whether a column is worth showing: True when the rows don't all share one value.
+    `key` turns a row into the value compared (Polish v2: redundant columns are hidden)."""
+    return len({key(item) for item in items}) > 1
+
+
+def cohort_key(record):
+    """The exact cohort of a record with batch, semester and section (DEC-205)."""
+    return (record.batch_id, record.semester_id, record.section_id)
+
+
 def personal_summary(update_descriptions):
     """
     Build the summary from the student's updates, already ordered most important/recent first.

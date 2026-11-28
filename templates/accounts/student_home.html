@@ -1,78 +1,68 @@
 {% extends "layouts/app.html" %}
 {% load static ui %}
-{# Student Home: the student's own numbers, updates, meetings and complaints. No charts. #}
+{% comment %}
+  Student Home (and CR/GR): Tier 1 hero and the bento (docs/POLISH_V2.md "CR/GR + Student").
+  The student's own records only. No charts.
+{% endcomment %}
 {% block title %}Home · UOL Student Affairs{% endblock %}
 {% block content %}
 {% with d=dashboard %}
-<div class="sa-flow">
-  <div class="sa-home-head">
-    {% include "includes/ui/greeting.html" with lead=summary.lead soft=summary.rest testid="personal-summary" %}
-    {% include "includes/ui/cohort.html" with record=profile %}
-  </div>
+<div class="sa-bento">
+  <div class="sa-col-12">{% include "includes/ui/hero.html" with greeting=hello date=today lead=summary.lead chips_template="accounts/home/_student_chips.html" actions_template="accounts/home/_student_actions.html" %}</div>
 
-  <div class="sa-stats">
-    {% for stat in d.stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone url=stat.url %}{% endfor %}
-  </div>
+  {% for s in d.stats %}<div class="sa-col-3">{% include "includes/ui/stat.html" with value=s.value label=s.label icon=s.icon tone=s.tone url=s.url %}</div>{% endfor %}
 
-  <div class="sa-grid-2">
-    <section class="sa-card" aria-labelledby="updates-title">
-      {% url 'student_complaints' as complaints_url %}
-      {% if updates %}{% include "includes/ui/card_head.html" with title="Your latest updates" id="updates-title" action_url=complaints_url action_label="All complaints" %}{% else %}{% include "includes/ui/card_head.html" with title="Your latest updates" id="updates-title" %}{% endif %}
-      {% if updates %}
-      <ul class="sa-update-list">
-        {% for update in updates %}
-        <li>
-          <a class="sa-update" href="{{ update.url }}">
-            <span class="sa-update-main">
-              <span class="sa-update-top"><span class="sa-ref">{{ update.reference }}</span>{% if update.is_new %}<span class="sa-flag sa-flag--new">New</span>{% endif %}</span>
-              <span class="sa-update-label">{{ update.label }}</span>
-              <span class="sa-small sa-muted">{{ update.complaint_title }} · <time class="sa-nowrap" datetime="{{ update.when|date:'c' }}">{{ update.when|ago }}</time></span>
-            </span>
-            {% include "complaints/student/_status.html" with tone=update.tone label=update.status_label %}
-          </a>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-        {% include "includes/ui/empty.html" with title="No updates yet." text="Replies and status changes will appear here." %}
-      {% endif %}
-    </section>
+  <section class="sa-card sa-col-8" aria-labelledby="progress-title">
+    {% url 'student_complaints' as complaints_url %}
+    {% include "includes/ui/card_head.html" with title="Your complaints" id="progress-title" action_url=complaints_url action_label="View all" %}
+    {% if d.open_complaints %}
+    <ul class="sa-progress-rows">
+      {% for complaint in d.open_complaints %}
+      <li>
+        <div class="sa-progress-top"><a class="sa-stretch" href="{% url 'student_complaint_detail' complaint.reference %}">{{ complaint.title }}</a>{% include "includes/ui/status_pill.html" with tone=complaint.tone label=complaint.get_status_display %}</div>
+        <small class="sa-ref">{{ complaint.reference }}</small>
+        {% include "includes/ui/journey.html" with journey=complaint.journey %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}{% url 'student_complaint_new' as new_url %}{% include "includes/ui/empty.html" with title="No open complaints" link_url=new_url link_label="New complaint" icon="file" size="sm" %}{% endif %}
+  </section>
 
-    <div class="sa-flow">
-      <section class="sa-card" aria-labelledby="quick-title">
-        {% include "includes/ui/card_head.html" with title="Quick actions" id="quick-title" %}
-        <nav class="sa-quick" aria-label="Quick access">
-          {% for item in quick_access %}
-            <a class="sa-quick-item{% if item.primary %} sa-quick-item--primary{% endif %}" href="{{ item.url }}"><span class="ic"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ item.icon }}"/></svg></span><span><b>{{ item.label }}</b><span class="d">{{ item.description }}</span></span><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>
-          {% endfor %}
-        </nav>
-      </section>
+  <section class="sa-card sa-col-4" aria-labelledby="home-meetings">
+    {% url 'student_meetings' as meetings_url %}
+    {% include "includes/ui/card_head.html" with title="Upcoming meetings" id="home-meetings" action_url=meetings_url action_label="View all" %}
+    {% if d.meetings %}
+    <ul class="sa-meeting-list">{% for meeting in d.meetings %}{% include "includes/ui/meeting_row.html" with url_name="student_meeting_detail" show_calendar=True %}{% endfor %}</ul>
+    {% else %}{% include "includes/ui/empty.html" with title="No meetings coming up" icon="calendar" size="sm" link_url=meetings_url|add:"?new=1" link_label="Request meeting" %}{% endif %}
+  </section>
 
-      <section class="sa-card" aria-labelledby="home-meetings">
-        {% url 'student_meetings' as meetings_url %}
-        {% include "includes/ui/card_head.html" with title="Upcoming meetings" id="home-meetings" action_url=meetings_url action_label="All meetings" %}
-        {% if d.meetings %}
-        <ul class="sa-meeting-list">{% for meeting in d.meetings %}{% include "includes/ui/meeting_row.html" with url_name="student_meeting_detail" show_calendar=True %}{% endfor %}</ul>
-        {% else %}{% include "includes/ui/empty.html" with title="No meetings coming up." icon="calendar" %}{% endif %}
-      </section>
-    </div>
+  <section class="sa-card sa-col-8" aria-labelledby="updates-title">
+    {% include "includes/ui/card_head.html" with title="Latest updates" id="updates-title" %}
+    {% if updates %}
+    <ol class="sa-timeline sa-timeline--links">
+      {% for update in updates %}
+      <li class="sa-timeline-item sa-tone--{{ update.tone }}">
+        <div class="sa-timeline-head"><a class="sa-timeline-title sa-stretch" href="{{ update.url }}">{{ update.label }}</a>{% if update.is_new %}{% include "includes/ui/pill.html" with label="New" tone="accent" %}{% endif %}{% include "includes/ui/status_pill.html" with tone=update.tone label=update.status_label %}</div>
+        <p class="sa-timeline-meta"><span class="sa-ref">{{ update.reference }}</span> · {{ update.complaint_title }} · <time datetime="{{ update.when|date:'c' }}" title="{{ update.when|date:'j M Y, H:i' }}">{{ update.when|ago }}</time></p>
+      </li>
+      {% endfor %}
+    </ol>
+    {% else %}{% include "includes/ui/empty.html" with title="No updates yet" icon="bell" size="sm" %}{% endif %}
+  </section>
 
-    <section class="sa-card" aria-labelledby="progress-title">
-      {% include "includes/ui/card_head.html" with title="Your complaints" id="progress-title" %}
-      {% if d.open_complaints %}
-      <ul class="sa-progress-list">
-        {% for complaint in d.open_complaints %}
-        <li>
-          <a class="sa-progress-title" href="{% url 'student_complaint_detail' complaint.reference %}"><span class="sa-ref">{{ complaint.reference }}</span> {{ complaint.title }}</a>
-          {% include "includes/ui/journey.html" with journey=complaint.journey %}
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}{% include "includes/ui/empty.html" with title="No open complaints." icon="check" %}{% endif %}
-    </section>
+  <section class="sa-card sa-col-4" aria-labelledby="answers-title">
+    {% url 'student_voice' as voice_url %}
+    {% include "includes/ui/card_head.html" with title="Voice answers" id="answers-title" action_url=voice_url action_label="View all" %}
+    {% if d.answers %}
+    <ul class="sa-mini-list">
+      {% for item in d.answers %}
+      <li><a class="sa-stretch" href="{% url 'student_voice_detail' item.pk %}">{{ item.answer|truncatechars:70 }}</a><span class="sa-mini-meta">{% include "includes/ui/pill.html" with label=item.get_type_display tone=item.type|voice_type_pastel %}<time datetime="{{ item.answered_at|date:'c' }}">{{ item.answered_at|ago }}</time></span></li>
+      {% endfor %}
+    </ul>
+    {% else %}{% include "includes/ui/empty.html" with title="No answers yet" icon="voice" size="sm" link_url=voice_url|add:"?new=1" link_label="Ask a question" %}{% endif %}
+  </section>
 
-    {% include "issues/_board.html" %}
-  </div>
+  {% include "issues/_board.html" %}
 </div>
 {% endwith %}
 {% endblock %}

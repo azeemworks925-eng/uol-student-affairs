@@ -12,6 +12,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 
 from complaints.analytics import build_overview
 from complaints.workspace import advisor_cohort_counts, cohort_value
+from complaints.presentation import current_post
 from issues.presentation import section_board
 from meetings.presentation import student_home_updates
 
@@ -20,7 +21,7 @@ from .forms import StudentRegistrationForm
 from .identity import extract_sap_id
 from .models import StudentProfile, User
 from .permissions import batch_advisor_required, student_required, super_admin_required
-from .presentation import first_name, greeting, personal_summary
+from .presentation import hello, personal_summary
 from .search import quick_search
 from .services import AlreadyRegistered, register_student
 
@@ -65,24 +66,6 @@ def student_register(request):
     return render(request, "accounts/register.html", {"form": form, "sap_id": extract_sap_id(request.user.email)})
 
 
-def cohort_label(batch, semester, section):
-    """The exact cohort, spelled out: "Fall 2024 · Semester 4 · Section A" (DEC-205)."""
-    return f"{batch} · {semester} · {section}"
-
-
-# Quick Access: three separate actions (DEC-282, DEC-303). An action whose module is not built
-# yet keeps url_name None and is not shown; it appears once its url_name is set.
-QUICK_ACCESS = [
-    {"label": "Submit a complaint", "description": "Raise a problem with your Batch Advisor", "icon": "plus", "url_name": "student_complaint_new", "primary": True},
-    {"label": "Student Voice", "description": "An idea, a question or feedback", "icon": "voice", "url_name": "student_voice"},
-    {"label": "My meetings", "description": "Request or review meetings", "icon": "calendar", "url_name": "student_meetings"},
-]
-
-
-def quick_access():
-    return [{**item, "url": reverse(item["url_name"])} for item in QUICK_ACCESS if item["url_name"]]
-
-
 @student_required
 def student_home(request):
     profile = request.user.student_profile
@@ -92,12 +75,10 @@ def student_home(request):
     return render(request, "accounts/student_home.html", {
         "profile": profile,
         "today": timezone.localdate(),
-        "greeting": greeting(),
-        "first_name": first_name(request.user),
-        "cohort_label": cohort_label(profile.batch, profile.semester, profile.section),
+        "hello": hello(request.user),
+        "post": current_post(request.user),
         "summary": personal_summary([update.headline for update in updates]),
         "updates": updates,
-        "quick_access": quick_access(),
         "dashboard": student_dashboard(request.user),
         "board": section_board(request.user),
     })
@@ -110,29 +91,25 @@ def advisor_home(request):
     counts = advisor_cohort_counts(request.user)
     for a in assignments:
         value = cohort_value(a.batch_id, a.semester_id, a.section_id)
-        # P3-8: each card opens the complaints workspace filtered to this exact cohort.
+        # P3-8: each cohort bar opens the complaints workspace filtered to this exact cohort.
         a.complaints_url = f"{workspace}?{urlencode({'cohort': value})}"
         a.counts = counts.get(value, {"open": 0, "resolved_recently": 0, "total": 0})
     return render(request, "accounts/advisor_home.html", {
         "assignments": assignments,
         "today": timezone.localdate(),
-        "greeting": greeting(),
-        "first_name": first_name(request.user),
+        "hello": hello(request.user),
         "dashboard": advisor_dashboard(request.user, assignments),
     })
 
 
 @super_admin_required
 def super_admin_home(request):
-    # The three DEC-281 analytics (Complaints Part 4 Stage 4b). Suppression is decided in
-    # complaints.analytics; the template receives displayable values only (DEC-318).
     analytics = build_overview(request.user)
     return render(request, "accounts/super_admin_home.html", {
         "analytics": analytics,
         "dashboard": super_admin_dashboard(request.user, analytics),
         "today": timezone.localdate(),
-        "greeting": greeting(),
-        "first_name": first_name(request.user),
+        "hello": hello(request.user),
         "terms_url": reverse("super_admin_terms"),
     })
 

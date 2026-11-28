@@ -1,67 +1,62 @@
 {% extends "layouts/app.html" %}
-{# Batch Advisor Overview: stat tiles, one card per assigned cohort, meetings, activity and Student Voice. #}
+{% load ui %}
+{% comment %}
+  Batch Advisor Overview: Tier 1 hero with "Next complaint" (a min-heap, dsa/heap.py) and the bento
+  (docs/POLISH_V2.md "Batch Advisor"). Every figure is scoped to the advisor's exact cohorts.
+{% endcomment %}
 {% block title %}Overview · UOL Student Affairs{% endblock %}
 {% block content %}
 {% with d=dashboard %}
-<div class="sa-flow">
+<div class="sa-bento">
   {% if assignments %}
-  {% with n=assignments|length %}
-  <header class="sa-greeting">
-    <p class="sa-greeting-date">{{ today|date:"l, j F" }}</p>
-    <h1 class="sa-greeting-title">{{ greeting }}{% if first_name %}, {{ first_name }}{% endif %}.</h1>
-    <p class="sa-greeting-summary">You advise {{ n }} cohort{{ n|pluralize }}.</p>
-  </header>
-  {% endwith %}
+  <div class="sa-col-12">{% include "includes/ui/hero.html" with greeting=hello date=today chips_template="accounts/home/_advisor_chips.html" actions_template="accounts/home/_advisor_actions.html" %}</div>
 
-  <div class="sa-stats">
-    {% for stat in d.stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
-  </div>
+  {% for s in d.stats %}<div class="sa-col-3">{% include "includes/ui/stat.html" with value=s.value label=s.label icon=s.icon tone=s.tone url=s.url %}</div>{% endfor %}
 
-  <ul class="sa-cohort-list" aria-label="Assigned cohorts">
-    {% for a in assignments %}
-    <li class="sa-card">
-      <div class="sa-card-head">
-        <div class="sa-card-titles"><h2 class="sa-card-title">{{ a.batch }}</h2></div>
-        {% include "includes/ui/cohort.html" with record=a %}
-      </div>
-      <dl class="sa-cohort-counts">
-        <div><dt>Open</dt><dd>{{ a.counts.open }}</dd></div>
-        <div><dt>Resolved 7d</dt><dd>{{ a.counts.resolved_recently }}</dd></div>
-        <div><dt>Total</dt><dd>{{ a.counts.total }}</dd></div>
-      </dl>
-      <a class="sa-card-link" href="{{ a.complaints_url }}">View complaints<svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg></a>
-    </li>
-    {% endfor %}
-  </ul>
+  <section class="sa-card sa-col-8" aria-labelledby="chart-open">
+    {% url 'advisor_complaints' as complaints_url %}
+    {% include "includes/ui/card_head.html" with title="Open complaints per cohort" id="chart-open" action_url=complaints_url action_label="View all" %}
+    {% if d.has_open %}{% include "includes/ui/chart_bars.html" with rows=d.cohort_bars %}{% else %}{% include "includes/ui/empty.html" with variant="all-caught-up" title="All caught up" size="sm" %}{% endif %}
+  </section>
 
-  <div class="sa-grid-2">
-    <section class="sa-card" aria-labelledby="chart-open">
-      {% include "includes/ui/card_head.html" with title="Open complaints per cohort" id="chart-open" %}
-      {% if d.has_open %}{% include "includes/ui/chart_bars.html" with rows=d.cohort_bars %}{% else %}{% include "includes/ui/empty.html" with title="No open complaints." icon="check" %}{% endif %}
-    </section>
+  <section class="sa-card sa-col-4" aria-labelledby="home-meetings">
+    {% url 'advisor_meetings' as meetings_url %}
+    {% include "includes/ui/card_head.html" with title="Upcoming meetings" id="home-meetings" action_url=meetings_url action_label="View all" %}
+    {% if d.meetings %}
+    <ul class="sa-meeting-list">{% for meeting in d.meetings %}{% include "includes/ui/meeting_row.html" with url_name="advisor_meeting_detail" show_student=True %}{% endfor %}</ul>
+    {% else %}{% include "includes/ui/empty.html" with title="No meetings coming up" icon="calendar" size="sm" %}{% endif %}
+  </section>
 
-    <section class="sa-card" aria-labelledby="home-meetings">
-      {% url 'advisor_meetings' as meetings_url %}
-      {% include "includes/ui/card_head.html" with title="Upcoming meetings" id="home-meetings" action_url=meetings_url action_label="All meetings" %}
-      {% if d.meetings %}
-      <ul class="sa-meeting-list">{% for meeting in d.meetings %}{% include "includes/ui/meeting_row.html" with url_name="advisor_meeting_detail" show_student=True %}{% endfor %}</ul>
-      {% else %}{% include "includes/ui/empty.html" with title="No meetings coming up." icon="calendar" %}{% endif %}
-    </section>
+  <section class="sa-card sa-col-8 sa-row-2" aria-labelledby="home-activity">
+    {% include "includes/ui/card_head.html" with title="Recent activity" id="home-activity" action_url=complaints_url action_label="View all" %}
+    {% if d.activity %}{% include "includes/ui/activity.html" with items=d.activity %}{% else %}{% include "includes/ui/empty.html" with title="No activity yet" icon="clock" size="sm" %}{% endif %}
+  </section>
 
-    <section class="sa-card" aria-labelledby="home-activity">
-      {% include "includes/ui/card_head.html" with title="Recent activity" id="home-activity" %}
-      {% if d.activity %}{% include "includes/ui/activity.html" with items=d.activity %}{% else %}{% include "includes/ui/empty.html" with title="No activity yet." %}{% endif %}
-    </section>
+  <section class="sa-card sa-col-4" aria-labelledby="home-voice">
+    {% url 'advisor_voice' as voice_url %}
+    {% include "includes/ui/card_head.html" with title="Voice waiting" id="home-voice" action_url=voice_url|add:"?status=waiting" action_label="View all" %}
+    {% if d.voice_items %}
+    <ul class="sa-mini-list">
+      {% for item in d.voice_items %}
+      <li><a class="sa-stretch" href="{% url 'advisor_voice_detail' item.pk %}">{{ item.text|truncatechars:60 }}</a><span class="sa-mini-meta">{% include "includes/ui/pill.html" with label=item.get_type_display tone=item.type|voice_type_pastel %}<time datetime="{{ item.created_at|date:'c' }}">{{ item.created_at|ago }}</time></span></li>
+      {% endfor %}
+    </ul>
+    {% else %}{% include "includes/ui/empty.html" with variant="all-caught-up" title="All caught up" size="sm" %}{% endif %}
+  </section>
 
-    <section class="sa-card" aria-labelledby="home-voice">
-      {% url 'advisor_voice' as voice_url %}
-      {% include "includes/ui/card_head.html" with title="Student Voice waiting" id="home-voice" action_url=voice_url action_label="Open" %}
-      <p class="sa-big-number">{{ d.voice_waiting }}</p>
-      <p class="sa-small sa-muted mb-0">waiting for a reply or review</p>
-    </section>
-  </div>
+  <section class="sa-card sa-col-4" aria-labelledby="home-issues">
+    {% url 'advisor_issues' as issues_url %}
+    {% include "includes/ui/card_head.html" with title="Issues waiting" id="home-issues" action_url=issues_url|add:"?status=received" action_label="View all" %}
+    {% if d.issue_items %}
+    <ul class="sa-mini-list">
+      {% for item in d.issue_items %}
+      <li><a class="sa-stretch" href="{% url 'advisor_issue_detail' item.reference %}">{{ item.title|truncatechars:60 }}</a><span class="sa-mini-meta">{% include "includes/ui/pill.html" with label=item.support_total|stringformat:"s" icon="hand" tone="mint" tip="Supporters" %}<time datetime="{{ item.created_at|date:'c' }}">{{ item.created_at|ago }}</time></span></li>
+      {% endfor %}
+    </ul>
+    {% else %}{% include "includes/ui/empty.html" with variant="all-caught-up" title="All caught up" size="sm" %}{% endif %}
+  </section>
   {% else %}
-  {% include "includes/ui/greeting.html" with lead="No cohorts are assigned to you yet." soft="The Super Admin assigns cohorts." %}
+  <div class="sa-col-12">{% include "includes/ui/hero.html" with greeting=hello date=today lead="No cohorts assigned yet." %}</div>
   {% endif %}
 </div>
 {% endwith %}
