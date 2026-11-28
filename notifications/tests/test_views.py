@@ -149,10 +149,37 @@ class ListTests(ViewTestCase):
         complaint_services.change_status(self.advisor, self.complaint, Status.UNDER_REVIEW)
         response = self.client.post(READ_ALL, follow=True)
         self.assertRedirects(response, LIST)
-        self.assertContains(response, "All notifications marked as read.")
+        self.assertContains(response, "All caught up")
         self.assertContains(response, "No unread notifications.")
         self.assertNotContains(response, "Mark all as read")
         self.assertFalse(Notification.objects.filter(recipient=self.student, read_at__isnull=True).exists())
+
+    def test_mark_all_read_returns_to_the_page_it_came_from(self):
+        complaint_services.change_status(self.advisor, self.complaint, Status.UNDER_REVIEW)
+        response = self.client.post(READ_ALL, {"next": reverse("student_voice")})
+        self.assertRedirects(response, reverse("student_voice"), fetch_redirect_response=False)
+        self.assertFalse(Notification.objects.filter(recipient=self.student, read_at__isnull=True).exists())
+
+    def test_mark_all_read_never_redirects_off_site(self):
+        for target in ("https://example.com/", "//example.com/x"):
+            with self.subTest(target=target):
+                response = self.client.post(READ_ALL, {"next": target})
+                self.assertRedirects(response, LIST, fetch_redirect_response=False)
+
+    def test_mark_all_read_from_the_bell_answers_json_and_touches_only_the_users_own(self):
+        complaint_services.respond(self.advisor, submit(self.classmate, self.category, title="Projector broken"), "For the classmate")
+        theirs = Notification.objects.filter(recipient=self.classmate, read_at__isnull=True).count()
+        self.assertGreater(theirs, 0)
+        response = self.client.post(READ_ALL, HTTP_ACCEPT="application/json")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["unread"], 0)
+        self.assertFalse(Notification.objects.filter(recipient=self.student, read_at__isnull=True).exists())
+        self.assertEqual(Notification.objects.filter(recipient=self.classmate, read_at__isnull=True).count(), theirs)
+
+    def test_mark_all_read_needs_post_and_a_signed_in_user(self):
+        self.assertEqual(self.client.get(READ_ALL).status_code, 405)
+        self.client.logout()
+        self.assertEqual(self.client.post(READ_ALL).status_code, 302)  # to sign-in
 
     def test_empty_states_by_role(self):
         self.client.force_login(self.classmate)
@@ -175,8 +202,8 @@ class ListTests(ViewTestCase):
 
 class HeaderTests(ViewTestCase):
     def header_links(self, html):
-        bell = html[html.index('<div class="dropdown sa-bell">'):]
-        return re.findall(r'<button class="sa-iconbtn"[^>]*aria-label="(Notifications[^"]+)"', bell[:bell.index("</button>") + 9])
+        bell = html[html.index('<details class="sa-pop sa-bell"'):]
+        return re.findall(r'<summary class="sa-iconbtn"[^>]*aria-label="(Notifications[^"]+)"', bell[:bell.index("</summary>")])
 
     def test_every_role_has_the_entry_point_with_an_accurate_label(self):
         student_html = self.client.get(reverse("student_home")).content.decode()
@@ -189,18 +216,18 @@ class HeaderTests(ViewTestCase):
         self.assertEqual(self.header_links(admin_html), ["Notifications, none unread"])
 
     def test_badge_counts_and_caps(self):
-        self.assertContains(self.client.get(reverse("student_home")), '<span class="sa-badge sa-badge--dot" aria-hidden="true">1</span>')
+        self.assertContains(self.client.get(reverse("student_home")), '<span class="sa-badge sa-badge--dot" aria-hidden="true" data-bell-badge>1</span>')
         for i in range(10):
             complaint_services.respond(self.advisor, self.complaint, f"More {i}")
         html = self.client.get(reverse("student_home")).content.decode()
-        self.assertIn('<span class="sa-badge sa-badge--dot" aria-hidden="true">9+</span>', html)
+        self.assertIn('<span class="sa-badge sa-badge--dot" aria-hidden="true" data-bell-badge>9+</span>', html)
         self.assertIn('aria-label="Notifications, 11 unread"', html)
         services.mark_all_read(self.student)
         self.assertNotIn('class="sa-badge', self.client.get(reverse("student_home")).content.decode())
 
     def test_entry_point_links_to_the_page_and_is_not_in_role_navigation(self):
         html = self.client.get(LIST).content.decode()
-        self.assertIn('<a class="sa-bell-all" href="/notifications/">See all</a>', html)
+        self.assertIn('<a class="sa-bell-all" href="/notifications/">View all', html)
         sidebar = html[html.index('<aside class="sa-sidebar"'):html.index("</aside>")]
         self.assertNotIn("/notifications/", sidebar)  # moved from the sidebar to the bell
         bottom = html[html.index('<nav class="sa-bottomnav"'):]

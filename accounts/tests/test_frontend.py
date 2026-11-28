@@ -70,12 +70,13 @@ class StaticAssetTests(SimpleTestCase):
             "css/app.css",
             "css/admin-forest.css",
             "fonts/Inter-latin-variable.woff2",
-            "fonts/Newsreader-latin-variable.woff2",
             "vendor/bootstrap-5.3.3/bootstrap.min.css",
             "vendor/bootstrap-5.3.3/bootstrap.bundle.min.js",
         ]:
             with self.subTest(path=path):
                 self.assertIsNotNone(finders.find(path))
+        # Polish v2: Inter only. The Newsreader files are gone.
+        self.assertIsNone(finders.find("fonts/Newsreader-latin-variable.woff2"))
 
 
 class StudentHomeTests(TestCase):
@@ -324,8 +325,8 @@ class SignInFlowPageTests(TestCase):
 
         response = self.client.post(reverse("account_logout"), follow=True)
         self.assertRedirects(response, reverse("account_login"))
-        self.assertContains(response, 'class="sa-message"')
-        self.assertContains(response, "You have signed out.")
+        self.assertContains(response, 'class="sa-toast sa-tone--resolved"')
+        self.assertContains(response, "You’ve signed out")
 
     def test_other_allauth_pages_fall_back_to_the_portal_layout(self):
         from django.template import engines

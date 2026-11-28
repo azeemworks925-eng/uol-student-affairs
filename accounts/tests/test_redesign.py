@@ -6,7 +6,7 @@ from unittest import mock
 
 from django.contrib.staticfiles import finders
 from django.db.models import QuerySet
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 
@@ -70,8 +70,8 @@ class ShellTests(RedesignTestCase):
             with self.subTest(role=user.role):
                 html = self.get(user, home).content.decode()
                 for piece in ('<header class="sa-topbar">', '<aside class="sa-sidebar"', "data-sidebar-toggle", 'id="sa-drawer"',
-                              "data-quick-search", 'class="dropdown sa-new"', 'class="dropdown sa-bell"', 'class="dropdown sa-account"',
-                              "js/app.js"):
+                              "data-quick-search", 'class="sa-pop sa-bell"', 'class="sa-pop sa-account"', "data-theme-toggle",
+                              'class="sa-sidebar-foot"', "js/app.js"):
                     self.assertIn(piece, html)
 
     def test_sidebar_items_per_role(self):
@@ -84,48 +84,80 @@ class ShellTests(RedesignTestCase):
         for user, home in self.users():
             with self.subTest(role=user.role):
                 sidebar = between(self.get(user, home).content.decode(), '<aside class="sa-sidebar"', "</aside>")
-                self.assertEqual(re.findall(r'data-tip="([^"]+)"', sidebar), expected[user])
+                nav = between(sidebar, "<nav", "</nav>")
+                self.assertEqual(re.findall(r'class="sa-nav-link" href="[^"]+" data-tip="([^"]+)"', nav), expected[user])
                 self.assertNotIn("/notifications/", sidebar)
-                self.assertNotIn("Sign out", sidebar)
+                # The mini profile and Sign out (a POST with CSRF) sit at the bottom, outside the nav.
+                foot = between(sidebar, 'class="sa-sidebar-foot"', "</form>")
+                self.assertIn(user.get_full_name(), foot)
+                self.assertIn(f'action="{reverse("account_logout")}"', foot)
+                self.assertIn('name="csrfmiddlewaretoken"', foot)
+                self.assertIn("Sign out", foot)
 
-    def test_new_menu_per_role(self):
-        expected = {
-            self.student: ["New complaint", "Student Voice", "Request meeting"],
-            self.advisor: ["Schedule meeting"],
-            self.admin: ["Add Batch Advisor"],
-        }
-        for user, home in self.users():
-            with self.subTest(role=user.role):
-                menu = between(self.get(user, home).content.decode(), 'class="dropdown sa-new"', "</ul>")
-                labels = re.findall(r"</svg>([^<]+)</a>", menu)
-                self.assertEqual(labels, expected[user])
-                for url in re.findall(r'<a [^>]*href="([^"]+)"', menu):
-                    self.assertEqual(self.client.get(url.replace("&amp;", "&")).status_code, 200)
+    def test_active_item_has_the_sliding_pill_and_only_one(self):
+        html = self.get(self.student, "student_complaints").content.decode()
+        sidebar = between(html, '<aside class="sa-sidebar"', "</aside>")
+        self.assertEqual(sidebar.count("sa-nav-pill--slide"), 1)
+        self.assertRegex(sidebar, r'data-tip="Complaints" aria-current="page"><span class="sa-nav-pill sa-nav-pill--slide"')
+        drawer = html[html.index('id="sa-drawer"'):]
+        self.assertNotIn("sa-nav-pill--slide", drawer)  # one view-transition-name per page
+
+    def test_create_control_per_role(self):
+        # Exactly one create action: a labelled button. Two or more: the "+ New" menu.
+        advisor = self.get(self.advisor, "advisor_home").content.decode()
+        self.assertIn(f'<a class="btn btn-sa-primary sa-new-btn" href="{reverse("advisor_meeting_schedule")}" data-create-action>', advisor)
+        self.assertIn("<span>Schedule meeting</span>", advisor)
+        self.assertNotIn('class="sa-pop sa-new"', advisor)
+        admin = self.get(self.admin, "super_admin_home").content.decode()
+        self.assertIn(f'href="{reverse("super_admin_staff")}?new=1" data-create-action>', admin)
+        self.assertIn("<span>Add Batch Advisor</span>", admin)
+        self.assertNotIn('class="sa-pop sa-new"', admin)
+        student = self.get(self.student, "student_home").content.decode()
+        self.assertNotIn("data-create-action", student)
+        menu = between(student, 'class="sa-pop sa-new"', "</details>")
+        self.assertEqual(re.findall(r"</span>([^<]+)</a>", menu), ["New complaint", "Voice submission", "Request meeting"])
+        self.assertEqual(menu.count('class="sa-icon-chip sa-tone--'), 3)
+        for url in re.findall(r'<a [^>]*href="([^"]+)"', menu):
+            self.assertEqual(self.client.get(url.replace("&amp;", "&")).status_code, 200)
 
     def test_bell_shows_the_count_and_latest_five(self):
         for number in range(7):
             complaint_services.respond(self.advisor, self.mine, f"Response number {number}")
         html = self.get(self.student, "student_home").content.decode()
-        bell = between(html, 'class="dropdown sa-bell"', '<a class="sa-bell-all"')
-        self.assertIn('<span class="sa-badge sa-badge--dot" aria-hidden="true">7</span>', bell)
+        bell = between(html, 'class="sa-pop sa-bell"', '<a class="sa-bell-all"')
+        self.assertIn('<span class="sa-badge sa-badge--dot" aria-hidden="true" data-bell-badge>7</span>', bell)
         self.assertEqual(bell.count('class="sa-bell-item'), 5)
         self.assertEqual(bell.count("is-unread"), 5)
+        self.assertIn('<p class="sa-bell-group">Today</p>', bell)
+        self.assertIn(f'action="{reverse("notifications_mark_all_read")}"', bell)
+        self.assertIn('class="sa-icon-chip sa-tone--received"', bell)  # complaint.response, from the status map
         newest = Notification.objects.filter(recipient=self.student).order_by("-created_at", "-id").first()
         self.assertIn(f'action="{reverse("notification_open", args=[newest.pk])}"', bell)
-        self.assertIn('<a class="sa-bell-all" href="/notifications/">See all</a>', html)
+        self.assertIn('<a class="sa-bell-all" href="/notifications/">View all', html)
 
     def test_bell_never_lists_someone_elses_notifications(self):
         complaint_services.respond(self.advisor, self.classmates, "Only for the classmate")
-        bell = between(self.get(self.student, "student_home").content.decode(), 'class="dropdown sa-bell"', '<a class="sa-bell-all"')
+        bell = between(self.get(self.student, "student_home").content.decode(), 'class="sa-pop sa-bell"', '<a class="sa-bell-all"')
         self.assertNotIn("sa-bell-item", bell)
+        self.assertIn("All caught up", bell)
+        self.assertNotIn("Mark all read", bell)
 
     def test_avatar_menu(self):
-        menu = between(self.get(self.student, "student_home").content.decode(), 'class="dropdown sa-account"', "</form>")
+        menu = between(self.get(self.student, "student_home").content.decode(), 'class="sa-pop sa-account"', "</form>")
         for text in ("Ali Khan", self.student.email, "Student", "A · S4", "Sign out", f'action="{reverse("account_logout")}"'):
             self.assertIn(text, menu)
-        staff_menu = between(self.get(self.advisor, "advisor_home").content.decode(), 'class="dropdown sa-account"', "</form>")
+        self.assertNotIn("/admin/", menu)
+        staff_menu = between(self.get(self.advisor, "advisor_home").content.decode(), 'class="sa-pop sa-account"', "</form>")
         self.assertIn("Batch Advisor", staff_menu)
         self.assertNotIn("sa-cohort", staff_menu)
+        admin_menu = between(self.get(self.admin, "super_admin_home").content.decode(), 'class="sa-pop sa-account"', "</form>")
+        self.assertNotIn("Django admin", admin_menu)
+
+    @override_settings(SHOW_THEME_TOGGLE=False)
+    def test_theme_toggle_can_be_hidden(self):
+        html = self.get(self.student, "student_home").content.decode()
+        self.assertNotIn("data-theme-toggle", html)
+        self.assertIn("d.dataset.theme=t", html)  # a stored or device theme still applies before first paint
 
     def test_cohort_chip_is_short_with_the_full_name_in_its_tooltip(self):
         html = self.get(self.student, "student_home").content.decode()
@@ -362,9 +394,11 @@ class ListAndDetailTests(RedesignTestCase):
         html = self.get(self.advisor, "advisor_complaints", status="received", sort="oldest", page="1").content.decode()
         self.assertIn(f'href="{reverse("advisor_complaints")}?status=open&amp;sort=oldest"', html)
 
-    def test_back_link_keeps_the_list_state(self):
+    def test_breadcrumb_is_the_only_back_and_keeps_the_list_state(self):
         html = self.get(self.student, "student_complaint_detail", self.mine.reference, status="received", sort="oldest").content.decode()
-        self.assertIn(f'class="sa-back" href="{reverse("student_complaints")}?status=received&amp;sort=oldest"', html)
+        crumbs = between(html, '<nav class="sa-crumbs"', "</nav>")
+        self.assertIn(f'<a href="{reverse("student_complaints")}?status=received&amp;sort=oldest">Complaints</a>', crumbs)
+        self.assertNotIn('class="sa-back"', main(self.get(self.student, "student_complaint_detail", self.mine.reference)))
 
     def test_advisor_panel(self):
         html = self.get(self.advisor, "advisor_complaint_detail", self.mine.reference).content.decode()
@@ -520,7 +554,9 @@ class MotionCssTests(SimpleTestCase):
             cls.css = file.read()
 
     def test_motion_tokens(self):
-        for token in ("--dur-fast: 120ms", "--dur-base: 200ms", "--dur-slow: 320ms", "--ease-out: cubic-bezier(0.2, 0, 0, 1)"):
+        # Polish v2 motion tokens (docs/POLISH_V2.md).
+        for token in ("--dur-fast: 150ms", "--dur: 250ms", "--dur-slow: 600ms", "--stagger: 60ms",
+                      "--ease-out: cubic-bezier(.22, 1, .36, 1)"):
             self.assertIn(token, self.css)
 
     def test_reduced_motion_turns_everything_off(self):
@@ -532,6 +568,6 @@ class MotionCssTests(SimpleTestCase):
         for rule in re.findall(r"(?:transition|animation):[^;}]*", self.css):
             if "none" in rule:
                 continue
-            self.assertIn("var(--dur-", rule, rule)
+            self.assertRegex(rule, r"var\(--dur[-)]", rule)
             self.assertNotRegex(rule, r"\b\d+m?s\b")
         self.assertNotIn("infinite", self.css)

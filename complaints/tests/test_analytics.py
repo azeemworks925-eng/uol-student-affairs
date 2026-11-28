@@ -475,7 +475,10 @@ class PrivacyLeakTests(OverviewTestCase):
         for cohort in (self.small, self.complement):
             self.assertNotIn(f"cohort={cohort_value(*(part.pk for part in cohort))}", region)
         self.assertIn(f"cohort={cohort_value(*(part.pk for part in self.visible))}", region)
-        self.assertEqual(set(re.findall(r"data-([a-z-]+)=", region)), {"section"})
+        # data-countup only repeats the visible number it animates to (Polish v2 count-up).
+        self.assertEqual(set(re.findall(r"data-([a-z-]+)=", region)), {"section", "countup", "doodle-slot"})  # a doodle slot carries no value
+        for value in re.findall(r'data-countup="([^"]*)"', region):
+            self.assertNotIn(value, {str(n) for n in self.hidden_values})
         self.assertNotIn("<script", region)
         self.assertNotIn('type="hidden"', region)
         self.assertEqual(region.count("sa-cell--hidden\""), 2)  # plus the key swatch
