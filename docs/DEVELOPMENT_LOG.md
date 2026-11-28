@@ -12,6 +12,27 @@ Rules:
 
 ---
 
+## 2026-11-28 — Polish v2, Prompt 1: foundation
+
+Branch `feat/polish-v2-foundation`, created from `main` at `4ec60db`. No new dependencies and no migrations. Decisions DEC-332 to DEC-338 (amending DEC-301 and DEC-330; resolving O30 and O34).
+
+**What was done**
+
+- Added `docs/POLISH_V2.md`, the owner-approved spec for the four polish sessions.
+- Rewrote the top of `static/css/app.css` as one token layer (light and a first dark pass); the old `--sa-*` names are aliases. Removed Newsreader.
+- Added the status colour map (`accounts/tones.py`, `tone` filter) and pointed the four apps' presentation maps at it.
+- Rebuilt the shell: floating sidebar with a sliding active pill, mini profile and Sign out; create-button rule; theme toggle; notifications panel (Today / Earlier, type chips, Mark all read, bottom sheet on phones); avatar menu without the Django admin link. Popovers are `<details>`, so they open without JavaScript.
+- Built the shared components in `templates/includes/ui/` (buttons, pills, dropdown over a real select, segmented control, stat card, content card, list row, stepper, timeline, dialog, toasts, empty state, filter bar + Reset, hero, banner, lock pills) and a DEBUG-only gallery at `/dev/ui/`.
+- Motion: View Transitions, on-load cascade, count-up, fills, hover life; all off under reduced motion.
+- Messages are toasts; the signed-in message is silenced; “← Back to …” links are gone (the breadcrumb keeps the list's filters).
+
+**Verified**
+
+- Full test suite on MySQL 8.0 and on the CI SQLite settings.
+- Visual check at 1280×800, 1100×800 and 360×740 in light and dark, on a throwaway SQLite copy of the demo data.
+
+---
+
 ## 2026-11-23 — Meetings, finished
 
 Branch `feat/meetings`, created from `main` at `4fe9c11`. Adds the `meetings` app with one migration and no new dependencies. Workflow decisions are recorded as DEC-328, which resolves O27 for meetings and O29 and amends DEC-061 and DEC-308.

@@ -1,6 +1,6 @@
 # Project status
 
-**As of:** 2026-11-24 · **Course demo:** 2026-11-26
+**As of:** 2026-11-28 · **Course demo:** 2026-11-26
 
 An independent BS Software Engineering student project. It is not an official University of
 Lahore system. For the full history, see [`DEVELOPMENT_LOG.md`](DEVELOPMENT_LOG.md); for every
@@ -21,6 +21,21 @@ Every V1 module is merged into `main`:
 | Meetings | `meetings` | Requests, confirm / suggest / decline / cancel, month and week views, and overlap warnings |
 | Section issues | `issues` | CR/GR-raised collective issues, anonymous support counts, advisor review / respond / resolve, and Super Admin oversight |
 | DSA | `dsa` | Seven hand-written structures and algorithms, each used in a feature (see [`../dsa/README.md`](../dsa/README.md)) |
+
+## Polish v2 (docs/POLISH_V2.md)
+
+| Session | Scope | State |
+|---|---|---|
+| P1 Foundation | Tokens and dark mode first pass, all Inter, status colour map, shell, motion system, shared components, toasts, theme toggle, `/dev/ui/` gallery (DEBUG only) | Done (DEC-332 to DEC-338) |
+| P2 Pages | Apply the components to every page: heroes, banners, bento layouts, list and detail pages, meetings calendar, people and configuration | Next |
+| P3 Doodles + auth | Doodle set into the slots P1 left, auth page family | Not started |
+| P4 Logic | Global search typeahead, role switcher (if safe), gender field, CR/GR picker, suppression removal, demo-data cleanup | Not started |
+
+Notes for P2 from the P1 visual check: page titles still differ from sidebar labels (student
+"My submissions"); timeline dots on existing detail pages are not yet toned per event; list pages
+use the restyled collection rather than the new `list_row` / `card_item` partials; the Overview
+heatmap and suppression legend are still there (removed in P2/P4); the phone drawer still needs
+Bootstrap's JavaScript.
 
 ## Last verified commit
 
