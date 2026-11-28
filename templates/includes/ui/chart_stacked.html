@@ -1,6 +1,0 @@
-{# One stacked bar. segments: accounts.dashboards.stacked (key, label, value, x, width). #}
-<svg class="sa-stacked sa-chart" viewBox="0 0 100 16" preserveAspectRatio="none" role="img" aria-labelledby="{{ uid }}-t {{ uid }}-d">
-  <title id="{{ uid }}-t">{{ label }}</title>
-  <desc id="{{ uid }}-d">{% for s in segments %}{{ s.label }}: {{ s.value }}{% if not forloop.last %}; {% endif %}{% endfor %}</desc>
-  {% for s in segments %}<rect class="sa-seg--{{ s.key }}" x="{{ s.x }}" width="{{ s.width }}" height="16"/>{% endfor %}
-</svg>

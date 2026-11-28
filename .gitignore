@@ -35,3 +35,6 @@ Desktop.ini
 
 # Local demo session script (never commit)
 create_demo_sessions.py
+
+# Local prompt/output scratch (never commit)
+Claude outputs/
