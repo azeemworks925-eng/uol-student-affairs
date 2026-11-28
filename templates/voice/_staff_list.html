@@ -1,0 +1,32 @@
+{% load ui %}{# Staff Student Voice list: Batch Advisor (their exact cohorts) and Super Admin (read-only). #}
+<div class="sa-page-flow">
+  {% if read_only %}{% include "includes/ui/banner.html" with title="Student Voice" icon="voice" pastel="lavender" action_template="issues/_view_only.html" %}{% else %}{% include "includes/ui/banner.html" with title="Student Voice" icon="voice" pastel="lavender" %}{% endif %}
+  {% if has_cohorts %}<p class="visually-hidden">{{ headline }}</p>{% endif %}
+
+  {% if not has_cohorts %}
+    {% include "includes/ui/empty.html" with title="No cohorts yet" text="Assigned cohorts appear here." icon="users" %}
+  {% else %}
+  {% include "includes/ui/stat_tabs.html" %}
+  <div class="sa-filterbar">
+    <form method="get" action="{% url urls.list %}" class="sa-pill-search" role="search">
+      <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
+      <label class="visually-hidden" for="voice-search">Search by student name, SAP ID or message</label>
+      <input id="voice-search" type="search" name="q" maxlength="100" value="{{ query }}" placeholder="Search submissions">
+      {% for key, value in search_hidden %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+    </form>
+    {% include "includes/ui/filter_chip.html" with label="Type" param="type" choices=filters.fields.type.choices current=current.type %}
+    {% if show_cohort_filter %}{% include "includes/ui/filter_chip.html" with label="Cohort" param="cohort" choices=filters.fields.cohort.choices current=current.cohort %}{% endif %}
+    {% include "includes/ui/filter_chip.html" with label="Sort" param="sort" choices=filters.fields.sort.choices current=current.sort %}
+    {% include "includes/ui/active_filters.html" %}
+  </div>
+  {% include "includes/ui/list_bar.html" with status_choices=status_tabs status_current=current.status key="staff-voice" %}
+  {% if page.object_list %}
+    {% include "voice/_collection.html" with key="staff-voice" detail_url_name=urls.detail show_person=True %}
+    {% include "includes/ui/pagination.html" with label="Submission pages" %}
+  {% elif has_filters %}
+    {% include "includes/ui/empty.html" with variant="no-results" title="No results" text="Nothing matches these filters." %}
+  {% else %}
+    {% include "includes/ui/empty.html" with title="No submissions yet" icon="voice" %}
+  {% endif %}
+  {% endif %}
+</div>

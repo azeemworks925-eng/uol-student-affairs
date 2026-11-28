@@ -1,0 +1,20 @@
+{% load ui %}{% comment %}
+  Student Voice as list rows and cards (one collection, two views). page; key; default_view;
+  detail_url_name; query_suffix; show_person (staff). voice.presentation.list_display has set each
+  submission's tone, type pastel, progress, second line (type, answer preview) and type pill.
+{% endcomment %}
+<div class="sa-views" data-view="{{ default_view|default:'list' }}" data-view-key="{{ key }}" data-per-row="3">
+  <ul class="sa-rows{% if not show_person %} sa-rows--no-person{% endif %}" aria-label="Submissions">
+    {% include "includes/ui/list_head.html" with c1="Submission" c2="Student" c4="Sent" %}
+    {% for item in page %}{% url detail_url_name item.pk as base %}
+    {% if show_person %}{% include "includes/ui/list_row.html" with url=base|add:query_suffix primary=item.text secondary=item.secondary person=item.student.get_full_name tone=item.tone status_label=item.get_status_display when=item.created_at %}
+    {% else %}{% include "includes/ui/list_row.html" with url=base|add:query_suffix primary=item.text secondary=item.secondary tone=item.tone status_label=item.get_status_display when=item.created_at %}{% endif %}
+    {% endfor %}
+  </ul>
+  <ul class="sa-cgrid" aria-label="Submissions">
+    {% for item in page %}{% url detail_url_name item.pk as base %}
+    {% if show_person %}{% include "includes/ui/card_item.html" with url=base|add:query_suffix icon="voice" pastel=item.pastel title=item.text sub=item.preview chips=item.chips tone=item.tone status_label=item.get_status_display progress=item.progress f1_label="Student" f1_value=item.student.get_full_name f2_label="Sent" f2_value=item.created_at|ago %}
+    {% else %}{% include "includes/ui/card_item.html" with url=base|add:query_suffix icon="voice" pastel=item.pastel title=item.text sub=item.preview chips=item.chips tone=item.tone status_label=item.get_status_display progress=item.progress f1_label="Sent" f1_value=item.created_at|ago %}{% endif %}
+    {% endfor %}
+  </ul>
+</div>

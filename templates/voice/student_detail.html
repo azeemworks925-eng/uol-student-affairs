@@ -1,43 +1,26 @@
 {% extends "layouts/app.html" %}
-{# One submission as its student sees it. Staff appear by role only. #}
+{% load ui %}
+{# One submission as its student sees it: the detail model. Staff appear by role only. #}
 {% block title %}{{ submission.get_type_display }} · Student Voice · UOL Student Affairs{% endblock %}
 {% block crumb_root %}<li><a href="{% url 'student_voice' %}{% if list_state %}?{{ list_state }}{% endif %}">Student Voice</a></li>{% endblock %}
 {% block crumb %}<li>{{ submission.get_type_display }}</li>{% endblock %}
 {% block content %}
-<div class="sa-flow">
-  <div class="sa-detail">
-    <div class="sa-detail-main">
-      <header class="sa-card sa-detail-head">
-        <div>
-          <div class="sa-detail-ids"><span class="sa-flag">{{ submission.get_type_display }}</span>{% include "complaints/student/_status.html" with tone=submission.tone label=submission.get_status_display %}</div>
-          <h1 class="sa-detail-title">Your {{ submission.get_type_display|lower }}</h1>
-        </div>
-        <div class="sa-prose">{{ submission.text|linebreaksbr }}</div>
-      </header>
-      <section class="sa-card" aria-labelledby="answer-title">
-        <h2 class="sa-card-title mb-2" id="answer-title">{% if submission.answer %}{{ submission.answer_label }}{% else %}Response{% endif %}</h2>
-        {% if submission.answer %}
-          <div class="sa-prose">{{ submission.answer|linebreaksbr }}</div>
-          <p class="sa-small sa-muted mb-0 mt-2">{{ submission.answered_by.get_role_display }} · {{ submission.answered_at|date:"j M Y" }}</p>
-        {% elif submission.status == "reviewed" %}
-          <p class="sa-small sa-muted mb-0">Your Batch Advisor has reviewed this.</p>
-        {% elif submission.is_question %}
-          <p class="sa-small sa-muted mb-0">Waiting for an answer from your Batch Advisor.</p>
-        {% else %}
-          <p class="sa-small sa-muted mb-0">Waiting for your Batch Advisor to review this.</p>
-        {% endif %}
-      </section>
-    </div>
-    <aside class="sa-detail-side" data-sticky-panel aria-label="Details">
-      <section class="sa-card" aria-labelledby="details-title">
-        <h2 class="sa-card-title mb-2" id="details-title">Details</h2>
-        <dl class="sa-facts-list">
-          <div><dt>Type</dt><dd>{{ submission.get_type_display }}</dd></div>
-          <div><dt>Submitted</dt><dd>{{ submission.created_at|date:"j M Y, H:i" }}</dd></div>
-          <div><dt>Section</dt><dd>{% include "includes/ui/cohort.html" with record=submission %}</dd></div>
+<div class="sa-dpage">
+  {% include "includes/ui/detail_hero.html" with tone=submission.tone status_label=submission.get_status_display title=submission.get_type_display text=submission.text journey=journey journey_label="Where this stands" pills_template="voice/_type_pill.html" private=True %}
+
+  <div class="sa-dmain">{% include "voice/_timeline.html" %}</div>
+
+  <aside class="sa-dside" aria-label="Details">
+    <div class="sa-dside-inner" data-sticky-panel>
+      <section class="sa-card sa-ddetails" aria-labelledby="details-title">
+        {% include "includes/ui/card_head.html" with title="Details" id="details-title" %}
+        <dl class="sa-facts">
+          <div><dt>Type</dt><dd>{% include "includes/ui/pill.html" with label=submission.get_type_display tone=submission.pastel %}</dd></div>
+          <div><dt>Sent</dt><dd><time datetime="{{ submission.created_at|date:'c' }}" title="{{ submission.created_at|date:'j M Y, H:i' }}">{{ submission.created_at|date:"j M Y" }}</time></dd></div>
+          <div><dt>Cohort</dt><dd>{% include "includes/ui/cohort.html" with record=submission %}</dd></div>
         </dl>
       </section>
-    </aside>
-  </div>
+    </div>
+  </aside>
 </div>
 {% endblock %}

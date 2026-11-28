@@ -1,62 +1,46 @@
 {% extends "layouts/app.html" %}
-{% load static %}
+{% load static ui %}
 {# Student Voice: the student's own submissions, and a short form in a dialog (DEC-050, DEC-051, DEC-253). #}
 {% block title %}Student Voice · UOL Student Affairs{% endblock %}
 {% block content %}
-<div class="sa-flow">
-  <header class="sa-page-header">
-    <div>
-      <h1 class="sa-page-title">Student Voice</h1>
-      <p class="sa-page-subtitle">Private to you, your Batch Advisors and the Super Admin.</p>
-    </div>
-    <div class="sa-page-actions"><button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-voice"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-plus"/></svg>New message</button></div>
-  </header>
+<div class="sa-page-flow">
+  {% include "includes/ui/banner.html" with title="Student Voice" icon="voice" pastel="lavender" action_template="voice/_student_actions.html" %}
 
   {% if total %}
-  <div class="sa-controls">
+  {% include "includes/ui/stat_tabs.html" %}
+  <div class="sa-filterbar">
     <form method="get" action="{% url 'student_voice' %}" class="sa-pill-search" role="search">
       <svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-search"/></svg>
       <label class="visually-hidden" for="voice-search">Search your submissions</label>
-      <input id="voice-search" type="search" name="q" maxlength="100" value="{{ query }}" placeholder="Search messages">
+      <input id="voice-search" type="search" name="q" maxlength="100" value="{{ query }}" placeholder="Search submissions">
       {% for key, value in search_hidden %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
     </form>
     {% include "includes/ui/filter_chip.html" with label="Type" param="type" choices=filters.fields.type.choices current=current.type %}
-    {% include "includes/ui/filter_chip.html" with label="Status" param="status" choices=filters.fields.status.choices current=current.status %}
     {% include "includes/ui/filter_chip.html" with label="Sort" param="sort" choices=filters.fields.sort.choices current=current.sort %}
-    {% if has_filters %}<a class="sa-clear" href="{% url 'student_voice' %}">Clear filters</a>{% endif %}
-    <div class="sa-controls-end">{% include "includes/ui/view_toggle.html" with key="student-voice" %}</div>
+    {% include "includes/ui/active_filters.html" %}
   </div>
-
-  <div class="sa-stats">
-    {% for stat in stats %}{% include "includes/ui/stat.html" with value=stat.value label=stat.label icon=stat.icon tone=stat.tone %}{% endfor %}
-  </div>
-  {% endif %}
-
+  {% include "includes/ui/list_bar.html" with status_choices=status_tabs status_current=current.status key="student-voice" default_view="cards" %}
   {% if page.object_list %}
-  <ul class="sa-collection sa-collection--no-who" data-view="list" data-view-key="student-voice">
-    {% for submission in page %}
-    <li>
-      <a class="sa-item sa-item--{{ submission.tone }}" href="{% url 'student_voice_detail' submission.pk %}{% if list_state %}?{{ list_state }}{% endif %}">
-        <span class="sa-item-ref">{{ submission.get_type_display }}</span>
-        <span class="sa-item-title">{{ submission.text }}{% if submission.answer %}<span class="sa-item-extra"><b>{{ submission.answer_label }}:</b> {{ submission.answer }}</span>{% endif %}</span>
-        {% include "includes/ui/cohort.html" with record=submission %}
-        {% include "complaints/student/_status.html" with tone=submission.tone label=submission.get_status_display %}
-        <span class="sa-item-when">{{ submission.created_at|date:"j M Y" }}</span>
-      </a>
+    {% include "voice/_collection.html" with key="student-voice" default_view="cards" detail_url_name="student_voice_detail" %}
+    {% include "includes/ui/pagination.html" with label="Submission pages" %}
+  {% else %}
+    {% include "includes/ui/empty.html" with variant="no-results" title="No results" text="Nothing matches these filters." %}
+  {% endif %}
+  {% else %}
+  <ul class="sa-voice-tiles" aria-label="Start a submission">
+    {% for tile in type_tiles %}
+    <li class="sa-voice-tile sa-tone--{{ tile.type|voice_type_pastel }}">
+      <span class="sa-icon-chip sa-tone--{{ tile.type|voice_type_pastel }}" aria-hidden="true"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-{{ tile.icon }}"/></svg></span>
+      <a class="sa-stretch" href="{% url 'student_voice' %}?new=1&amp;type={{ tile.type }}"><b>{{ tile.label }}</b></a>
     </li>
     {% endfor %}
   </ul>
-  {% include "includes/ui/pagination.html" with label="Submission pages" %}
-  {% elif has_filters %}
-    {% url 'student_voice' as all_url %}{% include "includes/ui/empty.html" with title="No submissions match these filters." link_url=all_url link_label="Clear filters" %}
-  {% else %}
-    {% include "includes/ui/empty.html" with title="Nothing here yet." text="Your ideas, questions and feedback appear here with your advisor's answer." icon="voice" %}
   {% endif %}
 </div>
 
 <dialog class="sa-dialog" id="dialog-voice" aria-labelledby="voice-form-title"{% if open_new %} data-open-on-load{% endif %}>
   <div class="sa-dialog-body">
-    {% include "includes/ui/dialog_head.html" with title="New message" id="voice-form-title" %}
+    {% include "includes/ui/dialog_head.html" with title="New submission" id="voice-form-title" icon="voice" tone="lavender" %}
     <form method="post" action="{% url 'student_voice' %}" novalidate data-once-submit>
       {% csrf_token %}
       {% if form.non_field_errors %}<div class="sa-message sa-message--error mb-3" role="alert">{{ form.non_field_errors|join:" " }}</div>{% endif %}

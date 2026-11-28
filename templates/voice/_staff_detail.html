@@ -1,0 +1,49 @@
+{% load ui %}{# One submission for staff: the detail model. The Super Admin's view is read-only (no forms, no POST routes). #}
+<div class="sa-dpage">
+  {% include "includes/ui/detail_hero.html" with tone=submission.tone status_label=submission.get_status_display title=submission.get_type_display|add:" from "|add:submission.student.get_full_name text=submission.text journey=journey journey_label="Where this stands" pills_template="voice/_type_pill.html" title_id="case-title" %}
+
+  <div class="sa-dmain">{% include "voice/_timeline.html" %}</div>
+
+  <aside class="sa-dside" aria-label="Actions and details">
+    <div class="sa-dside-inner" data-sticky-panel>
+      <section class="sa-card sa-daction" aria-labelledby="actions-title">
+        <header class="sa-card-head">
+          <div class="sa-card-titles"><h2 class="sa-card-title" id="actions-title">Actions</h2></div>
+          {% if read_only %}{% include "includes/ui/lock_pill.html" with kind="view-only" %}{% elif submission.answer %}{% include "includes/ui/lock_pill.html" with kind="locked" tip="An answer can't be changed" %}{% endif %}
+        </header>
+        {% if not read_only and can_answer or not read_only and can_review %}
+        <div class="sa-daction-buttons">
+          {% if can_answer %}<button type="button" class="btn btn-sa-primary" data-dialog-open="dialog-answer">{% if submission.is_question %}Answer{% else %}Reply{% endif %}</button>{% endif %}
+          {% if can_review %}<form method="post" action="{% url urls.review submission.pk %}{% if list_state %}?{{ list_state }}{% endif %}" data-once-submit>{% csrf_token %}<button type="submit" class="btn btn-sa-secondary" data-submit-label="Saving…">Mark reviewed</button></form>{% endif %}
+        </div>
+        {% endif %}
+      </section>
+
+      <section class="sa-card sa-ddetails" aria-labelledby="details-title">
+        <h2 class="visually-hidden" id="details-title">Details</h2>
+        <div class="sa-person-row sa-person">
+          {% include "includes/ui/avatar.html" with name=submission.student.get_full_name size="lg" %}
+          <div><b class="sa-person-name">{{ submission.student.get_full_name }}{% if student_post %} {% include "includes/ui/role_badge.html" with role=student_post|lower %}{% endif %}</b><small>SAP ID <span class="sa-ref">{{ sap_id }}</span></small></div>
+        </div>
+        <dl class="sa-facts">
+          <div><dt>Type</dt><dd>{% include "includes/ui/pill.html" with label=submission.get_type_display tone=submission.pastel %}</dd></div>
+          <div><dt>Cohort</dt><dd>{% include "includes/ui/cohort.html" with record=submission %}</dd></div>
+          <div><dt>Sent</dt><dd><time datetime="{{ submission.created_at|date:'c' }}" title="{{ submission.created_at|date:'j M Y, H:i' }}">{{ submission.created_at|date:"j M Y" }}</time></dd></div>
+        </dl>
+      </section>
+    </div>
+  </aside>
+</div>
+
+{% if can_answer %}
+<dialog class="sa-dialog" id="dialog-answer" aria-labelledby="answer-dialog-title"{% if answer_form.errors %} data-open-on-load{% endif %}>
+  <div class="sa-dialog-body">
+    {% if submission.is_question %}{% include "includes/ui/dialog_head.html" with title="Answer this question" id="answer-dialog-title" icon="voice" %}{% else %}{% include "includes/ui/dialog_head.html" with title="Write a reply" id="answer-dialog-title" icon="voice" %}{% endif %}
+    <form method="post" action="{% url urls.answer submission.pk %}{% if list_state %}?{{ list_state }}{% endif %}" novalidate data-once-submit>
+      {% csrf_token %}
+      {% include "includes/form_field.html" with field=answer_form.answer hide_optional=True %}
+      <button type="submit" class="btn btn-sa-primary" data-submit-label="Sending…">{% if submission.is_question %}Send answer{% else %}Send reply{% endif %}</button>
+    </form>
+  </div>
+</dialog>
+{% endif %}

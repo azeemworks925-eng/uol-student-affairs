@@ -230,7 +230,10 @@ class StudentPageTests(VoiceTestCase):
         self.url = reverse("student_voice")
 
     def test_friendly_empty_state(self):
-        self.assertContains(self.client.get(self.url), "Nothing here yet.")
+        # Polish v2 "Student Voice": three invitation tiles, each opening the form with its type.
+        response = self.client.get(self.url)
+        for kind in ("question", "idea", "feedback"):
+            self.assertContains(response, f"?new=1&amp;type={kind}")
 
     def test_submit_then_listed(self):
         response = self.client.post(self.url, {"type": "idea", "text": "A quiet study room would help."}, follow=True)
@@ -315,7 +318,7 @@ class AdvisorWorkspaceTests(VoiceTestCase):
 
     def test_no_assignments(self):
         self.client.force_login(make_advisor("none@uol.edu.pk"))
-        self.assertContains(self.client.get(self.url), "No cohorts are assigned to you yet.")
+        self.assertContains(self.client.get(self.url), "No cohorts yet")
 
 
 class NotificationTests(VoiceTestCase):
@@ -372,7 +375,7 @@ class SuperAdminTests(VoiceTestCase):
         submission = self.submit(Type.IDEA)
         url = reverse("super_admin_voice_detail", args=[submission.pk])
         response = self.client.get(url)
-        self.assertContains(response, "Read-only oversight")
+        self.assertContains(response, "View only")
         self.assertNotContains(response, 'name="answer"')
         self.assertNotContains(response, "Mark reviewed")
         self.assertNotIn('method="post"', response.content.decode().split("<main")[1].split("</main>")[0])  # the whole page content
@@ -417,10 +420,9 @@ class NavigationTests(VoiceTestCase):
         items = self.client.get(reverse("advisor_voice_detail", args=[submission.pk])).context["sa_nav_items"]
         self.assertTrue(next(i for i in items if i["label"] == "Student Voice")["current"])
 
-    def test_quick_access_links_here(self):
+    def test_home_hero_links_here(self):
         self.client.force_login(self.student)
-        quick = {i["label"]: i["url"] for i in self.client.get(reverse("student_home")).context["quick_access"]}
-        self.assertEqual(quick["Student Voice"], reverse("student_voice"))
+        self.assertContains(self.client.get(reverse("student_home")), f'href="{reverse("student_voice")}"><svg')
 
 
 class StudentHomeUpdateTests(VoiceTestCase):

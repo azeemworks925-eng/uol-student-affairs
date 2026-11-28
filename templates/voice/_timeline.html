@@ -1,0 +1,8 @@
+{# The submission's history: sent, reviewed and the answer as a speech bubble; "No response yet" until then. #}
+<section class="sa-card" aria-labelledby="history-title">
+  {% include "includes/ui/card_head.html" with title="History" id="history-title" %}
+  <ol class="sa-timeline">
+    {% for e in timeline %}{% include "includes/ui/timeline_item.html" with kind=e.kind title=e.title when=e.when tone=e.tone status_label=e.status_label by=e.by by_role=e.by_role message=e.message %}{% endfor %}
+  </ol>
+  {% if not submission.answer %}{% include "includes/ui/empty.html" with title="No response yet" icon="clock" size="sm" %}{% endif %}
+</section>
