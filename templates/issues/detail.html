@@ -2,10 +2,10 @@
 {% load static ui %}
 {# One section issue. Non-representative students never receive the status or the private responses (DEC-243, DEC-324). #}
 {% block title %}{{ issue.reference }} · Section issues · UOL Student Affairs{% endblock %}
+{% block crumb_root %}<li><a href="{{ back_url }}">{{ crumb_label }}</a></li>{% endblock %}
 {% block crumb %}<li>{{ issue.reference }}</li>{% endblock %}
 {% block content %}
 <div class="sa-flow">
-  <a class="sa-back" href="{{ back_url }}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>{{ back_label }}</a>
   <div class="sa-detail">
     <div class="sa-detail-main">
       <header class="sa-card sa-detail-head">

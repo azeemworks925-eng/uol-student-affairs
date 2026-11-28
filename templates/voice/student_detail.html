@@ -1,10 +1,10 @@
 {% extends "layouts/app.html" %}
 {# One submission as its student sees it. Staff appear by role only. #}
 {% block title %}{{ submission.get_type_display }} · Student Voice · UOL Student Affairs{% endblock %}
+{% block crumb_root %}<li><a href="{% url 'student_voice' %}{% if list_state %}?{{ list_state }}{% endif %}">Student Voice</a></li>{% endblock %}
 {% block crumb %}<li>{{ submission.get_type_display }}</li>{% endblock %}
 {% block content %}
 <div class="sa-flow">
-  <a class="sa-back" href="{% url 'student_voice' %}{% if list_state %}?{{ list_state }}{% endif %}"><svg class="sa-i" aria-hidden="true" focusable="false"><use href="#i-arrow"/></svg>Back to Student Voice</a>
   <div class="sa-detail">
     <div class="sa-detail-main">
       <header class="sa-card sa-detail-head">

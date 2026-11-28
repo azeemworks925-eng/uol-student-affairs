@@ -5,6 +5,7 @@
   the full-width list, or one complaint with its sticky side panel.
 {% endcomment %}
 {% block title %}{% if complaint %}{{ complaint.reference }} · {% endif %}Complaints · UOL Student Affairs{% endblock %}
+{% block crumb_root %}{% if sa_nav_current %}<li><a href="{% if complaint and list_url %}{{ list_url }}{% else %}{{ sa_nav_current.url }}{% endif %}">{{ sa_nav_current.label }}</a></li>{% endif %}{% endblock %}
 {% block crumb %}{% if complaint %}<li class="mono">{{ complaint.reference }}</li>{% endif %}{% endblock %}
 {% block content %}
 {% if complaint %}{% include "complaints/workspace/_case.html" %}{% else %}{% include "complaints/workspace/_list.html" %}{% endif %}
