@@ -5,7 +5,6 @@
   every colour scheme.
 */
 @font-face { font-family: "Inter"; font-style: normal; font-weight: 400 600; font-display: swap; src: url("../fonts/Inter-latin-variable.woff2") format("woff2"); }
-@font-face { font-family: "Newsreader"; font-style: normal; font-weight: 400 600; font-display: swap; src: url("../fonts/Newsreader-latin-variable.woff2") format("woff2"); }
 
 html:root, html[data-theme] {
   color-scheme: light;
@@ -72,7 +71,7 @@ body { -webkit-font-smoothing: antialiased; }
 .sa-admin-wordmark { display: inline-flex; align-items: baseline; gap: 6px; min-height: 44px; text-decoration: none !important; }
 #site-name .sa-admin-wordmark:link, #site-name .sa-admin-wordmark:visited { color: #253B32; }
 .sa-admin-wordmark small { font: 600 10px/1 "Inter", system-ui, sans-serif; letter-spacing: .1em; color: #55635C; }
-.sa-admin-wordmark span { font-family: "Newsreader", Georgia, serif; font-weight: 500; letter-spacing: -.015em; font-size: 21px; line-height: 44px; }
+.sa-admin-wordmark span { font-family: "Inter", system-ui, sans-serif; font-weight: 600; letter-spacing: -.015em; font-size: 21px; line-height: 44px; }
 .sa-admin-wordmark em { font: 500 13px/1 "Inter", system-ui, sans-serif; font-style: normal; color: #55635C; margin-left: 4px; }
 #user-tools { text-transform: none; letter-spacing: 0; font-size: 13px; color: #55635C; }
 #header a.sa-admin-back:link, #header a.sa-admin-back:visited { color: #176B52; font-weight: 600; }
@@ -84,7 +83,7 @@ fieldset .fieldset-heading, fieldset .inline-heading, :not(.inline-related) .col
   font-weight: 600;
   letter-spacing: .02em;
 }
-#content h1 { font-family: "Newsreader", Georgia, serif; font-weight: 500; font-size: 1.75rem; letter-spacing: -.01em; color: #253B32; }
+#content h1 { font-family: "Inter", system-ui, sans-serif; font-weight: 600; font-size: 1.75rem; letter-spacing: -.01em; color: #253B32; }
 .module, #changelist-filter { border-radius: 10px; }
 .button, input[type=submit], input[type=button], .submit-row input, a.button { border-radius: 8px; }
 :focus-visible { outline: 2px solid #176B52; outline-offset: 2px; }
